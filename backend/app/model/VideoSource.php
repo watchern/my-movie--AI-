@@ -4,7 +4,7 @@ namespace app\model;
 use think\Model;
 
 /**
- * 视频资源站关联模型
+ * 视频资源与播放列表模型
  */
 class VideoSource extends Model
 {
@@ -26,11 +26,5 @@ class VideoSource extends Model
     public function sourceSite()
     {
         return $this->belongsTo(SourceSite::class, 'source_site_id');
-    }
-
-    // 关联剧集
-    public function episodes()
-    {
-        return $this->hasMany(Episode::class, 'video_source_id');
     }
 }
