@@ -70,18 +70,18 @@ CREATE INDEX IF NOT EXISTS `idx_videos_category` ON `videos`(`category_id`);
 CREATE INDEX IF NOT EXISTS `idx_videos_is_vip` ON `videos`(`is_vip`);
 
 -- -----------------------------------------
--- 4. 视频资源与播放列表表
+-- 4. 视频资源播放地址表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `video_sources` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
     `video_id` INTEGER NOT NULL COMMENT '影视ID',
     `source_site_id` INTEGER NOT NULL COMMENT '资源站ID',
     `source_vid` VARCHAR(100) DEFAULT NULL COMMENT '资源站视频ID',
-    `title` VARCHAR(255) DEFAULT NULL COMMENT '标题(可选，单集/多集)',
-    `episode` VARCHAR(100) DEFAULT NULL COMMENT '集数(如第1集、01)',
+    `name` VARCHAR(255) DEFAULT NULL COMMENT '名称(如第1集、正片)',
     `sort_order` INTEGER DEFAULT 0 COMMENT '排序',
     `play_url` TEXT NOT NULL COMMENT '播放地址',
     `duration` INTEGER DEFAULT 0 COMMENT '时长(秒)',
+    `is_vip` TINYINT(1) DEFAULT 0 COMMENT '是否VIP专享',
     `status` TINYINT(1) DEFAULT 1 COMMENT '状态: 0禁用 1正常',
     `last_sync_at` DATETIME DEFAULT NULL COMMENT '最后同步时间',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -185,6 +185,7 @@ CREATE TABLE IF NOT EXISTS `source_sites` (
     `code` VARCHAR(50) NOT NULL COMMENT '站点代码',
     `api_url` VARCHAR(500) NOT NULL COMMENT 'API地址',
     `api_key` VARCHAR(255) DEFAULT NULL COMMENT 'API密钥',
+    `is_vip` TINYINT(1) DEFAULT 0 COMMENT '是否VIP专享',
     `status` TINYINT(1) DEFAULT 1 COMMENT '状态: 0禁用 1启用',
     `sort_order` INTEGER DEFAULT 100 COMMENT '排序',
     `last_sync_at` DATETIME DEFAULT NULL COMMENT '最后同步时间',

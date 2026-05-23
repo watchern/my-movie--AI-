@@ -14,4 +14,10 @@ class SourceSite extends Model
         'last_sync_at' => 'datetime',
         'created_at' => 'datetime',
     ];
+
+    // 关联视频资源
+    public function videoSources()
+    {
+        return $this->hasMany(VideoSource::class, 'source_site_id');
+    }
 }
