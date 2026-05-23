@@ -142,30 +142,36 @@ CREATE INDEX IF NOT EXISTS `idx_card_no` ON `card_keys`(`card_no`);
 CREATE INDEX IF NOT EXISTS `idx_card_status` ON `card_keys`(`status`);
 
 -- -----------------------------------------
--- 8. 卡密充值记录表
+-- 8. VIP变动记录表(合并卡密和广告)
 -- -----------------------------------------
-CREATE TABLE IF NOT EXISTS `card_recharge_logs` (
+CREATE TABLE IF NOT EXISTS `vip_transactions` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
     `user_id` INTEGER NOT NULL COMMENT '用户ID',
-    `card_id` INTEGER NOT NULL COMMENT '卡密ID',
-    `days` INTEGER DEFAULT 0 COMMENT '充值天数',
+    `type` VARCHAR(20) NOT NULL COMMENT '类型: card/ad/other',
+    `sub_type` VARCHAR(50) DEFAULT NULL COMMENT '子类型',
+    `days` INTEGER DEFAULT 0 COMMENT '获得天数',
+    `related_id` INTEGER DEFAULT NULL COMMENT '关联ID(卡密ID等)',
+    `description` VARCHAR(255) DEFAULT NULL COMMENT '说明',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS `idx_recharge_user` ON `card_recharge_logs`(`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_vip_trans_user` ON `vip_transactions`(`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_vip_trans_type` ON `vip_transactions`(`type`);
 
 -- -----------------------------------------
--- 9. 广告观看记录表
+-- 9. 用户登录日志表
 -- -----------------------------------------
-CREATE TABLE IF NOT EXISTS `ad_watch_logs` (
+CREATE TABLE IF NOT EXISTS `login_logs` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
     `user_id` INTEGER NOT NULL COMMENT '用户ID',
-    `ad_type` VARCHAR(50) DEFAULT NULL COMMENT '广告类型',
-    `reward` INTEGER DEFAULT 1 COMMENT '奖励(分钟)',
-    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+    `login_ip` VARCHAR(50) DEFAULT NULL COMMENT '登录IP',
+    `device` VARCHAR(20) DEFAULT NULL COMMENT '设备: mobile/tablet/desktop/other',
+    `device_info` VARCHAR(255) DEFAULT NULL COMMENT '设备信息(UA)',
+    `login_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS `idx_ad_user` ON `ad_watch_logs`(`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_login_user` ON `login_logs`(`user_id`);
+CREATE INDEX IF NOT EXISTS `idx_login_time` ON `login_logs`(`login_at`);
 
 -- -----------------------------------------
 -- 10. 资源站点配置表
@@ -191,7 +197,7 @@ CREATE TABLE IF NOT EXISTS `system_config` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
     `key` VARCHAR(100) NOT NULL UNIQUE COMMENT '配置键',
     `value` TEXT DEFAULT NULL COMMENT '配置值',
-    `type` VARCHAR(50) DEFAULT 'string' COMMENT '类型: string int json bool',
+    `type` VARCHAR(50) DEFAULT 'string' COMMENT '类型: string/int/json/bool',
     `description` VARCHAR(255) DEFAULT NULL COMMENT '说明',
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -225,8 +231,8 @@ INSERT OR IGNORE INTO `admins` (`username`, `password`, `nickname`, `status`) VA
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '管理员', 1);
 
 -- -----------------------------------------
--- 13. 软删除支持（为已删除的表添加deleted_at字段）
+-- 13. 软删除支持(为已删除的表添加deleted_at字段)
 -- -----------------------------------------
--- MySQL版本需要单独执行以下SQL添加软删除字段：
+-- MySQL版本需要单独执行以下SQL添加软删除字段:
 -- ALTER TABLE `users` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL;
 -- ALTER TABLE `admins` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL;

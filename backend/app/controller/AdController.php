@@ -2,8 +2,8 @@
 namespace app\controller;
 
 use app\BaseController;
-use app\model\AdWatchLog;
 use app\model\User;
+use app\model\VipTransaction;
 use app\model\SystemConfig;
 use think\facade\Db;
 
@@ -30,9 +30,9 @@ class AdController extends BaseController
         $rewardMinutes = intval(SystemConfig::getValue('ad_video_reward', 30));
         $dailyLimit = intval(SystemConfig::getValue('ad_daily_limit', 10));
 
-        // 检查今日已观看次数
-        $today = date('Y-m-d');
-        $todayCount = AdWatchLog::where('user_id', $userId)
+        // 检查今日已观看次数 - 使用vip_transactions表
+        $todayCount = VipTransaction::where('user_id', $userId)
+            ->where('type', VipTransaction::TYPE_AD)
             ->whereTime('created_at', 'today')
             ->count();
 
@@ -40,40 +40,23 @@ class AdController extends BaseController
             return $this->error('今日广告观看次数已用完');
         }
 
-        // 记录广告观看
-        $log = new AdWatchLog();
-        $log->user_id = $userId;
-        $log->ad_type = $adType;
-        $log->reward = $rewardMinutes;
-        $log->save();
-
-        // 给用户增加VIP时长
+        // 获取用户
         $user = User::find($userId);
-        if ($user) {
-            $now = time();
-
-            if ($user->vip_status == User::VIP_ACTIVE && !empty($user->vip_expire_time)) {
-                $expireTime = strtotime($user->vip_expire_time);
-                if ($expireTime > $now) {
-                    $newExpireTime = date('Y-m-d H:i:s', $expireTime + ($rewardMinutes * 60));
-                } else {
-                    $newExpireTime = date('Y-m-d H:i:s', $now + ($rewardMinutes * 60));
-                }
-            } else {
-                // 用户没有VIP或VIP已过期，开通VIP
-                $newExpireTime = date('Y-m-d H:i:s', $now + ($rewardMinutes * 60));
-            }
-
-            $user->vip_status = User::VIP_ACTIVE;
-            $user->vip_expire_time = $newExpireTime;
-            $user->save();
+        if (!$user) {
+            return $this->error('用户不存在');
         }
+
+        // 计算天数(向上取整)
+        $days = ceil($rewardMinutes / 1440);
+
+        // 添加VIP天数
+        $user->addVipDays($days, VipTransaction::TYPE_AD, $adType, null, '观看广告奖励');
 
         return $this->success([
             'reward_minutes' => $rewardMinutes,
             'today_count' => $todayCount + 1,
             'daily_limit' => $dailyLimit,
-            'vip_expire_time' => $user ? $user->vip_expire_time : null,
+            'vip_expire_time' => $user->vip_expire_time,
         ], '观看成功');
     }
 
@@ -88,7 +71,8 @@ class AdController extends BaseController
 
         $todayCount = 0;
         if ($userId > 0) {
-            $todayCount = AdWatchLog::where('user_id', $userId)
+            $todayCount = VipTransaction::where('user_id', $userId)
+                ->where('type', VipTransaction::TYPE_AD)
                 ->whereTime('created_at', 'today')
                 ->count();
         }

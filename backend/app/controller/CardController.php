@@ -3,8 +3,8 @@ namespace app\controller;
 
 use app\BaseController;
 use app\model\CardKey;
-use app\model\CardRechargeLog;
 use app\model\User;
+use app\model\VipTransaction;
 
 /**
  * 卡密控制器
@@ -52,44 +52,31 @@ class CardController extends BaseController
             return $this->error('用户不存在');
         }
 
-        // 更新用户VIP状态
-        $now = time();
+        // 永久VIP特殊处理
+        if ($card->type == CardKey::TYPE_FOREVER) {
+            $user->vip_status = User::VIP_ACTIVE;
+            $user->vip_expire_time = null;
+            $user->save();
 
-        // 如果用户已有VIP
-        if ($user->vip_status == User::VIP_ACTIVE && !empty($user->vip_expire_time)) {
-            $expireTime = strtotime($user->vip_expire_time);
-            // 如果VIP未过期，在原有基础上增加
-            if ($expireTime > $now) {
-                $newExpireTime = date('Y-m-d H:i:s', $expireTime + ($days * 86400));
-            } else {
-                // 如果VIP已过期，从现在开始计算
-                $newExpireTime = date('Y-m-d H:i:s', $now + ($days * 86400));
-            }
+            // 记录VIP变动
+            $trans = new VipTransaction();
+            $trans->user_id = $user->id;
+            $trans->type = VipTransaction::TYPE_CARD;
+            $trans->sub_type = 'forever';
+            $trans->days = 0;
+            $trans->related_id = $card->id;
+            $trans->description = '永久VIP卡密兑换';
+            $trans->save();
         } else {
-            // 如果用户没有VIP或永久VIP
-            if ($card->type == CardKey::TYPE_FOREVER) {
-                $newExpireTime = null; // 永久
-            } else {
-                $newExpireTime = date('Y-m-d H:i:s', $now + ($days * 86400));
-            }
+            // 使用添加VIP天数的方法
+            $user->addVipDays($days, VipTransaction::TYPE_CARD, $card->type_name, $card->id, '卡密兑换');
         }
-
-        $user->vip_status = User::VIP_ACTIVE;
-        $user->vip_expire_time = $newExpireTime;
-        $user->save();
 
         // 更新卡密状态
         $card->status = CardKey::STATUS_USED;
         $card->used_user_id = $userId;
         $card->used_at = date('Y-m-d H:i:s');
         $card->save();
-
-        // 记录充值日志
-        $log = new CardRechargeLog();
-        $log->user_id = $userId;
-        $log->card_id = $card->id;
-        $log->days = $days;
-        $log->save();
 
         return $this->success([
             'vip_status' => $user->vip_status,

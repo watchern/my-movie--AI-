@@ -3,6 +3,8 @@ namespace app\controller;
 
 use app\BaseController;
 use app\model\User;
+use app\model\LoginLog;
+use app\model\VipTransaction;
 use app\common\JwtHelper;
 
 /**
@@ -49,6 +51,11 @@ class AuthController extends BaseController
             return $this->error('注册失败');
         }
 
+        // 记录登录日志
+        $ip = $this->request->ip() ?? '';
+        $userAgent = $this->request->header('user-agent') ?? '';
+        $user->recordLogin($ip, $userAgent);
+
         // 生成Token
         $token = JwtHelper::generateToken($user->id);
         $refreshToken = JwtHelper::generateRefreshToken($user->id);
@@ -94,6 +101,11 @@ class AuthController extends BaseController
                 $user->save();
             }
         }
+
+        // 记录登录日志
+        $ip = $this->request->ip() ?? '';
+        $userAgent = $this->request->header('user-agent') ?? '';
+        $user->recordLogin($ip, $userAgent);
 
         // 生成Token
         $token = JwtHelper::generateToken($user->id);

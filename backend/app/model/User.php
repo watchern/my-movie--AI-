@@ -63,4 +63,60 @@ class User extends Model
         $remain = strtotime($this->vip_expire_time) - time();
         return max(0, floor($remain / 86400));
     }
+
+    // 添加VIP天数
+    public function addVipDays(int $days, string $type = VipTransaction::TYPE_OTHER, string $subType = null, int $relatedId = null, string $description = null): bool
+    {
+        $now = time();
+
+        // 检查是否永久VIP
+        if ($this->vip_status == self::VIP_ACTIVE && empty($this->vip_expire_time)) {
+            // 永久VIP，不需要更新
+        } else {
+            // 计算新的过期时间
+            if ($this->vip_status == self::VIP_ACTIVE && !empty($this->vip_expire_time)) {
+                $expireTime = strtotime($this->vip_expire_time);
+                if ($expireTime > $now) {
+                    // 在原有基础上增加
+                    $newExpireTime = date('Y-m-d H:i:s', $expireTime + ($days * 86400));
+                } else {
+                    // 已过期，从现在开始
+                    $newExpireTime = date('Y-m-d H:i:s', $now + ($days * 86400));
+                }
+            } else {
+                // 没有VIP，从现在开始
+                $newExpireTime = date('Y-m-d H:i:s', $now + ($days * 86400));
+            }
+            $this->vip_status = self::VIP_ACTIVE;
+            $this->vip_expire_time = $newExpireTime;
+        }
+
+        if (!$this->save()) {
+            return false;
+        }
+
+        // 记录VIP变动
+        $trans = new VipTransaction();
+        $trans->user_id = $this->id;
+        $trans->type = $type;
+        $trans->sub_type = $subType;
+        $trans->days = $days;
+        $trans->related_id = $relatedId;
+        $trans->description = $description;
+        $trans->save();
+
+        return true;
+    }
+
+    // 记录登录日志
+    public function recordLogin(string $ip = null, string $userAgent = null): bool
+    {
+        $log = new LoginLog();
+        $log->user_id = $this->id;
+        $log->login_ip = $ip;
+        $log->device = LoginLog::detectDevice($userAgent ?? '');
+        $log->device_info = $userAgent;
+        $log->login_at = date('Y-m-d H:i:s');
+        return $log->save();
+    }
 }
