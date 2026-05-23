@@ -11,21 +11,12 @@ class Episode extends Model
     protected $name = 'episodes';
 
     protected $type = [
-        'video_id' => 'integer',
-        'episode_number' => 'integer',
-        'duration' => 'integer',
-        'sort_order' => 'integer',
+        'created_at' => 'datetime',
     ];
 
-    // 获取播放地址
-    public function getPlayUrlAttr($value)
+    // 关联视频资源
+    public function videoSource()
     {
-        return $value ?? '';
-    }
-
-    // 关联影视
-    public function video()
-    {
-        return $this->belongsTo(Video::class, 'video_id');
+        return $this->belongsTo(VideoSource::class, 'video_source_id');
     }
 }

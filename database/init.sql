@@ -54,15 +54,12 @@ CREATE TABLE IF NOT EXISTS `videos` (
     `region` VARCHAR(50) DEFAULT NULL COMMENT '地区',
     `language` VARCHAR(50) DEFAULT NULL COMMENT '语言',
     `rating` DECIMAL(3,1) DEFAULT 0 COMMENT '评分',
-    `play_url` TEXT DEFAULT NULL COMMENT '播放地址(JSON数组/多集)',
     `play_count` INTEGER DEFAULT 0 COMMENT '播放次数',
     `up_count` INTEGER DEFAULT 0 COMMENT '点赞数',
     `down_count` INTEGER DEFAULT 0 COMMENT '踩数',
     `is_vip` TINYINT(1) DEFAULT 0 COMMENT '是否VIP专享',
     `is_show` TINYINT(1) DEFAULT 1 COMMENT '是否显示',
     `is_deleted` TINYINT(1) DEFAULT 0 COMMENT '是否删除',
-    `source_id` VARCHAR(100) DEFAULT NULL COMMENT '来源ID(资源站)',
-    `source_name` VARCHAR(50) DEFAULT NULL COMMENT '来源名称',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
@@ -71,32 +68,53 @@ CREATE TABLE IF NOT EXISTS `videos` (
 CREATE INDEX IF NOT EXISTS `idx_videos_type` ON `videos`(`type`);
 CREATE INDEX IF NOT EXISTS `idx_videos_category` ON `videos`(`category_id`);
 CREATE INDEX IF NOT EXISTS `idx_videos_is_vip` ON `videos`(`is_vip`);
-CREATE INDEX IF NOT EXISTS `idx_videos_source` ON `videos`(`source_id`);
 
 -- -----------------------------------------
--- 4. 剧集表(电视剧/动漫用)
+-- 4. 视频资源站关联表
+-- -----------------------------------------
+CREATE TABLE IF NOT EXISTS `video_sources` (
+    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+    `video_id` INTEGER NOT NULL COMMENT '影视ID',
+    `source_site_id` INTEGER NOT NULL COMMENT '资源站ID',
+    `source_vid` VARCHAR(100) DEFAULT NULL COMMENT '资源站视频ID',
+    `play_url` TEXT DEFAULT NULL COMMENT '播放地址(JSON数组)',
+    `status` TINYINT(1) DEFAULT 1 COMMENT '状态: 0禁用 1正常',
+    `last_sync_at` DATETIME DEFAULT NULL COMMENT '最后同步时间',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS `idx_video_sources_video` ON `video_sources`(`video_id`);
+CREATE INDEX IF NOT EXISTS `idx_video_sources_site` ON `video_sources`(`source_site_id`);
+CREATE INDEX IF NOT EXISTS `idx_video_sources_vid` ON `video_sources`(`source_vid`);
+
+-- -----------------------------------------
+-- 5. 剧集表(电视剧/动漫用)
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `episodes` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-    `video_id` INTEGER NOT NULL COMMENT '影视ID',
+    `video_source_id` INTEGER NOT NULL COMMENT '视频资源ID',
     `episode_number` INTEGER NOT NULL COMMENT '集数',
     `title` VARCHAR(255) DEFAULT NULL COMMENT '集标题',
     `cover` VARCHAR(500) DEFAULT NULL COMMENT '集封面',
     `play_url` TEXT NOT NULL COMMENT '播放地址',
     `duration` INTEGER DEFAULT 0 COMMENT '时长(分钟)',
     `sort_order` INTEGER DEFAULT 0 COMMENT '排序',
+    `source_eid` VARCHAR(100) DEFAULT NULL COMMENT '资源站剧集ID',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS `idx_episodes_video` ON `episodes`(`video_id`);
+CREATE INDEX IF NOT EXISTS `idx_episodes_source` ON `episodes`(`video_source_id`);
+CREATE INDEX IF NOT EXISTS `idx_episodes_eid` ON `episodes`(`source_eid`);
 
 -- -----------------------------------------
--- 5. 观看历史记录表
+-- 6. 观看历史记录表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `watch_history` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
     `user_id` INTEGER NOT NULL COMMENT '用户ID',
     `video_id` INTEGER NOT NULL COMMENT '影视ID',
+    `video_source_id` INTEGER DEFAULT NULL COMMENT '视频资源ID',
     `episode_id` INTEGER DEFAULT NULL COMMENT '剧集ID',
     `progress` INTEGER DEFAULT 0 COMMENT '播放进度(秒)',
     `duration` INTEGER DEFAULT 0 COMMENT '总时长(秒)',
@@ -109,7 +127,7 @@ CREATE INDEX IF NOT EXISTS `idx_history_user` ON `watch_history`(`user_id`);
 CREATE INDEX IF NOT EXISTS `idx_history_video` ON `watch_history`(`video_id`);
 
 -- -----------------------------------------
--- 6. 收藏表
+-- 7. 收藏表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `favorites` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,7 +140,7 @@ CREATE TABLE IF NOT EXISTS `favorites` (
 CREATE INDEX IF NOT EXISTS `idx_favorites_user` ON `favorites`(`user_id`);
 
 -- -----------------------------------------
--- 7. 卡密表
+-- 8. 卡密表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `card_keys` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,7 +160,7 @@ CREATE INDEX IF NOT EXISTS `idx_card_no` ON `card_keys`(`card_no`);
 CREATE INDEX IF NOT EXISTS `idx_card_status` ON `card_keys`(`status`);
 
 -- -----------------------------------------
--- 8. VIP变动记录表(合并卡密和广告)
+-- 9. VIP变动记录表(合并卡密和广告)
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `vip_transactions` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -159,7 +177,7 @@ CREATE INDEX IF NOT EXISTS `idx_vip_trans_user` ON `vip_transactions`(`user_id`)
 CREATE INDEX IF NOT EXISTS `idx_vip_trans_type` ON `vip_transactions`(`type`);
 
 -- -----------------------------------------
--- 9. 用户登录日志表
+-- 10. 用户登录日志表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `login_logs` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -174,7 +192,7 @@ CREATE INDEX IF NOT EXISTS `idx_login_user` ON `login_logs`(`user_id`);
 CREATE INDEX IF NOT EXISTS `idx_login_time` ON `login_logs`(`login_at`);
 
 -- -----------------------------------------
--- 10. 资源站点配置表
+-- 11. 资源站点配置表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `source_sites` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -191,7 +209,7 @@ CREATE TABLE IF NOT EXISTS `source_sites` (
 CREATE INDEX IF NOT EXISTS `idx_source_status` ON `source_sites`(`status`);
 
 -- -----------------------------------------
--- 11. 系统配置表
+-- 12. 系统配置表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `system_config` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -211,7 +229,7 @@ INSERT OR IGNORE INTO `system_config` (`key`, `value`, `type`, `description`) VA
 ('default_vip_days', '0', 'int', '新用户注册赠送VIP天数');
 
 -- -----------------------------------------
--- 12. 管理员表
+-- 13. 管理员表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `admins` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -231,7 +249,7 @@ INSERT OR IGNORE INTO `admins` (`username`, `password`, `nickname`, `status`) VA
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '管理员', 1);
 
 -- -----------------------------------------
--- 13. 软删除支持(为已删除的表添加deleted_at字段)
+-- 14. 软删除支持(为已删除的表添加deleted_at字段)
 -- -----------------------------------------
 -- MySQL版本需要单独执行以下SQL添加软删除字段:
 -- ALTER TABLE `users` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL;
