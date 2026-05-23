@@ -27,6 +27,12 @@ class Video extends Model
         return $this->hasMany(VideoSource::class, 'video_id');
     }
 
+    // 关联标签
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'video_tags', 'tag_id', 'video_id');
+    }
+
     // 获取器：演员JSON转换
     public function getActorsAttr($value)
     {

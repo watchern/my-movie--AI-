@@ -36,7 +36,30 @@ CREATE TABLE IF NOT EXISTS `categories` (
 );
 
 -- -----------------------------------------
--- 3. 影视内容表
+-- 3. 影视标签表
+-- -----------------------------------------
+CREATE TABLE IF NOT EXISTS `tags` (
+    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+    `name` VARCHAR(50) NOT NULL UNIQUE COMMENT '标签名称',
+    `sort_order` INTEGER DEFAULT 100 COMMENT '排序',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- -----------------------------------------
+-- 4. 影视标签关联表
+-- -----------------------------------------
+CREATE TABLE IF NOT EXISTS `video_tags` (
+    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+    `video_id` INTEGER NOT NULL COMMENT '影视ID',
+    `tag_id` INTEGER NOT NULL COMMENT '标签ID',
+    UNIQUE(`video_id`, `tag_id`)
+);
+
+CREATE INDEX IF NOT EXISTS `idx_video_tags_video` ON `video_tags`(`video_id`);
+CREATE INDEX IF NOT EXISTS `idx_video_tags_tag` ON `video_tags`(`tag_id`);
+
+-- -----------------------------------------
+-- 5. 影视内容表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `videos` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,8 +78,6 @@ CREATE TABLE IF NOT EXISTS `videos` (
     `language` VARCHAR(50) DEFAULT NULL COMMENT '语言',
     `rating` DECIMAL(3,1) DEFAULT 0 COMMENT '评分',
     `play_count` INTEGER DEFAULT 0 COMMENT '播放次数',
-    `up_count` INTEGER DEFAULT 0 COMMENT '点赞数',
-    `down_count` INTEGER DEFAULT 0 COMMENT '踩数',
     `is_vip` TINYINT(1) DEFAULT 0 COMMENT '是否VIP专享',
     `is_show` TINYINT(1) DEFAULT 1 COMMENT '是否显示',
     `is_deleted` TINYINT(1) DEFAULT 0 COMMENT '是否删除',
@@ -70,7 +91,7 @@ CREATE INDEX IF NOT EXISTS `idx_videos_category` ON `videos`(`category_id`);
 CREATE INDEX IF NOT EXISTS `idx_videos_is_vip` ON `videos`(`is_vip`);
 
 -- -----------------------------------------
--- 4. 视频资源播放地址表
+-- 6. 视频资源播放地址表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `video_sources` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,7 +115,7 @@ CREATE INDEX IF NOT EXISTS `idx_video_sources_vid` ON `video_sources`(`source_vi
 CREATE INDEX IF NOT EXISTS `idx_video_sources_sort` ON `video_sources`(`sort_order`);
 
 -- -----------------------------------------
--- 5. 观看历史记录表
+-- 7. 观看历史记录表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `watch_history` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +133,7 @@ CREATE INDEX IF NOT EXISTS `idx_history_user` ON `watch_history`(`user_id`);
 CREATE INDEX IF NOT EXISTS `idx_history_video` ON `watch_history`(`video_id`);
 
 -- -----------------------------------------
--- 6. 收藏表
+-- 8. 收藏表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `favorites` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,7 +146,7 @@ CREATE TABLE IF NOT EXISTS `favorites` (
 CREATE INDEX IF NOT EXISTS `idx_favorites_user` ON `favorites`(`user_id`);
 
 -- -----------------------------------------
--- 7. 卡密表
+-- 9. 卡密表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `card_keys` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,7 +166,7 @@ CREATE INDEX IF NOT EXISTS `idx_card_no` ON `card_keys`(`card_no`);
 CREATE INDEX IF NOT EXISTS `idx_card_status` ON `card_keys`(`status`);
 
 -- -----------------------------------------
--- 8. VIP变动记录表(合并卡密和广告)
+-- 10. VIP变动记录表(合并卡密和广告)
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `vip_transactions` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,7 +183,7 @@ CREATE INDEX IF NOT EXISTS `idx_vip_trans_user` ON `vip_transactions`(`user_id`)
 CREATE INDEX IF NOT EXISTS `idx_vip_trans_type` ON `vip_transactions`(`type`);
 
 -- -----------------------------------------
--- 9. 用户登录日志表
+-- 11. 用户登录日志表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `login_logs` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -177,7 +198,7 @@ CREATE INDEX IF NOT EXISTS `idx_login_user` ON `login_logs`(`user_id`);
 CREATE INDEX IF NOT EXISTS `idx_login_time` ON `login_logs`(`login_at`);
 
 -- -----------------------------------------
--- 10. 资源站点配置表
+-- 12. 资源站点配置表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `source_sites` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -195,7 +216,7 @@ CREATE TABLE IF NOT EXISTS `source_sites` (
 CREATE INDEX IF NOT EXISTS `idx_source_status` ON `source_sites`(`status`);
 
 -- -----------------------------------------
--- 11. 系统配置表
+-- 13. 系统配置表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `system_config` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -215,7 +236,7 @@ INSERT OR IGNORE INTO `system_config` (`key`, `value`, `type`, `description`) VA
 ('default_vip_days', '0', 'int', '新用户注册赠送VIP天数');
 
 -- -----------------------------------------
--- 12. 管理员表
+-- 14. 管理员表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `admins` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -235,7 +256,7 @@ INSERT OR IGNORE INTO `admins` (`username`, `password`, `nickname`, `status`) VA
 ('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '管理员', 1);
 
 -- -----------------------------------------
--- 13. 软删除支持(为已删除的表添加deleted_at字段)
+-- 15. 软删除支持(为已删除的表添加deleted_at字段)
 -- -----------------------------------------
 -- MySQL版本需要单独执行以下SQL添加软删除字段:
 -- ALTER TABLE `users` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL;
