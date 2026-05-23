@@ -1,0 +1,273 @@
+<?php
+namespace app\controller;
+
+use app\BaseController;
+use app\model\Video;
+use app\model\Category;
+use app\model\User;
+use app\model\SourceSite;
+use app\model\CardKey;
+use app\service\AppleCmsService;
+
+/**
+ * 管理端 - 视频管理
+ */
+class admin\VideoController extends BaseController
+{
+    /**
+     * 视频列表
+     */
+    public function list()
+    {
+        $data = $this->getData();
+        $keyword = trim($data['keyword'] ?? '');
+        $type = intval($data['type'] ?? 0);
+        $isVip = isset($data['is_vip']) ? intval($data['is_vip']) : -1;
+        $page = max(1, intval($data['page'] ?? 1));
+        $limit = max(1, min(100, intval($data['limit'] ?? 20)));
+
+        $where = [];
+        if (!empty($keyword)) {
+            $where[] = ['title', 'like', "%{$keyword}%"];
+        }
+        if ($type > 0) {
+            $where[] = ['type', '=', $type];
+        }
+        if ($isVip >= 0) {
+            $where[] = ['is_vip', '=', $isVip];
+        }
+
+        $list = Video::with(['category'])
+            ->where($where)
+            ->order('id', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        $total = Video::where($where)->count();
+
+        $result = [];
+        foreach ($list as $item) {
+            $result[] = [
+                'id' => $item->id,
+                'title' => $item->title,
+                'type' => $item->type,
+                'type_name' => $item->type_name,
+                'cover' => $item->cover,
+                'rating' => $item->rating,
+                'play_count' => $item->play_count,
+                'is_vip' => $item->is_vip,
+                'is_show' => $item->is_show,
+                'category' => $item->category ? $item->category->name : '',
+                'source_name' => $item->source_name,
+                'created_at' => $item->created_at,
+            ];
+        }
+
+        return $this->success([
+            'list' => $result,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+        ]);
+    }
+
+    /**
+     * 添加/编辑视频
+     */
+    public function save()
+    {
+        $data = $this->getData();
+        $id = intval($data['id'] ?? 0);
+
+        if (empty($data['title'])) {
+            return $this->error('标题不能为空');
+        }
+
+        if ($id > 0) {
+            $video = Video::find($id);
+            if (!$video) {
+                return $this->error('视频不存在');
+            }
+        } else {
+            $video = new Video();
+        }
+
+        $video->title = trim($data['title']);
+        $video->subtitle = trim($data['subtitle'] ?? '');
+        $video->type = intval($data['type'] ?? Video::TYPE_MOVIE);
+        $video->category_id = intval($data['category_id'] ?? 0);
+        $video->cover = trim($data['cover'] ?? '');
+        $video->banner = trim($data['banner'] ?? '');
+        $video->director = trim($data['director'] ?? '');
+        $video->actors = is_array($data['actors'] ?? '') ? json_encode($data['actors'], JSON_UNESCAPED_UNICODE) : ($data['actors'] ?? '[]');
+        $video->description = trim($data['description'] ?? '');
+        $video->duration = intval($data['duration'] ?? 0);
+        $video->release_year = trim($data['release_year'] ?? '');
+        $video->region = trim($data['region'] ?? '');
+        $video->language = trim($data['language'] ?? '');
+        $video->rating = floatval($data['rating'] ?? 0);
+        $video->play_url = is_array($data['play_url'] ?? '') ? json_encode($data['play_url'], JSON_UNESCAPED_UNICODE) : ($data['play_url'] ?? '[]');
+        $video->is_vip = intval($data['is_vip'] ?? 0);
+        $video->is_show = intval($data['is_show'] ?? 1);
+
+        $video->save();
+
+        return $this->success(['id' => $video->id], '保存成功');
+    }
+
+    /**
+     * 删除视频
+     */
+    public function delete()
+    {
+        $data = $this->getData();
+        $ids = $data['ids'] ?? [];
+
+        if (empty($ids)) {
+            return $this->error('请选择要删除的视频');
+        }
+
+        Video::whereIn('id', $ids)->delete();
+
+        return $this->success(null, '删除成功');
+    }
+
+    /**
+     * 分类列表
+     */
+    public function categories()
+    {
+        $list = Category::order('sort_order', 'asc')->select();
+
+        return $this->success($list);
+    }
+
+    /**
+     * 添加/编辑分类
+     */
+    public function saveCategory()
+    {
+        $data = $this->getData();
+        $id = intval($data['id'] ?? 0);
+
+        if (empty($data['name'])) {
+            return $this->error('分类名称不能为空');
+        }
+
+        if ($id > 0) {
+            $category = Category::find($id);
+            if (!$category) {
+                return $this->error('分类不存在');
+            }
+        } else {
+            $category = new Category();
+        }
+
+        $category->name = trim($data['name']);
+        $category->slug = trim($data['slug'] ?? pinyin($data['name']));
+        $category->type = intval($data['type'] ?? 1);
+        $category->parent_id = intval($data['parent_id'] ?? 0);
+        $category->sort_order = intval($data['sort_order'] ?? 100);
+
+        $category->save();
+
+        return $this->success(['id' => $category->id], '保存成功');
+    }
+
+    /**
+     * 删除分类
+     */
+    public function deleteCategory()
+    {
+        $data = $this->getData();
+        $ids = $data['ids'] ?? [];
+
+        if (empty($ids)) {
+            return $this->error('请选择要删除的分类');
+        }
+
+        // 检查分类下是否有视频
+        foreach ($ids as $id) {
+            $count = Video::where('category_id', $id)->count();
+            if ($count > 0) {
+                return $this->error('分类下存在视频，无法删除');
+            }
+        }
+
+        Category::whereIn('id', $ids)->delete();
+
+        return $this->success(null, '删除成功');
+    }
+
+    /**
+     * 资源站点列表
+     */
+    public function sourceSites()
+    {
+        $list = SourceSite::order('sort_order', 'asc')->select();
+
+        return $this->success($list);
+    }
+
+    /**
+     * 添加/编辑资源站点
+     */
+    public function saveSourceSite()
+    {
+        $data = $this->getData();
+        $id = intval($data['id'] ?? 0);
+
+        if (empty($data['name']) || empty($data['api_url'])) {
+            return $this->error('站点名称和API地址不能为空');
+        }
+
+        if ($id > 0) {
+            $site = SourceSite::find($id);
+            if (!$site) {
+                return $this->error('站点不存在');
+            }
+        } else {
+            $site = new SourceSite();
+        }
+
+        $site->name = trim($data['name']);
+        $site->code = trim($data['code'] ?? pinyin($data['name']));
+        $site->api_url = trim($data['api_url']);
+        $site->api_key = trim($data['api_key'] ?? '');
+        $site->status = intval($data['status'] ?? 1);
+        $site->sort_order = intval($data['sort_order'] ?? 100);
+
+        $site->save();
+
+        return $this->success(['id' => $site->id], '保存成功');
+    }
+
+    /**
+     * 采集视频
+     */
+    public function collect()
+    {
+        $data = $this->getData();
+        $siteId = intval($data['site_id'] ?? 0);
+        $typeIds = $data['type_ids'] ?? [];
+        $limit = intval($data['limit'] ?? 100);
+
+        if ($siteId <= 0) {
+            return $this->error('请选择资源站点');
+        }
+
+        $site = SourceSite::find($siteId);
+        if (!$site || $site->status != SourceSite::STATUS_ENABLED) {
+            return $this->error('资源站点不存在或已禁用');
+        }
+
+        try {
+            $service = new AppleCmsService($site);
+            $result = $service->collectToLocal($typeIds, $limit);
+
+            return $this->success($result, '采集完成');
+        } catch (\Exception $e) {
+            return $this->error('采集失败: ' . $e->getMessage());
+        }
+    }
+}

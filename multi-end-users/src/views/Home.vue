@@ -1,0 +1,255 @@
+<template>
+    <div class="page">
+        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+            <van-nav-bar title="影视系统" :fixed="true" placeholder>
+                <template #right>
+                    <van-icon name="search" size="20" @click="goSearch" />
+                </template>
+            </van-nav-bar>
+
+            <div class="banner-section">
+                <van-swipe :autoplay="3000" indicator-color="white">
+                    <van-swipe-item v-for="item in banners" :key="item.id" @click="goDetail(item.id)">
+                        <img :src="item.cover_url" :alt="item.title" />
+                    </van-swipe-item>
+                </van-swipe>
+            </div>
+
+            <div class="category-nav">
+                <div class="nav-item" @click="goCategory(1)">
+                    <img src="https://img.icons8.com/fluency-systems-regular/48/movie-projector.png" />
+                    <span>电影</span>
+                </div>
+                <div class="nav-item" @click="goCategory(2)">
+                    <img src="https://img.icons8.com/fluency-systems-regular/48/film.png" />
+                    <span>电视剧</span>
+                </div>
+                <div class="nav-item" @click="goCategory(3)">
+                    <img src="https://img.icons8.com/fluency-systems-regular/48/kirby.png" />
+                    <span>动漫</span>
+                </div>
+                <div class="nav-item" @click="goCategory(4)">
+                    <img src="https://img.icons8.com/fluency-systems-regular/48/video.png" />
+                    <span>短视频</span>
+                </div>
+                <div class="nav-item" @click="goCategory(5)">
+                    <img src="https://img.icons8.com/fluency-systems-regular/48/documentary.png" />
+                    <span>纪录片</span>
+                </div>
+            </div>
+
+            <div v-if="hotMovies.length" class="section">
+                <div class="section-title">
+                    <span>热门电影</span>
+                    <span class="more" @click="goCategory(1)">更多 ></span>
+                </div>
+                <div class="video-grid">
+                    <div v-for="item in hotMovies" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                        <div class="video-cover">
+                            <img :src="item.cover_url" :alt="item.title" />
+                            <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                            <span class="play-count">{{ formatCount(item.play_count) }}</span>
+                        </div>
+                        <div class="video-title">{{ item.title }}</div>
+                        <div class="video-info">
+                            <span>{{ item.release_year }}</span>
+                            <span>{{ item.region }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="hotTvs.length" class="section">
+                <div class="section-title">
+                    <span>热门电视剧</span>
+                    <span class="more" @click="goCategory(2)">更多 ></span>
+                </div>
+                <div class="video-grid">
+                    <div v-for="item in hotTvs" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                        <div class="video-cover">
+                            <img :src="item.cover_url" :alt="item.title" />
+                            <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                        </div>
+                        <div class="video-title">{{ item.title }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-if="hotAnimes.length" class="section">
+                <div class="section-title">
+                    <span>热门动漫</span>
+                    <span class="more" @click="goCategory(3)">更多 ></span>
+                </div>
+                <div class="video-grid">
+                    <div v-for="item in hotAnimes" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                        <div class="video-cover">
+                            <img :src="item.cover_url" :alt="item.title" />
+                            <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                        </div>
+                        <div class="video-title">{{ item.title }}</div>
+                    </div>
+                </div>
+            </div>
+        </van-pull-refresh>
+
+        <van-tabbar v-model="active" @change="onTabChange">
+            <van-tabbar-item name="home" icon="home-o">首页</van-tabbar-item>
+            <van-tabbar-item name="rank" icon="chart-trending-o">排行榜</van-tabbar-item>
+            <van-tabbar-item name="user" icon="user-o">我的</van-tabbar-item>
+        </van-tabbar>
+    </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { get } from '@/utils/request'
+
+const router = useRouter()
+const refreshing = ref(false)
+const active = ref('home')
+
+const banners = ref([])
+const hotMovies = ref([])
+const hotTvs = ref([])
+const hotAnimes = ref([])
+
+const loadData = async () => {
+    const res = await get('/video/home')
+    banners.value = res.data.banners || []
+    hotMovies.value = res.data.hot_movies || []
+    hotTvs.value = res.data.hot_tvs || []
+    hotAnimes.value = res.data.hot_animes || []
+}
+
+const onRefresh = async () => {
+    await loadData()
+    refreshing.value = false
+}
+
+const onTabChange = (name) => {
+    if (name === 'rank') router.push('/rank')
+    else if (name === 'user') router.push('/user')
+}
+
+const goDetail = (id) => router.push(`/detail/${id}`)
+const goCategory = (type) => router.push(`/category/${type}`)
+const goSearch = () => {
+    console.log('search')
+}
+
+const formatCount = (count) => {
+    if (count >= 10000) return (count / 10000).toFixed(1) + '万'
+    return count
+}
+
+onMounted(() => loadData())
+</script>
+
+<style lang="scss" scoped>
+.page {
+    padding-top: 46px;
+}
+
+.banner-section {
+    margin: 12px 16px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.van-swipe-item img {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+.category-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px 0;
+    background: white;
+    margin: 0 16px;
+    border-radius: 8px;
+    margin-top: 16px;
+
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+
+        img {
+            width: 40px;
+            height: 40px;
+        }
+
+        span {
+            font-size: 13px;
+            color: #333;
+        }
+    }
+}
+
+.video-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.video-item {
+    .video-cover {
+        position: relative;
+        border-radius: 6px;
+        overflow: hidden;
+
+        img {
+            width: 100%;
+            aspect-ratio: 3/4;
+            object-fit: cover;
+        }
+
+        .vip-tag {
+            position: absolute;
+            top: 6px;
+            right: 6px;
+            background: linear-gradient(135deg, #ff9500, #ff6a00);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .play-count {
+            position: absolute;
+            bottom: 6px;
+            right: 6px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    }
+
+    .video-title {
+        margin-top: 6px;
+        font-size: 14px;
+        color: #333;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .video-info {
+        margin-top: 4px;
+        font-size: 12px;
+        color: #999;
+
+        span {
+            &:first-child {
+                margin-right: 8px;
+            }
+        }
+    }
+}
+</style>
