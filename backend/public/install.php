@@ -63,9 +63,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $composer_path = ROOT_PATH . 'composer.phar';
         $composer_cmd = 'composer';
 
-        // 尝试使用 composer.phar
+        // 优先使用项目目录中的 composer.phar
         if (file_exists($composer_path)) {
-            $composer_cmd = 'php ' . $composer_path;
+            $composer_cmd = 'php ' . escapeshellarg($composer_path);
         } elseif (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             // Windows 环境
             $composer_cmd = 'composer.bat';
