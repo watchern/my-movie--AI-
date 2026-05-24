@@ -290,11 +290,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($db_type === 'sqlite') {
                 // 替换 MySQL 特有语法
                 $sql_content = str_replace('`', '', $sql_content);
-                $sql_content = preg_replace('/-- [^\n]*/', '', $sql_content); // 移除行注释
-                $sql_content = preg_replace('/\/\*[\s\S]*?\*\//', '', $sql_content); // 移除块注释
+                // 移除行注释 (-- 开头)
+                $sql_content = preg_replace('/-- [^\n]*/', '', $sql_content);
+                // 移除块注释 (/* */)
+                $sql_content = preg_replace('/\/\*[\s\S]*?\*\//', '', $sql_content);
+                // 移除 ENGINE=xxx
                 $sql_content = preg_replace('/ENGINE=\w+/', '', $sql_content);
+                // 移除 DEFAULT CHARSET=xxx
                 $sql_content = preg_replace('/DEFAULT CHARSET=\w+/', '', $sql_content);
+                // 移除 COLLATE xxx
                 $sql_content = preg_replace('/COLLATE utf8mb4_general_ci/', '', $sql_content);
+                // 移除 COMMENT 'xxx' 或 COMMENT "xxx" (MySQL 列注释)
+                $sql_content = preg_replace("/COMMENT '[^']*'/", '', $sql_content);
+                $sql_content = preg_replace('/COMMENT "[^"]*"/', '', $sql_content);
                 // 处理自增ID，SQLite 使用 AUTOINCREMENT
                 $sql_content = preg_replace('/INTEGER PRIMARY KEY AUTOINCREMENT/', 'INTEGER PRIMARY KEY AUTOINCREMENT', $sql_content);
                 // SQLite 不需要修改 IF NOT EXISTS
