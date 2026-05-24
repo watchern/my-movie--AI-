@@ -648,7 +648,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="db-config" id="sqliteConfig">
                         <div class="form-group">
                             <label>数据库路径</label>
-                            <input type="text" id="sqlitePath" value="../../database/database.sqlite">
+                            <input type="text" id="sqlitePath" value="../database/database.sqlite">
                         </div>
                     </div>
 
