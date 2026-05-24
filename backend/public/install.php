@@ -549,16 +549,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- 步骤2: 安装依赖 -->
                 <div class="step" id="step2">
                     <h2>第二步：安装依赖</h2>
-                    <div class="form-group">
-                        <p style="color: #666; margin-bottom: 15px;">正在安装 PHP 依赖包，请稍候...</p>
+                    <div id="composerStatus" class="form-group">
+                        <p style="color: #666; margin-bottom: 15px;">正在检测依赖安装状态...</p>
                     </div>
                     <div id="composerMessage"></div>
-                    <div class="info-box">
-                        <h4>即将安装的依赖</h4>
-                        <p>topthink/framework ^8.0</p>
-                        <p>topthink/think-orm ^3.0</p>
-                        <p>topthink/think-multi-app ^1.0</p>
-                        <p>firebase/php-jwt ^6.0</p>
+                    <div class="info-box" id="composerDeps">
+                        <h4>本项目依赖以下PHP包</h4>
+                        <p>topthink/framework ^8.0 - ThinkPHP 8.x 核心框架</p>
+                        <p>topthink/think-orm ^3.0 - ORM数据库操作</p>
+                        <p>topthink/think-multi-app ^1.0 - 多应用支持</p>
+                        <p>firebase/php-jwt ^6.0 - JWT身份认证</p>
                     </div>
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="goToStep(1)">上一步</button>
@@ -682,6 +682,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         function goToStep(step) {
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.getElementById('step' + step).classList.add('active');
+            
+            // 进入步骤2时，自动检测composer状态
+            if (step === 2) {
+                checkComposerStatus();
+            }
+        }
+        
+        // 检测composer依赖安装状态
+        async function checkComposerStatus() {
+            const statusDiv = document.getElementById('composerStatus');
+            const msgDiv = document.getElementById('composerMessage');
+            const btnComposer = document.getElementById('btnComposer');
+            
+            statusDiv.innerHTML = '<p style="color: #666; margin-bottom: 15px;">正在检测依赖安装状态...</p>';
+            msgDiv.innerHTML = '';
+            
+            try {
+                const res = await fetch('install.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=check_env'
+                });
+                const data = await res.json();
+                
+                if (data.success && data.checks.composer_installed) {
+                    // 依赖已安装
+                    statusDiv.innerHTML = '<div class="message success">✓ 依赖已安装完成，无需重复安装</div>';
+                    composerInstalled = true;
+                    btnComposer.style.display = 'none';
+                    document.getElementById('nextStep2').disabled = false;
+                } else {
+                    // 依赖未安装
+                    statusDiv.innerHTML = '<div class="message info">本项目依赖尚未安装，请点击下方"安装依赖"按钮进行安装</div>';
+                    composerInstalled = false;
+                    btnComposer.style.display = 'inline-block';
+                    document.getElementById('nextStep2').disabled = true;
+                }
+            } catch (e) {
+                statusDiv.innerHTML = '<div class="message error">检测失败: ' + e.message + '</div>';
+            }
         }
 
         // 页面加载完成后自动检测
@@ -722,20 +762,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     `).join('');
 
                     document.getElementById('nextStep1').disabled = !data.all_pass;
-
-                    // 如果 composer 已安装，自动更新步骤2状态
-                    if (checks.composer_installed) {
-                        composerInstalled = true;
-                        const composerMsg = document.getElementById('composerMessage');
-                        if (composerMsg) {
-                            composerMsg.innerHTML = '<div class="message success">✓ 依赖已安装完成，无需重复安装</div>';
-                        }
-                        const btnComposer = document.getElementById('btnComposer');
-                        if (btnComposer) {
-                            btnComposer.style.display = 'none';
-                        }
-                        document.getElementById('nextStep2').disabled = false;
-                    }
                 }
             } catch (e) {
                 checkList.innerHTML = '<div class="message error">检测失败: ' + e.message + '</div>';
@@ -764,6 +790,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     composerInstalled = true;
                     document.getElementById('nextStep2').disabled = false;
                     btn.style.display = 'none';
+                    // 安装成功，更新状态显示
+                    const statusDiv = document.getElementById('composerStatus');
+                    if (statusDiv) {
+                        statusDiv.innerHTML = '<div class="message success">✓ 依赖安装成功！</div>';
+                    }
                 } else {
                     msgDiv.innerHTML = '<div class="message error">' + data.message + '</div>';
                     if (data.output) {
