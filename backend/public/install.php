@@ -657,7 +657,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="goToStep(2)">上一步</button>
                         <button class="btn btn-primary" onclick="testDb()">测试连接</button>
-                        <button class="btn btn-primary" id="nextStep3" onclick="goToStep(4)" disabled>下一步</button>
+                        <button class="btn btn-primary" id="nextStep3" onclick="nextStep3WithDbTest()">下一步</button>
                     </div>
                 </div>
 
@@ -900,6 +900,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } catch (e) {
                 msgDiv.innerHTML = '<div class="message error">测试失败: ' + e.message + '</div>';
+            }
+        }
+
+        // 下一步前先测试数据库连接
+        async function nextStep3WithDbTest() {
+            // 如果未连接过，先测试连接
+            if (!dbConnected) {
+                await testDb();
+            }
+            // 如果连接成功，进入下一步
+            if (dbConnected) {
+                goToStep(4);
             }
         }
 
