@@ -28,15 +28,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checks['pdo_sqlite'] = extension_loaded('pdo_sqlite');
         $checks['json'] = extension_loaded('json');
         $checks['mbstring'] = extension_loaded('mbstring');
+        $checks['composer'] = file_exists(ROOT_PATH . 'vendor/autoload.php');
 
-        $all_pass = !in_array(false, $checks, true);
+        $all_pass = !in_array(false, array_filter($checks, function($v, $k) {
+            return $k !== 'composer'; // composer 状态单独检查
+        }, ARRAY_FILTER_USE_BOTH), true);
 
         header('Content-Type: application/json');
         echo json_encode(['success' => true, 'checks' => $checks, 'all_pass' => $all_pass]);
         exit;
     }
 
-    // 2. 测试数据库连接
+    // 2. 执行 composer install
+    if ($action === 'composer_install') {
+        $result = ['success' => false, 'message' => '', 'output' => ''];
+
+        // 检查 composer 是否存在
+        $composer_path = ROOT_PATH . 'composer.phar';
+        $composer_cmd = 'composer';
+
+        // 尝试使用 composer.phar
+        if (file_exists($composer_path)) {
+            $composer_cmd = 'php ' . $composer_path;
+        } elseif (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // Windows 环境
+            $composer_cmd = 'composer.bat';
+        }
+
+        // 检查是否已有 vendor
+        if (file_exists(ROOT_PATH . 'vendor/autoload.php')) {
+            $result['success'] = true;
+            $result['message'] = '依赖已安装';
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            exit;
+        }
+
+        // 执行 composer install
+        $output = [];
+        $return_var = 0;
+        chdir(ROOT_PATH);
+        exec($composer_cmd . ' install --no-interaction 2>&1', $output, $return_var);
+
+        $output_str = implode("\n", $output);
+
+        if ($return_var === 0 && file_exists(ROOT_PATH . 'vendor/autoload.php')) {
+            $result['success'] = true;
+            $result['message'] = '依赖安装成功';
+            $result['output'] = $output_str;
+        } else {
+            $result['message'] = '依赖安装失败';
+            $result['output'] = $output_str;
+        }
+
+        header('Content-Type: application/json');
+        echo json_encode($result);
+        exit;
+    }
+
+    // 3. 测试数据库连接
     if ($action === 'test_db') {
         $db_type = $_POST['db_type'] ?? 'mysql';
         $result = ['success' => false, 'message' => ''];
@@ -76,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
-    // 3. 执行安装
+    // 4. 执行安装
     if ($action === 'install') {
         $result = ['success' => false, 'message' => ''];
 
@@ -393,9 +443,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                 </div>
 
-                <!-- 步骤2: 数据库配置 -->
+                <!-- 步骤2: 安装依赖 -->
                 <div class="step" id="step2">
-                    <h2>第二步：数据库配置</h2>
+                    <h2>第二步：安装依赖</h2>
+                    <div class="form-group">
+                        <p style="color: #666; margin-bottom: 15px;">正在安装 PHP 依赖包，请稍候...</p>
+                    </div>
+                    <div id="composerMessage"></div>
+                    <div class="info-box">
+                        <h4>即将安装的依赖</h4>
+                        <p>topthink/framework ^8.0</p>
+                        <p>topthink/think-orm ^3.0</p>
+                        <p>topthink/think-multi-app ^1.0</p>
+                        <p>firebase/php-jwt ^6.0</p>
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-secondary" onclick="goToStep(1)">上一步</button>
+                        <button class="btn btn-primary" id="btnComposer" onclick="runComposerInstall()">安装依赖</button>
+                        <button class="btn btn-primary" id="nextStep2" onclick="goToStep(3)" disabled>下一步</button>
+                    </div>
+                </div>
+
+                <!-- 步骤3: 数据库配置 -->
+                <div class="step" id="step3">
+                    <h2>第三步：数据库配置</h2>
                     <div class="db-type-tabs">
                         <div class="db-type-tab active" onclick="switchDbType('mysql')">MySQL</div>
                         <div class="db-type-tab" onclick="switchDbType('sqlite')">SQLite</div>
@@ -440,15 +511,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div id="dbMessage"></div>
 
                     <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="goToStep(1)">上一步</button>
+                        <button class="btn btn-secondary" onclick="goToStep(2)">上一步</button>
                         <button class="btn btn-primary" onclick="testDb()">测试连接</button>
-                        <button class="btn btn-primary" id="nextStep2" onclick="goToStep(3)" disabled>下一步</button>
+                        <button class="btn btn-primary" id="nextStep3" onclick="goToStep(4)" disabled>下一步</button>
                     </div>
                 </div>
 
-                <!-- 步骤3: 管理员设置 -->
-                <div class="step" id="step3">
-                    <h2>第三步：管理员设置</h2>
+                <!-- 步骤4: 管理员设置 -->
+                <div class="step" id="step4">
+                    <h2>第四步：管理员设置</h2>
                     <div class="form-group">
                         <label>网站名称</label>
                         <input type="text" id="siteName" value="影视系统">
@@ -463,13 +534,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div id="installMessage"></div>
                     <div class="btn-group">
-                        <button class="btn btn-secondary" onclick="goToStep(2)">上一步</button>
+                        <button class="btn btn-secondary" onclick="goToStep(3)">上一步</button>
                         <button class="btn btn-primary" onclick="doInstall()">立即安装</button>
                     </div>
                 </div>
 
-                <!-- 安装完成 -->
-                <div class="step" id="step4">
+                <!-- 步骤5: 安装完成 -->
+                <div class="step" id="step5">
                     <div class="success-page">
                         <div class="success-icon">
                             <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
@@ -502,6 +573,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script>
         let currentDbType = 'mysql';
         let dbConnected = false;
+        let composerInstalled = false;
 
         // 步骤切换
         function goToStep(step) {
@@ -547,6 +619,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // 执行 composer install
+        async function runComposerInstall() {
+            const msgDiv = document.getElementById('composerMessage');
+            const btn = document.getElementById('btnComposer');
+            btn.disabled = true;
+            btn.innerHTML = '<span class="loading"></span> 安装中...';
+
+            msgDiv.innerHTML = '<div class="message info">正在执行 composer install，请稍候...</div>';
+
+            try {
+                const res = await fetch('install.php', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                    body: 'action=composer_install'
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    msgDiv.innerHTML = '<div class="message success">' + data.message + '</div>';
+                    composerInstalled = true;
+                    document.getElementById('nextStep2').disabled = false;
+                    btn.style.display = 'none';
+                } else {
+                    msgDiv.innerHTML = '<div class="message error">' + data.message + '</div>';
+                    if (data.output) {
+                        msgDiv.innerHTML += '<pre style="margin-top:10px;padding:10px;background:#f8f9fa;border-radius:4px;font-size:12px;max-height:200px;overflow:auto;">' + data.output + '</pre>';
+                    }
+                    btn.disabled = false;
+                    btn.innerHTML = '重新安装';
+                }
+            } catch (e) {
+                msgDiv.innerHTML = '<div class="message error">安装失败: ' + e.message + '</div>';
+                btn.disabled = false;
+                btn.innerHTML = '重新安装';
+            }
+        }
+
         // 切换数据库类型
         function switchDbType(type) {
             currentDbType = type;
@@ -555,7 +664,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.querySelectorAll('.db-config').forEach(c => c.classList.remove('active'));
             document.getElementById(type + 'Config').classList.add('active');
             dbConnected = false;
-            document.getElementById('nextStep2').disabled = true;
+            document.getElementById('nextStep3').disabled = true;
         }
 
         // 测试数据库连接
@@ -588,11 +697,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (data.success) {
                     msgDiv.innerHTML = '<div class="message success">' + data.message + '</div>';
                     dbConnected = true;
-                    document.getElementById('nextStep2').disabled = false;
+                    document.getElementById('nextStep3').disabled = false;
                 } else {
                     msgDiv.innerHTML = '<div class="message error">' + data.message + '</div>';
                     dbConnected = false;
-                    document.getElementById('nextStep2').disabled = true;
+                    document.getElementById('nextStep3').disabled = true;
                 }
             } catch (e) {
                 msgDiv.innerHTML = '<div class="message error">测试失败: ' + e.message + '</div>';
@@ -637,7 +746,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (data.success) {
                     document.getElementById('finalUsername').textContent = document.getElementById('adminUsername').value;
-                    goToStep(4);
+                    goToStep(5);
                 } else {
                     msgDiv.innerHTML = '<div class="message error">' + data.message + '</div>';
                 }
