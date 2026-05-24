@@ -56,35 +56,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // 检查 composer.phar 是否存在
         if (!file_exists($composer_path)) {
-            // 使用 cURL 下载 composer.phar（更可靠）
-            $result['message'] = '正在下载 composer.phar...';
+            // 下载源列表（优先使用国内镜像）
+            $download_sources = [
+                'https://mirrors.aliyun.com/composer/composer.phar',
+                'https://getcomposer.org/composer-stable.phar',
+                'https://getcomposer.org/composer.phar',
+            ];
             
-            $ch = curl_init('https://getcomposer.org/composer-stable.phar');
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($ch, CURLOPT_TIMEOUT, 60); // 60秒超时
-            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 关闭SSL验证
+            $composer_content = false;
+            $last_error = '';
             
-            $composer_content = curl_exec($ch);
-            $curl_error = curl_error($ch);
-            curl_close($ch);
-            
-            if ($composer_content === false || !empty($curl_error)) {
-                $result['message'] = '下载 composer.phar 失败: ' . ($curl_error ?: '未知错误');
-                header('Content-Type: application/json');
-                echo json_encode($result);
-                exit;
+            foreach ($download_sources as $source) {
+                $result['message'] = '正在从 ' . parse_url($source, PHP_URL_HOST) . ' 下载 composer.phar...';
+                
+                $ch = curl_init($source);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 120); // 120秒超时
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+                
+                $composer_content = curl_exec($ch);
+                $curl_error = curl_error($ch);
+                $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+                curl_close($ch);
+                
+                // 验证下载内容
+                if ($composer_content !== false && strlen($composer_content) > 1000 && $http_code === 200) {
+                    // 验证是否为有效的 phar 文件（以 __HALT_COMPILER() 开头）
+                    if (strpos($composer_content, '__HALT_COMPILER') !== false) {
+                        break;
+                    }
+                }
+                
+                $last_error = "下载失败 (HTTP {$http_code}): {$curl_error}";
+                $composer_content = false;
             }
             
-            // 验证下载的内容
-            if (strlen($composer_content) < 1000) {
-                $result['message'] = '下载 composer.phar 失败: 文件内容不完整';
+            if ($composer_content === false) {
+                $result['message'] = '下载 composer.phar 失败: ' . $last_error;
                 header('Content-Type: application/json');
                 echo json_encode($result);
                 exit;
             }
             
             file_put_contents($composer_path, $composer_content);
+            $result['message'] = 'composer.phar 下载成功';
         }
 
         // 检查是否已有 vendor
