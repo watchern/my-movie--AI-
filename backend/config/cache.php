@@ -7,7 +7,7 @@ use think\facade\Env;
 
 return [
     // 默认缓存驱动
-    'default' => 'file',
+    'default' => Env::get('cache.default', 'file'),
 
     // 缓存连接配置
     'stores'  => [
