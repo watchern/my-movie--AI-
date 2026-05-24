@@ -198,9 +198,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($db_type === 'sqlite') {
                 $sqlite_path = $_POST['sqlite_path'] ?? '../database/database.sqlite';
-                // 如果是相对路径，转换为绝对路径
+                // 如果是相对路径，转换为绝对路径（基于install.php所在目录）
                 if (!empty($sqlite_path) && $sqlite_path[0] !== '/' && $sqlite_path[1] !== ':') {
-                    $sqlite_path = dirname(__DIR__) . '/' . $sqlite_path;
+                    $sqlite_path = __DIR__ . '/../' . $sqlite_path;
                 }
                 $dir = dirname($sqlite_path);
                 if (!is_dir($dir)) {
@@ -255,7 +255,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // 如果是相对路径，转换为相对于项目根目录的绝对路径
                 if (!empty($sqlite_path) && $sqlite_path[0] !== '/' && $sqlite_path[1] !== ':') {
                     // 相对于 install.php 所在目录 (backend/public/)
-                    $sqlite_path = dirname(__DIR__) . '/' . $sqlite_path;
+                    $sqlite_path = __DIR__ . '/../' . $sqlite_path;
                 }
                 // 确保目录存在
                 $sqlite_dir = dirname($sqlite_path);
@@ -916,10 +916,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // 下一步前先测试数据库连接
         async function nextStep3WithDbTest() {
+            console.log('nextStep3WithDbTest called, currentDbType:', currentDbType);
             // 先测试连接
-            await testDb();
+            const success = await testDb();
+            console.log('testDb result:', success, 'dbConnected:', dbConnected);
             // 测试完成后根据结果决定是否进入下一步
             if (dbConnected) {
+                console.log('Going to step 4');
                 goToStep(4);
             }
         }
