@@ -8,9 +8,9 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // 定义路径
-define('ROOT_PATH', dirname(__DIR__) . '/');
+define('ROOT_PATH', dirname(__DIR__) . '/../');  // 指向项目根目录 (backend -> 项目根)
 define('DATABASE_PATH', ROOT_PATH . 'database/');
-define('ENV_PATH', ROOT_PATH . '.env');
+define('ENV_PATH', ROOT_PATH . 'backend/.env');  // .env 放在 backend 目录下
 
 // 错误状态
 $error = '';
@@ -607,7 +607,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="db-config" id="sqliteConfig">
                         <div class="form-group">
                             <label>数据库路径</label>
-                            <input type="text" id="sqlitePath" value="../database/database.sqlite">
+                            <input type="text" id="sqlitePath" value="../../database/database.sqlite">
                         </div>
                     </div>
 
