@@ -30,8 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checks['mbstring'] = extension_loaded('mbstring');
         $checks['composer'] = file_exists(ROOT_PATH . 'vendor/autoload.php');
 
+        // 检测 CLI PHP 版本（composer 使用 CLI PHP）
+        $cli_php_version = 'unknown';
+        $cli_php_ok = false;
+        exec('php -v', $cli_output, $cli_return);
+        if ($cli_return === 0 && !empty($cli_output)) {
+            foreach ($cli_output as $line) {
+                if (preg_match('/PHP (\d+\.\d+\.\d+)/', $line, $matches)) {
+                    $cli_php_version = $matches[1];
+                    $cli_php_ok = version_compare($cli_php_version, '8.1', '>=');
+                    break;
+                }
+            }
+        }
+        $checks['cli_php_version'] = $cli_php_version;
+        $checks['cli_php_ok'] = $cli_php_ok;
+
         $all_pass = !in_array(false, array_filter($checks, function($v, $k) {
-            return $k !== 'composer'; // composer 状态单独检查
+            return $k !== 'composer' && $k !== 'cli_php_version'; // composer 和版本号不参与全部通过判断
         }, ARRAY_FILTER_USE_BOTH), true);
 
         header('Content-Type: application/json');
@@ -597,7 +613,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (data.success) {
                     const checks = data.checks;
                     const items = [
-                        { name: 'PHP 版本 >= 8.1', key: 'php_version', current: '<?php echo PHP_VERSION; ?>' },
+                        { name: 'PHP 版本 >= 8.1 (网页版)', key: 'php_version', current: '<?php echo PHP_VERSION; ?>' },
+                        { name: 'PHP 版本 >= 8.1 (CLI版)', key: 'cli_php_ok', current: checks.cli_php_version || '未知' },
                         { name: 'PDO 扩展', key: 'pdo', current: checks.pdo ? '已启用' : '未启用' },
                         { name: 'PDO MySQL 扩展', key: 'pdo_mysql', current: checks.pdo_mysql ? '已启用' : '未启用' },
                         { name: 'PDO SQLite 扩展', key: 'pdo_sqlite', current: checks.pdo_sqlite ? '已启用' : '未启用' },
