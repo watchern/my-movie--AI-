@@ -56,15 +56,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // 检查 composer.phar 是否存在
         if (!file_exists($composer_path)) {
-            // 下载 composer.phar
+            // 使用 cURL 下载 composer.phar（更可靠）
             $result['message'] = '正在下载 composer.phar...';
-            $composer_content = file_get_contents('https://getcomposer.org/composer-stable.phar');
-            if ($composer_content === false) {
-                $result['message'] = '下载 composer.phar 失败';
+            
+            $ch = curl_init('https://getcomposer.org/composer-stable.phar');
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 60); // 60秒超时
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); // 关闭SSL验证
+            
+            $composer_content = curl_exec($ch);
+            $curl_error = curl_error($ch);
+            curl_close($ch);
+            
+            if ($composer_content === false || !empty($curl_error)) {
+                $result['message'] = '下载 composer.phar 失败: ' . ($curl_error ?: '未知错误');
                 header('Content-Type: application/json');
                 echo json_encode($result);
                 exit;
             }
+            
+            // 验证下载的内容
+            if (strlen($composer_content) < 1000) {
+                $result['message'] = '下载 composer.phar 失败: 文件内容不完整';
+                header('Content-Type: application/json');
+                echo json_encode($result);
+                exit;
+            }
+            
             file_put_contents($composer_path, $composer_content);
         }
 
