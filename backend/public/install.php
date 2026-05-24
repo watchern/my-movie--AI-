@@ -9,8 +9,9 @@ ini_set('display_errors', 1);
 
 // 定义路径
 define('ROOT_PATH', dirname(__DIR__) . '/../');  // 指向项目根目录 (backend -> 项目根)
+define('BACKEND_PATH', dirname(__DIR__) . '/');  // 指向 backend 目录
 define('DATABASE_PATH', ROOT_PATH . 'database/');
-define('ENV_PATH', ROOT_PATH . 'backend/.env');  // .env 放在 backend 目录下
+define('ENV_PATH', BACKEND_PATH . '.env');  // .env 放在 backend 目录下
 
 // 错误状态
 $error = '';
@@ -81,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checks['pdo_sqlite'] = extension_loaded('pdo_sqlite');
         $checks['json'] = extension_loaded('json');
         $checks['mbstring'] = extension_loaded('mbstring');
-        $checks['composer_installed'] = file_exists(ROOT_PATH . 'vendor/autoload.php');
+        $checks['composer_installed'] = file_exists(BACKEND_PATH . 'vendor/autoload.php');
 
         $all_pass = !in_array(false, array_filter($checks, function($v, $k) {
             return $k !== 'composer_installed'; // composer 状态不参与全部通过判断
@@ -105,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
         
-        $composer_path = ROOT_PATH . 'composer.phar';
+        $composer_path = BACKEND_PATH . 'composer.phar';
 
         // 检查 composer.phar 是否存在
         if (!file_exists($composer_path)) {
@@ -158,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // 检查是否已有 vendor
-        if (file_exists(ROOT_PATH . 'vendor/autoload.php')) {
+        if (file_exists(BACKEND_PATH . 'vendor/autoload.php')) {
             $result['success'] = true;
             $result['message'] = '依赖已安装';
             header('Content-Type: application/json');
@@ -175,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $output_str = implode("\n", $output);
 
-        if ($return_var === 0 && file_exists(ROOT_PATH . 'vendor/autoload.php')) {
+        if ($return_var === 0 && file_exists(BACKEND_PATH . 'vendor/autoload.php')) {
             $result['success'] = true;
             $result['message'] = '依赖安装成功';
             $result['output'] = $output_str;
