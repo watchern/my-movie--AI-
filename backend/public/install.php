@@ -198,6 +198,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         try {
             if ($db_type === 'sqlite') {
                 $sqlite_path = $_POST['sqlite_path'] ?? DATABASE_PATH . 'database.sqlite';
+                // 如果是相对路径，转换为绝对路径
+                if (!empty($sqlite_path) && $sqlite_path[0] !== '/' && $sqlite_path[1] !== ':') {
+                    $sqlite_path = dirname(__DIR__) . '/' . $sqlite_path;
+                }
                 $dir = dirname($sqlite_path);
                 if (!is_dir($dir)) {
                     mkdir($dir, 0755, true);
@@ -248,6 +252,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo = null;
             if ($db_type === 'sqlite') {
                 $sqlite_path = $_POST['sqlite_path'] ?? DATABASE_PATH . 'database.sqlite';
+                // 如果是相对路径，转换为相对于项目根目录的绝对路径
+                if (!empty($sqlite_path) && $sqlite_path[0] !== '/' && $sqlite_path[1] !== ':') {
+                    // 相对于 install.php 所在目录 (backend/public/)
+                    $sqlite_path = dirname(__DIR__) . '/' . $sqlite_path;
+                }
+                // 确保目录存在
+                $sqlite_dir = dirname($sqlite_path);
+                if (!is_dir($sqlite_dir)) {
+                    mkdir($sqlite_dir, 0755, true);
+                }
                 $pdo = new PDO('sqlite:' . $sqlite_path);
             } else {
                 $host = $_POST['db_host'] ?? '127.0.0.1';
@@ -267,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 读取并处理 SQL 文件
             $sql_file = DATABASE_PATH . 'init.sql';
             if (!file_exists($sql_file)) {
-                throw new Exception('数据库初始化文件不存在');
+                throw new Exception('数据库初始化文件不存在: ' . $sql_file);
             }
 
             $sql_content = file_get_contents($sql_file);
@@ -276,27 +290,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($db_type === 'sqlite') {
                 // 替换 MySQL 特有语法
                 $sql_content = str_replace('`', '', $sql_content);
-                $sql_content = str_replace('COMMENT ', '-- COMMENT ', $sql_content);
+                $sql_content = preg_replace('/-- [^\n]*/', '', $sql_content); // 移除行注释
+                $sql_content = preg_replace('/\/\*[\s\S]*?\*\//', '', $sql_content); // 移除块注释
                 $sql_content = preg_replace('/ENGINE=\w+/', '', $sql_content);
                 $sql_content = preg_replace('/DEFAULT CHARSET=\w+/', '', $sql_content);
                 $sql_content = preg_replace('/COLLATE utf8mb4_general_ci/', '', $sql_content);
                 // 处理自增ID，SQLite 使用 AUTOINCREMENT
                 $sql_content = preg_replace('/INTEGER PRIMARY KEY AUTOINCREMENT/', 'INTEGER PRIMARY KEY AUTOINCREMENT', $sql_content);
-                // 移除 MySQL 的 IF NOT EXISTS 后面紧跟的表创建语句
-                $sql_content = preg_replace('/IF NOT EXISTS\s+/', '', $sql_content);
+                // SQLite 不需要修改 IF NOT EXISTS
             }
 
-            // 分割 SQL 语句
-            $statements = array_filter(array_map('trim', explode(';', $sql_content)), function($stmt) {
-                return !empty($stmt) && !str_starts_with($stmt, '--');
-            });
+            // 分割 SQL 语句 - 按行分割并重组
+            $lines = explode("\n", $sql_content);
+            $statements = [];
+            $current_statement = '';
+
+            foreach ($lines as $line) {
+                $line = trim($line);
+                if (empty($line)) continue;
+
+                $current_statement .= $line . ' ';
+
+                // 如果行以分号结尾，认为是语句结束
+                if (substr($line, -1) === ';') {
+                    $stmt = trim($current_statement);
+                    // 移除末尾的分号
+                    $stmt = rtrim($stmt, ';');
+                    if (!empty($stmt)) {
+                        $statements[] = $stmt;
+                    }
+                    $current_statement = '';
+                }
+            }
 
             // 执行 SQL
             foreach ($statements as $statement) {
-                if (stripos($statement, 'INSERT') === 0) {
-                    // INSERT 语句特殊处理
+                if (empty(trim($statement))) continue;
+                if (stripos($statement, 'CREATE') === 0 || stripos($statement, 'CREATE INDEX') === 0) {
                     $pdo->exec($statement);
-                } else if (stripos($statement, 'CREATE') === 0 || stripos($statement, 'CREATE INDEX') === 0) {
+                } else if (stripos($statement, 'INSERT') === 0) {
                     $pdo->exec($statement);
                 }
             }
