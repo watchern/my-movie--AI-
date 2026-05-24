@@ -860,6 +860,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById(type + 'Config').classList.add('active');
             dbConnected = false;
             document.getElementById('nextStep3').disabled = true;
+            document.getElementById('dbMessage').innerHTML = ''; // 清除旧消息
         }
 
         // 测试数据库连接
@@ -887,6 +888,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     headers: {'Content-Type': 'application/x-www-form-urlencoded'},
                     body: params.toString()
                 });
+
+                // 检查响应状态
+                if (!res.ok) {
+                    throw new Error('服务器响应错误: ' + res.status);
+                }
+
                 const data = await res.json();
 
                 if (data.success) {
@@ -900,16 +907,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } catch (e) {
                 msgDiv.innerHTML = '<div class="message error">测试失败: ' + e.message + '</div>';
+                dbConnected = false;
+                document.getElementById('nextStep3').disabled = true;
             }
+
+            return dbConnected;
         }
 
         // 下一步前先测试数据库连接
         async function nextStep3WithDbTest() {
-            // 如果未连接过，先测试连接
-            if (!dbConnected) {
-                await testDb();
-            }
-            // 如果连接成功，进入下一步
+            // 先测试连接
+            await testDb();
+            // 测试完成后根据结果决定是否进入下一步
             if (dbConnected) {
                 goToStep(4);
             }
