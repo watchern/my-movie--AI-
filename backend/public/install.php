@@ -657,7 +657,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="btn-group">
                         <button class="btn btn-secondary" onclick="goToStep(2)">上一步</button>
                         <button class="btn btn-primary" onclick="testDb()">测试连接</button>
-                        <button class="btn btn-primary" id="nextStep3" onclick="nextStep3WithDbTest()">下一步</button>
+                        <button class="btn btn-primary" id="nextStep3">下一步</button>
                     </div>
                 </div>
 
@@ -718,6 +718,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         let currentDbType = 'mysql';
         let dbConnected = false;
         let composerInstalled = false;
+
+        // DOM加载完成后绑定事件
+        document.addEventListener('DOMContentLoaded', function() {
+            // 绑定下一步按钮点击事件
+            document.getElementById('nextStep3').addEventListener('click', nextStep3WithDbTest);
+        });
 
         // 步骤切换
         function goToStep(step) {
