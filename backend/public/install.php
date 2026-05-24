@@ -15,6 +15,59 @@ define('ENV_PATH', ROOT_PATH . '.env');
 // 错误状态
 $error = '';
 
+/**
+ * 查找 CLI 版本的 PHP 二进制文件
+ * composer 需要 CLI 版本，PHP_BINARY 可能指向 CGI 版本
+ */
+function find_cli_php() {
+    // Windows 常用路径
+    $windows_paths = [
+        'C:\php\php.exe',
+        'C:\xampp\php\php.exe',
+        'C:\wamp64\bin\php\php8.1\php.exe',
+        'C:\wamp64\bin\php\php8.0\php.exe',
+        'C:\wamp\bin\php\php8.1\php.exe',
+        'C:\wamp\bin\php\php8.0\php.exe',
+        'C:\php81\php.exe',
+        'C:\php80\php.exe',
+    ];
+    
+    // 如果是 Windows，尝试常见路径
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+        foreach ($windows_paths as $path) {
+            if (file_exists($path)) {
+                return $path;
+            }
+        }
+        
+        // 尝试从 PATH 中查找 php.exe
+        $path_env = getenv('PATH');
+        if ($path_env) {
+            $paths = explode(PATH_SEPARATOR, $path_env);
+            foreach ($paths as $p) {
+                $php_exe = rtrim($p, '\\/') . DIRECTORY_SEPARATOR . 'php.exe';
+                if (file_exists($php_exe)) {
+                    // 验证是否为 CLI 版本
+                    exec('"' . $php_exe . '" -v 2>&1', $output, $return);
+                    if ($return === 0 && stripos(implode('', $output), 'cli') !== false) {
+                        return $php_exe;
+                    }
+                }
+            }
+        }
+    }
+    
+    // 尝试使用 which 命令（Linux/macOS）
+    if (PHP_OS !== 'WINNT') {
+        $php_cli = trim(shell_exec('which php'));
+        if ($php_cli && file_exists($php_cli)) {
+            return $php_cli;
+        }
+    }
+    
+    return null;
+}
+
 // 处理安装请求
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -50,8 +103,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'composer_install') {
         $result = ['success' => false, 'message' => '', 'output' => ''];
 
-        // 使用当前运行的 PHP 二进制文件（确保版本一致）
-        $php_binary = PHP_BINARY;
+        // 查找 CLI PHP 二进制文件（composer 需要 CLI 版本）
+        $php_binary = find_cli_php();
+        if (!$php_binary) {
+            $result['message'] = '未找到 CLI 版本的 PHP，请确保 PHP 已安装并添加到 PATH 环境变量';
+            header('Content-Type: application/json');
+            echo json_encode($result);
+            exit;
+        }
+        
         $composer_path = ROOT_PATH . 'composer.phar';
 
         // 检查 composer.phar 是否存在
