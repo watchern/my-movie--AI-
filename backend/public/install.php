@@ -81,17 +81,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checks['pdo_sqlite'] = extension_loaded('pdo_sqlite');
         $checks['json'] = extension_loaded('json');
         $checks['mbstring'] = extension_loaded('mbstring');
-        $checks['composer'] = file_exists(ROOT_PATH . 'vendor/autoload.php');
-
-        // 使用当前运行的 PHP（网页版）来检测版本
-        // PHP_BINARY 指向当前执行的 PHP 二进制文件
-        $cli_php_version = PHP_VERSION;
-        $cli_php_ok = version_compare(PHP_VERSION, '8.1', '>=');
-        $checks['cli_php_version'] = $cli_php_version;
-        $checks['cli_php_ok'] = $cli_php_ok;
+        $checks['composer_installed'] = file_exists(ROOT_PATH . 'vendor/autoload.php');
 
         $all_pass = !in_array(false, array_filter($checks, function($v, $k) {
-            return $k !== 'composer' && $k !== 'cli_php_version'; // composer 和版本号不参与全部通过判断
+            return $k !== 'composer_installed'; // composer 状态不参与全部通过判断
         }, ARRAY_FILTER_USE_BOTH), true);
 
         header('Content-Type: application/json');
@@ -691,6 +684,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.getElementById('step' + step).classList.add('active');
         }
 
+        // 页面加载完成后自动检测
+        window.addEventListener('DOMContentLoaded', function() {
+            // 页面加载后自动检测环境
+            checkEnv();
+        });
+
         // 环境检测
         async function checkEnv() {
             const checkList = document.getElementById('checkList');
@@ -723,6 +722,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     `).join('');
 
                     document.getElementById('nextStep1').disabled = !data.all_pass;
+
+                    // 如果 composer 已安装，自动更新步骤2状态
+                    if (checks.composer_installed) {
+                        composerInstalled = true;
+                        const composerMsg = document.getElementById('composerMessage');
+                        if (composerMsg) {
+                            composerMsg.innerHTML = '<div class="message success">✓ 依赖已安装完成，无需重复安装</div>';
+                        }
+                        const btnComposer = document.getElementById('btnComposer');
+                        if (btnComposer) {
+                            btnComposer.style.display = 'none';
+                        }
+                        document.getElementById('nextStep2').disabled = false;
+                    }
                 }
             } catch (e) {
                 checkList.innerHTML = '<div class="message error">检测失败: ' + e.message + '</div>';
