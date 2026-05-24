@@ -30,19 +30,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $checks['mbstring'] = extension_loaded('mbstring');
         $checks['composer'] = file_exists(ROOT_PATH . 'vendor/autoload.php');
 
-        // 检测 CLI PHP 版本（composer 使用 CLI PHP）
-        $cli_php_version = 'unknown';
-        $cli_php_ok = false;
-        exec('php -v', $cli_output, $cli_return);
-        if ($cli_return === 0 && !empty($cli_output)) {
-            foreach ($cli_output as $line) {
-                if (preg_match('/PHP (\d+\.\d+\.\d+)/', $line, $matches)) {
-                    $cli_php_version = $matches[1];
-                    $cli_php_ok = version_compare($cli_php_version, '8.1', '>=');
-                    break;
-                }
-            }
-        }
+        // 使用当前运行的 PHP（网页版）来检测版本
+        // PHP_BINARY 指向当前执行的 PHP 二进制文件
+        $cli_php_version = PHP_VERSION;
+        $cli_php_ok = version_compare(PHP_VERSION, '8.1', '>=');
         $checks['cli_php_version'] = $cli_php_version;
         $checks['cli_php_ok'] = $cli_php_ok;
 
@@ -59,16 +50,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'composer_install') {
         $result = ['success' => false, 'message' => '', 'output' => ''];
 
-        // 检查 composer 是否存在
+        // 使用当前运行的 PHP 二进制文件（确保版本一致）
+        $php_binary = PHP_BINARY;
         $composer_path = ROOT_PATH . 'composer.phar';
-        $composer_cmd = 'composer';
 
-        // 优先使用项目目录中的 composer.phar
-        if (file_exists($composer_path)) {
-            $composer_cmd = 'php ' . escapeshellarg($composer_path);
-        } elseif (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            // Windows 环境
-            $composer_cmd = 'composer.bat';
+        // 检查 composer.phar 是否存在
+        if (!file_exists($composer_path)) {
+            // 下载 composer.phar
+            $result['message'] = '正在下载 composer.phar...';
+            $composer_content = file_get_contents('https://getcomposer.org/composer-stable.phar');
+            if ($composer_content === false) {
+                $result['message'] = '下载 composer.phar 失败';
+                header('Content-Type: application/json');
+                echo json_encode($result);
+                exit;
+            }
+            file_put_contents($composer_path, $composer_content);
         }
 
         // 检查是否已有 vendor
@@ -80,11 +77,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         }
 
-        // 执行 composer install
+        // 执行 composer install（使用当前 PHP 版本）
+        $composer_cmd = escapeshellarg($php_binary) . ' ' . escapeshellarg($composer_path) . ' install --no-interaction';
         $output = [];
         $return_var = 0;
         chdir(ROOT_PATH);
-        exec($composer_cmd . ' install --no-interaction 2>&1', $output, $return_var);
+        exec($composer_cmd . ' 2>&1', $output, $return_var);
 
         $output_str = implode("\n", $output);
 
@@ -613,8 +611,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (data.success) {
                     const checks = data.checks;
                     const items = [
-                        { name: 'PHP 版本 >= 8.1 (网页版)', key: 'php_version', current: '<?php echo PHP_VERSION; ?>' },
-                        { name: 'PHP 版本 >= 8.1 (CLI版)', key: 'cli_php_ok', current: checks.cli_php_version || '未知' },
+                        { name: 'PHP 版本 >= 8.1', key: 'php_version', current: '<?php echo PHP_VERSION; ?>' },
                         { name: 'PDO 扩展', key: 'pdo', current: checks.pdo ? '已启用' : '未启用' },
                         { name: 'PDO MySQL 扩展', key: 'pdo_mysql', current: checks.pdo_mysql ? '已启用' : '未启用' },
                         { name: 'PDO SQLite 扩展', key: 'pdo_sqlite', current: checks.pdo_sqlite ? '已启用' : '未启用' },
