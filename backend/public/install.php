@@ -197,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             if ($db_type === 'sqlite') {
-                $sqlite_path = $_POST['sqlite_path'] ?? DATABASE_PATH . 'database.sqlite';
+                $sqlite_path = $_POST['sqlite_path'] ?? '../database/database.sqlite';
                 // 如果是相对路径，转换为绝对路径
                 if (!empty($sqlite_path) && $sqlite_path[0] !== '/' && $sqlite_path[1] !== ':') {
                     $sqlite_path = dirname(__DIR__) . '/' . $sqlite_path;
@@ -251,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // 连接数据库
             $pdo = null;
             if ($db_type === 'sqlite') {
-                $sqlite_path = $_POST['sqlite_path'] ?? DATABASE_PATH . 'database.sqlite';
+                $sqlite_path = $_POST['sqlite_path'] ?? '../database/database.sqlite';
                 // 如果是相对路径，转换为相对于项目根目录的绝对路径
                 if (!empty($sqlite_path) && $sqlite_path[0] !== '/' && $sqlite_path[1] !== ':') {
                     // 相对于 install.php 所在目录 (backend/public/)
