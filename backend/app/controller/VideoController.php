@@ -6,7 +6,6 @@ use app\model\Video;
 use app\model\Category;
 use app\model\User;
 use app\model\VideoSource;
-use app\model\Episode;
 
 /**
  * 视频控制器
@@ -275,7 +274,7 @@ class VideoController extends BaseController
 
         // 如果是电视剧/动漫，获取指定剧集
         if ($episodeId > 0 && in_array($video->type, [Video::TYPE_TV, Video::TYPE_ANIME])) {
-            $episode = Episode::where('id', $episodeId)
+            $episode = VideoSource::where('id', $episodeId)
                 ->where('video_id', $id)
                 ->find();
             if ($episode) {

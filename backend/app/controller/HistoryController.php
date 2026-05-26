@@ -81,7 +81,7 @@ class HistoryController extends BaseController
 
         // 如果传了episode_id，检查剧集是否存在
         if ($episodeId > 0) {
-            $episode = \app\model\Episode::where('id', $episodeId)
+            $episode = \app\model\VideoSource::where('id', $episodeId)
                 ->where('video_id', $videoId)
                 ->find();
             if (!$episode) {

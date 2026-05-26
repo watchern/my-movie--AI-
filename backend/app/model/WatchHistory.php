@@ -32,9 +32,9 @@ class WatchHistory extends Model
         return $this->belongsTo(Video::class, 'video_id');
     }
 
-    // 关联剧集
+    // 关联剧集（实际上是 video_sources 表）
     public function episode()
     {
-        return $this->belongsTo(Episode::class, 'episode_id');
+        return $this->belongsTo(VideoSource::class, 'episode_id');
     }
 }

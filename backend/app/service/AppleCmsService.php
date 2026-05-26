@@ -4,7 +4,7 @@ namespace app\service;
 use app\model\SourceSite;
 use app\model\Video;
 use app\model\Category;
-use app\model\Episode;
+use app\model\VideoSource;
 use think\facade\Cache;
 
 /**
@@ -305,7 +305,7 @@ class AppleCmsService
                 $episodeName = trim(substr($part, 0, $pos));
                 $url = substr($part, $pos + 1);
 
-                $episode = new Episode();
+                $episode = new VideoSource();
                 $episode->video_id = $video->id;
                 $episode->source_site_id = $this->site->id;
                 $episode->name = $episodeName;
