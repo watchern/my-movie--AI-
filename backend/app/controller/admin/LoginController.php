@@ -8,7 +8,7 @@ use app\common\JwtHelper;
 /**
  * 管理端登录控制器
  */
-class LoginController extends BaseController
+class AdminLoginController extends BaseController
 {
     /**
      * 管理员登录

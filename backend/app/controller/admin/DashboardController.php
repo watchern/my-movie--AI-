@@ -11,7 +11,7 @@ use think\facade\Db;
 /**
  * 管理端仪表盘
  */
-class DashboardController extends BaseController
+class AdminDashboardController extends BaseController
 {
     /**
      * 获取统计数据

@@ -1,5 +1,5 @@
 <?php
-namespace app\controller;
+namespace app\controller\admin;
 
 use app\BaseController;
 use app\model\Video;
@@ -12,7 +12,7 @@ use app\service\AppleCmsService;
 /**
  * 管理端 - 视频管理
  */
-class admin\VideoController extends BaseController
+class AdminVideoController extends BaseController
 {
     /**
      * 视频列表
