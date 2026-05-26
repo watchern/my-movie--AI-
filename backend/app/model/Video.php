@@ -10,6 +10,13 @@ class Video extends Model
 {
     protected $name = 'videos';
 
+    // 类型常量
+    const TYPE_MOVIE = 1;     // 电影
+    const TYPE_TV = 2;        // 电视剧
+    const TYPE_ANIME = 3;     // 动漫
+    const TYPE_SHORT = 4;     // 短视频
+    const TYPE_DOCUMENTARY = 5; // 纪录片
+
     protected $type = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
