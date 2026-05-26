@@ -42,7 +42,7 @@ class HistoryController extends BaseController
                     'duration' => $item->duration,
                     'last_position' => $item->last_position,
                     'watched_at' => $item->watched_at,
-                    'episode_title' => $item->episode ? '第' . $item->episode->episode_number . '集' : '',
+                    'episode_title' => $item->episode ? $item->episode->name : '',
                 ];
             }
         }

@@ -5,6 +5,8 @@ use app\BaseController;
 use app\model\Video;
 use app\model\Category;
 use app\model\User;
+use app\model\VideoSource;
+use app\model\Episode;
 
 /**
  * 视频控制器
@@ -280,10 +282,12 @@ class VideoController extends BaseController
                 $playUrl = $episode->play_url;
             }
         } else {
-            // 电影/短视频直接获取播放地址
-            $playUrls = $video->play_url;
-            if (!empty($playUrls) && is_array($playUrls)) {
-                $playUrl = $playUrls[0] ?? '';
+            // 电影/短视频从 video_sources 获取第一个播放地址
+            $videoSource = VideoSource::where('video_id', $id)
+                ->order('sort_order', 'asc')
+                ->find();
+            if ($videoSource) {
+                $playUrl = $videoSource->play_url;
             }
         }
 

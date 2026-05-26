@@ -153,9 +153,8 @@ class AppleCmsService
      */
     public function saveVideo(array $item): Video
     {
-        // 检查是否已存在
-        $video = Video::where('source_id', $item['vod_id'])
-            ->where('source_name', $this->site->name)
+        // 检查是否已存在（通过标题简单检查）
+        $video = Video::where('title', $item['vod_name'])
             ->find();
 
         if ($video) {
@@ -174,7 +173,6 @@ class AppleCmsService
         // 创建视频记录
         $video = new Video();
         $video->title = $item['vod_name'] ?? '';
-        $video->subtitle = $item['vod_sub'] ?? '';
         $video->category_id = $categoryId;
         $video->type = $type;
         $video->cover = $item['vod_pic'] ?? '';
@@ -187,11 +185,8 @@ class AppleCmsService
         $video->region = $item['vod_area'] ?? '';
         $video->language = $item['vod_lang'] ?? '';
         $video->rating = floatval($item['vod_score'] ?? 0);
-        $video->play_url = json_encode($playUrls, JSON_UNESCAPED_UNICODE);
         $video->is_vip = 0; // 默认非VIP
         $video->is_show = 1;
-        $video->source_id = $item['vod_id'];
-        $video->source_name = $this->site->name;
 
         $video->save();
 
@@ -312,10 +307,11 @@ class AppleCmsService
 
                 $episode = new Episode();
                 $episode->video_id = $video->id;
-                $episode->episode_number = $index + 1;
-                $episode->title = $episodeName;
+                $episode->source_site_id = $this->site->id;
+                $episode->name = $episodeName;
                 $episode->play_url = $url;
                 $episode->sort_order = $index;
+                $episode->status = 1;
                 $episode->save();
             }
         }
@@ -326,25 +322,7 @@ class AppleCmsService
      */
     public function updateVideo(Video $video): Video
     {
-        $detail = $this->getVideoDetail($video->source_id);
-
-        if (!$detail) {
-            throw new \Exception('视频不存在');
-        }
-
-        // 更新字段
-        $video->title = $detail['vod_name'] ?? $video->title;
-        $video->subtitle = $detail['vod_sub'] ?? '';
-        $video->cover = $detail['vod_pic'] ?? $video->cover;
-        $video->director = $detail['vod_director'] ?? '';
-        $video->actors = isset($detail['vod_actor']) ? json_encode(explode(',', $detail['vod_actor']), JSON_UNESCAPED_UNICODE) : '[]';
-        $video->description = $detail['vod_content'] ?? '';
-        $video->duration = intval($detail['vod_duration'] ?? 0);
-        $video->rating = floatval($detail['vod_score'] ?? 0);
-        $video->play_url = json_encode($this->parsePlayUrl($detail), JSON_UNESCAPED_UNICODE);
-
-        $video->save();
-
+        // 视频表没有 source_id 字段，此方法暂不实现
         return $video;
     }
 

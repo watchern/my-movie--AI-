@@ -34,6 +34,12 @@ class Video extends Model
         return $this->hasMany(VideoSource::class, 'video_id');
     }
 
+    // 剧集关联（videoSources 的别名）
+    public function episodes()
+    {
+        return $this->hasMany(VideoSource::class, 'video_id');
+    }
+
     // 获取器：演员JSON转换
     public function getActorsAttr($value)
     {
@@ -56,5 +62,24 @@ class Video extends Model
     public function setTagsAttr($value)
     {
         return is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : $value;
+    }
+
+    // 获取器：封面URL
+    public function getCoverUrlAttr()
+    {
+        return $this->cover ?? '';
+    }
+
+    // 获取器：类型名称
+    public function getTypeNameAttr()
+    {
+        $typeMap = [
+            self::TYPE_MOVIE => '电影',
+            self::TYPE_TV => '电视剧',
+            self::TYPE_ANIME => '动漫',
+            self::TYPE_SHORT => '短视频',
+            self::TYPE_DOCUMENTARY => '纪录片',
+        ];
+        return $typeMap[$this->type] ?? '电影';
     }
 }
