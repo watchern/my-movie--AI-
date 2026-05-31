@@ -55,9 +55,10 @@ class CardKey extends Model
     ];
 
     // 获取类型名称
-    public function getTypeNameAttr(): string
+    public function getTypeNameAttr()
     {
-        return self::TYPE_NAMES[$this->type] ?? '未知';
+        $type = $this->getData('type');
+        return self::TYPE_NAMES[$type] ?? '未知';
     }
 
     // 检查是否可用
