@@ -45,8 +45,8 @@ const logout = () => {
 }
 
 .el-aside {
-  background: #304156;
-  color: white;
+  background: #001529;
+  color: #fff;
 
   .logo {
     height: 60px;
@@ -54,12 +54,32 @@ const logout = () => {
     text-align: center;
     font-size: 18px;
     font-weight: 600;
+    color: #fff;
+    background: #002140;
   }
 }
 
 .el-menu {
   border: none;
-  background: #304156;
+  background: #001529;
+}
+
+:deep(.el-menu-item) {
+  color: rgba(255, 255, 255, 0.85);
+  
+  &:hover {
+    color: #fff;
+    background: #1890ff;
+  }
+  
+  &.is-active {
+    color: #fff;
+    background: #1890ff;
+  }
+  
+  .el-icon {
+    color: inherit;
+  }
 }
 
 .el-header {
