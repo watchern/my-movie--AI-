@@ -4,14 +4,13 @@ namespace app\controller\admin;
 use app\BaseController;
 use app\model\User;
 use app\model\CardKey;
-use app\model\CardRechargeLog;
 use app\model\WatchHistory;
 use app\model\Favorite;
 
 /**
  * 管理端 - 用户管理
  */
-class AdminUserController extends BaseController
+class UserController extends BaseController
 {
     /**
      * 用户列表

@@ -2,18 +2,13 @@
 namespace app\model;
 
 use think\Model;
-use think\model\concern\SoftDelete;
 
 /**
  * 用户模型
  */
 class User extends Model
 {
-    use SoftDelete;
-
     protected $name = 'users';
-    protected $deleteTime = 'deleted_at';
-    protected $defaultSoftDelete = null;
 
     // VIP状态常量
     const VIP_NORMAL = 0;

@@ -20,12 +20,6 @@ class Admin extends Model
         'created_at' => 'datetime',
     ];
 
-    // 获取器：密码隐藏
-    public function getPasswordAttr($value)
-    {
-        return '';
-    }
-
     // 设置器：密码加密
     public function setPasswordAttr($value)
     {

@@ -12,7 +12,7 @@ use app\service\AppleCmsService;
 /**
  * 管理端 - 视频管理
  */
-class AdminVideoController extends BaseController
+class VideoController extends BaseController
 {
     /**
      * 视频列表
@@ -58,7 +58,6 @@ class AdminVideoController extends BaseController
                 'is_vip' => $item->is_vip,
                 'is_show' => $item->is_show,
                 'category' => $item->category ? $item->category->name : '',
-                'source_name' => $item->source_name,
                 'created_at' => $item->created_at,
             ];
         }

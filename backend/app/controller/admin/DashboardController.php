@@ -11,13 +11,15 @@ use think\facade\Db;
 /**
  * 管理端仪表盘
  */
-class AdminDashboardController extends BaseController
+class DashboardController extends BaseController
 {
     /**
      * 获取统计数据
      */
     public function stats()
     {
+        $today = date('Y-m-d');
+
         // 会员统计
         $vipCount = User::where('vip_status', 1)->count();
         $totalUsers = User::count();
@@ -34,9 +36,8 @@ class AdminDashboardController extends BaseController
         $usedCards = CardKey::where('status', 1)->count();
 
         // 今日数据
-        $today = date('Y-m-d');
-        $todayNewUsers = User::whereTime('created_at', 'today')->count();
-        $todayWatchHistory = WatchHistory::whereTime('watched_at', 'today')->count();
+        $todayNewUsers = User::where('created_at', '>=', $today . ' 00:00:00')->count();
+        $todayWatchHistory = WatchHistory::where('watched_at', '>=', $today . ' 00:00:00')->count();
 
         // 播放排行TOP10
         $topVideos = Video::where('is_show', 1)

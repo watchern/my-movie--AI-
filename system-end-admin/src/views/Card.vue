@@ -60,13 +60,13 @@ const showGenerate = ref(false)
 const form = ref({ count: 10, days: 30 })
 
 const loadList = async () => {
-  const res = await get('/card/list', query.value)
+  const res = await get('/user/cardList', query.value)
   list.value = res.data.list
   total.value = res.data.total
 }
 
 const generate = async () => {
-  await post('/card/generate', form.value)
+  await post('/user/generateCard', form.value)
   showGenerate.value = false
   loadList()
 }
