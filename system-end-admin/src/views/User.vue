@@ -1,17 +1,17 @@
 <template>
     <div>
         <el-card>
-            <el-table :data="list" stripe>
-                <el-table-column prop="id" label="ID" width="80" />
-                <el-table-column prop="email" label="邮箱" />
-                <el-table-column prop="vip_status" label="VIP" width="80">
+            <el-table :data="list" stripe border>
+                <el-table-column prop="id" label="ID" width="80" resizable />
+                <el-table-column prop="email" label="邮箱" resizable />
+                <el-table-column prop="vip_status" label="VIP" width="80" resizable>
                     <template #default="{ row }">
                         <el-tag :type="row.vip_status ? 'success' : 'info'">{{ row.vip_status ? '是' : '否' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="vip_expire_time" label="VIP到期" width="180" />
-                <el-table-column prop="created_at" label="注册时间" width="180" />
-                <el-table-column label="操作" width="200">
+                <el-table-column prop="vip_expire_time" label="VIP到期" width="180" resizable />
+                <el-table-column prop="created_at" label="注册时间" width="180" resizable />
+                <el-table-column label="操作" width="200" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editVip(row)">VIP设置</el-button>
                     </template>

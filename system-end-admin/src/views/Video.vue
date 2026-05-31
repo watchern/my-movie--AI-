@@ -19,26 +19,26 @@
                 </el-form-item>
             </el-form>
 
-            <el-table :data="list" stripe>
-                <el-table-column prop="id" label="ID" width="80" />
-                <el-table-column prop="title" label="标题" />
-                <el-table-column prop="type" label="类型" width="100">
+            <el-table :data="list" stripe border>
+                <el-table-column prop="id" label="ID" width="80" resizable />
+                <el-table-column prop="title" label="标题" resizable />
+                <el-table-column prop="type" label="类型" width="100" resizable>
                     <template #default="{ row }">
                         {{ ['', '电影', '电视剧', '动漫', '短视频', '纪录片'][row.type] }}
                     </template>
                 </el-table-column>
-                <el-table-column prop="is_vip" label="VIP" width="80">
+                <el-table-column prop="is_vip" label="VIP" width="80" resizable>
                     <template #default="{ row }">
                         <el-tag :type="row.is_vip ? 'success' : 'info'">{{ row.is_vip ? '是' : '否' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column prop="play_count" label="播放量" width="100" />
-                <el-table-column prop="is_show" label="状态" width="80">
+                <el-table-column prop="play_count" label="播放量" width="100" resizable />
+                <el-table-column prop="is_show" label="状态" width="80" resizable>
                     <template #default="{ row }">
                         <el-tag :type="row.is_show ? 'success' : 'danger'">{{ row.is_show ? '显示' : '隐藏' }}</el-tag>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200">
+                <el-table-column label="操作" width="200" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="edit(row)">编辑</el-button>
                         <el-button link type="danger" @click="del(row.id)">删除</el-button>

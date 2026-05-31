@@ -37,10 +37,10 @@
 
         <el-card style="margin-top: 20px">
             <template #header>播放TOP10</template>
-            <el-table :data="stats.top_videos" stripe>
-                <el-table-column prop="title" label="标题" />
-                <el-table-column prop="play_count" label="播放量" sortable />
-                <el-table-column prop="type_name" label="类型" />
+            <el-table :data="stats.top_videos" stripe border>
+                <el-table-column prop="title" label="标题" resizable />
+                <el-table-column prop="play_count" label="播放量" sortable resizable />
+                <el-table-column prop="type_name" label="类型" resizable />
             </el-table>
         </el-card>
     </div>

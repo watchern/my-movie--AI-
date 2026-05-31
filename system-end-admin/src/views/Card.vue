@@ -5,7 +5,7 @@
         <el-button type="primary" @click="showGenerate = true">生成兑换码</el-button>
         <el-button type="danger" @click="handleDisable" :disabled="selectedIds.length === 0">设置失效</el-button>
       </template>
-      <el-table :data="list" stripe @selection-change="handleSelectionChange">
+      <el-table :data="list" stripe border @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="70" resizable />
         <el-table-column prop="code" label="兑换码" min-width="160" show-overflow-tooltip resizable />

@@ -21,17 +21,17 @@
           <el-button type="primary" @click="startCollect">开始采集</el-button>
         </div>
       </template>
-      <el-table :data="list">
-        <el-table-column prop="title" label="资源站名称" />
-        <el-table-column prop="status" label="状态">
+      <el-table :data="list" border>
+        <el-table-column prop="title" label="资源站名称" resizable />
+        <el-table-column prop="status" label="状态" resizable>
           <template #default="{ row }">
             <el-tag :type="row.status === 'running' ? 'warning' : 'success'">
               {{ row.status === 'running' ? '采集中' : '完成' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="total" label="总数" width="80" />
-        <el-table-column prop="progress" label="进度" width="120">
+        <el-table-column prop="total" label="总数" width="80" resizable />
+        <el-table-column prop="progress" label="进度" width="120" resizable>
           <template #default="{ row }">
             <el-progress :percentage="row.percent || 0" :stroke-width="8" />
           </template>
