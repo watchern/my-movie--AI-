@@ -51,7 +51,7 @@ abstract class BaseController
      */
     protected function getData()
     {
-        return $this->request->post();
+        return array_merge($this->request->get(), $this->request->post());
     }
 
     /**
