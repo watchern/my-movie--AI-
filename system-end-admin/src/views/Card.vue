@@ -8,17 +8,17 @@
       <el-table :data="list" stripe style="width: 100%" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="55" />
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="code" label="兑换码" min-width="200" show-overflow-tooltip />
-        <el-table-column prop="days" label="VIP天数" width="100" />
-        <el-table-column prop="type_name" label="类型" width="100" />
-        <el-table-column prop="status" label="状态" width="100">
+        <el-table-column prop="code" label="兑换码" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="days" label="VIP天数" width="90" />
+        <el-table-column prop="type_name" label="类型" width="80" />
+        <el-table-column prop="status" label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 0 ? 'success' : row.status === 1 ? 'info' : 'danger'">
+            <el-tag :type="row.status === 0 ? 'success' : row.status === 1 ? 'info' : 'danger'" size="small">
               {{ ['', '未使用', '已使用', '已失效'][row.status] ?? '未知' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="200" />
+        <el-table-column prop="created_at" label="创建时间" width="170" />
       </el-table>
 
       <el-pagination
