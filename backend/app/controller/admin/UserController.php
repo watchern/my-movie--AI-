@@ -191,13 +191,19 @@ class UserController extends BaseController
     public function generateCard()
     {
         $data = $this->getData();
-        $type = intval($data['type'] ?? 3);
         $count = intval($data['count'] ?? 1);
+        $days = intval($data['days'] ?? 30);
         $price = floatval($data['price'] ?? 0);
 
         if ($count < 1 || $count > 100) {
             return $this->error('生成数量需在1-100之间');
         }
+
+        if ($days < 1) {
+            return $this->error('天数必须大于0');
+        }
+
+        $type = $this->getTypeByDays($days);
 
         $cards = [];
         for ($i = 0; $i < $count; $i++) {
@@ -205,7 +211,7 @@ class UserController extends BaseController
             $card->card_no = $this->generateCardNo();
             $card->card_pwd = $this->generateCardPwd();
             $card->type = $type;
-            $card->days = CardKey::TYPE_DAYS[$type] ?? 30;
+            $card->days = $days;
             $card->price = $price;
             $card->status = CardKey::STATUS_UNUSED;
             $card->expired_at = date('Y-m-d H:i:s', strtotime('+1 year'));
@@ -220,6 +226,27 @@ class UserController extends BaseController
         }
 
         return $this->success($cards, '生成成功');
+    }
+
+    private function getTypeByDays(int $days): int
+    {
+        $typeDaysMap = [
+            1 => CardKey::TYPE_DAY,
+            7 => CardKey::TYPE_WEEK,
+            30 => CardKey::TYPE_MONTH,
+            90 => CardKey::TYPE_QUARTER,
+            365 => CardKey::TYPE_YEAR,
+        ];
+
+        if (isset($typeDaysMap[$days])) {
+            return $typeDaysMap[$days];
+        }
+
+        if ($days >= 36500) {
+            return CardKey::TYPE_FOREVER;
+        }
+
+        return CardKey::TYPE_DAY;
     }
 
     /**
