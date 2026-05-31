@@ -5,20 +5,27 @@
         <el-button type="primary" @click="showGenerate = true">生成兑换码</el-button>
         <el-button type="danger" @click="handleDisable" :disabled="selectedIds.length === 0">设置失效</el-button>
       </template>
-      <el-table :data="list" stripe style="width: 100%" @selection-change="handleSelectionChange">
-        <el-table-column type="selection" width="55" />
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="code" label="兑换码" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="days" label="VIP天数" width="90" />
-        <el-table-column prop="type_name" label="类型" width="80" />
-        <el-table-column prop="status" label="状态" width="90">
+      <el-table :data="list" stripe @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="50" />
+        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="code" label="兑换码" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="days" label="天数" width="70" align="center" />
+        <el-table-column prop="type_name" label="类型" width="80" align="center" />
+        <el-table-column prop="status" label="状态" width="90" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 0 ? 'success' : row.status === 1 ? 'info' : 'danger'" size="small">
-              {{ ['', '未使用', '已使用', '已失效'][row.status] ?? '未知' }}
-            </el-tag>
+            <el-tag v-if="row.status === 0" type="success" size="small">未使用</el-tag>
+            <el-tag v-else-if="row.status === 1" type="info" size="small">已使用</el-tag>
+            <el-tag v-else-if="row.status === 2" type="danger" size="small">已失效</el-tag>
+            <el-tag v-else type="warning" size="small">未知</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="170" />
+        <el-table-column prop="used_user_id" label="使用人" width="100" align="center">
+          <template #default="{ row }">
+            {{ row.used_user_id || '-' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="used_at" label="使用时间" width="160" />
+        <el-table-column prop="created_at" label="创建时间" width="160" />
       </el-table>
 
       <el-pagination
