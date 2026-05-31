@@ -253,7 +253,7 @@ class UserController extends BaseController
     }
 
     /**
-     * 删除卡密
+     * 删除兑换码
      */
     public function deleteCard()
     {
@@ -261,7 +261,7 @@ class UserController extends BaseController
         $ids = $data['ids'] ?? [];
 
         if (empty($ids)) {
-            return $this->error('请选择要删除的卡密');
+            return $this->error('请选择要删除的兑换码');
         }
 
         // 只删除未使用的
@@ -270,5 +270,27 @@ class UserController extends BaseController
             ->delete();
 
         return $this->success(null, '删除成功');
+    }
+
+    /**
+     * 设置兑换码失效
+     */
+    public function disableCard()
+    {
+        $data = $this->getData();
+        $ids = $data['ids'] ?? [];
+
+        if (empty($ids)) {
+            return $this->error('请选择要失效的兑换码');
+        }
+
+        CardKey::whereIn('id', $ids)
+            ->where('status', CardKey::STATUS_UNUSED)
+            ->update([
+                'status' => CardKey::STATUS_EXPIRED,
+                'expired_at' => date('Y-m-d H:i:s'),
+            ]);
+
+        return $this->success(null, '设置成功');
     }
 }

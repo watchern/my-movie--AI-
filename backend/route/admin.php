@@ -34,6 +34,7 @@ Route::group('admin/api', function () {
     Route::get('user/cardList', [UserController::class, 'cardList']);
     Route::post('user/generateCard', [UserController::class, 'generateCard']);
     Route::post('user/deleteCard', [UserController::class, 'deleteCard']);
+    Route::post('user/disableCard', [UserController::class, 'disableCard']);
 
     // 仪表盘统计
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
