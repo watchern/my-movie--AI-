@@ -98,6 +98,35 @@ class UserController extends BaseController
     }
 
     /**
+     * 新增用户
+     */
+    public function addUser()
+    {
+        $data = $this->getData();
+        $email = trim($data['email'] ?? '');
+
+        if (empty($email)) {
+            return $this->error('邮箱不能为空');
+        }
+
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return $this->error('邮箱格式不正确');
+        }
+
+        $exists = User::where('email', $email)->find();
+        if ($exists) {
+            return $this->error('邮箱已存在');
+        }
+
+        $user = new User();
+        $user->email = $email;
+        $user->vip_status = 0;
+        $user->save();
+
+        return $this->success(['id' => $user->id], '添加成功');
+    }
+
+    /**
      * 修改用户VIP状态
      */
     public function updateVip()

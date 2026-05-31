@@ -1,6 +1,10 @@
 <template>
     <div>
         <el-card>
+            <template #header>
+                <el-button type="primary" @click="showAddDialog = true">新增用户</el-button>
+            </template>
+
             <el-table :data="list" stripe border>
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="email" label="邮箱" resizable />
@@ -18,6 +22,18 @@
                 </el-table-column>
             </el-table>
         </el-card>
+
+        <el-dialog v-model="showAddDialog" title="新增用户" width="400px">
+            <el-form :model="addForm" label-width="80px">
+                <el-form-item label="邮箱">
+                    <el-input v-model="addForm.email" placeholder="请输入邮箱" />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showAddDialog = false">取消</el-button>
+                <el-button type="primary" @click="addUser">确定</el-button>
+            </template>
+        </el-dialog>
 
         <el-dialog v-model="showDialog" title="VIP设置" width="500px">
             <el-form :model="form" label-width="100px">
@@ -45,23 +61,38 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
+import { ElMessage } from 'element-plus'
 
 const list = ref([])
 const showDialog = ref(false)
+const showAddDialog = ref(false)
 const form = ref({})
+const addForm = ref({ email: '' })
 
 const loadList = async () => {
     const res = await get('/user/list')
     list.value = res.data.list
 }
 
+const addUser = async () => {
+    if (!addForm.value.email) {
+        ElMessage.warning('请输入邮箱')
+        return
+    }
+    await post('/user/addUser', { email: addForm.value.email })
+    ElMessage.success('添加成功')
+    showAddDialog.value = false
+    addForm.value.email = ''
+    loadList()
+}
+
 const editVip = (row) => {
-    form.value = { id: row.id, vip_status: row.vip_status, days: 30 }
+    form.value = { user_id: row.id, vip_status: row.vip_status, days: 30 }
     showDialog.value = true
 }
 
 const saveVip = async () => {
-    await post('/user/vip-set', form.value)
+    await post('/user/updateVip', form.value)
     showDialog.value = false
     loadList()
 }

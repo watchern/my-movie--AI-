@@ -28,6 +28,7 @@ Route::group('admin/api', function () {
     // 用户管理
     Route::get('user/list', [UserController::class, 'list']);
     Route::get('user/detail', [UserController::class, 'detail']);
+    Route::post('user/addUser', [UserController::class, 'addUser']);
     Route::post('user/updateVip', [UserController::class, 'updateVip']);
 
     // 卡密管理
