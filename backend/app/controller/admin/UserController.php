@@ -121,11 +121,11 @@ class UserController extends BaseController
 
         $user = new User();
         $user->email = $email;
-        $user->password = '';
+        $user->password = '123456';
         $user->vip_status = 0;
         $user->save();
 
-        return $this->success(['id' => $user->id], '添加成功');
+        return $this->success(['id' => $user->id, 'default_password' => '123456'], '添加成功');
     }
 
     /**

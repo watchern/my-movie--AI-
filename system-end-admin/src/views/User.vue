@@ -48,6 +48,12 @@
         </el-card>
 
         <el-dialog v-model="showAddDialog" title="新增用户" width="400px">
+            <el-alert
+                title="默认密码: 123456"
+                type="info"
+                :closable="false"
+                style="margin-bottom: 20px;"
+            />
             <el-form :model="addForm" label-width="80px">
                 <el-form-item label="邮箱">
                     <el-input v-model="addForm.email" placeholder="请输入邮箱" />
@@ -106,8 +112,8 @@ const addUser = async () => {
         ElMessage.warning('请输入邮箱')
         return
     }
-    await post('/user/addUser', { email: addForm.value.email })
-    ElMessage.success('添加成功')
+    const res = await post('/user/addUser', { email: addForm.value.email })
+    ElMessage.success(`添加成功！默认密码: ${res.data.default_password}`)
     showAddDialog.value = false
     addForm.value.email = ''
     loadList()
