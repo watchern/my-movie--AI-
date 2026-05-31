@@ -29,13 +29,21 @@
                 </el-table-column>
                 <el-table-column prop="is_vip" label="VIP" width="80" resizable>
                     <template #default="{ row }">
-                        <el-tag :type="row.is_vip ? 'success' : 'info'">{{ row.is_vip ? '是' : '否' }}</el-tag>
+                        <el-tag 
+                            :type="row.is_vip ? 'success' : 'info'" 
+                            style="cursor: pointer;"
+                            @click="toggleVip(row)"
+                        >{{ row.is_vip ? '是' : '否' }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column prop="play_count" label="播放量" width="100" resizable />
                 <el-table-column prop="is_show" label="状态" width="80" resizable>
                     <template #default="{ row }">
-                        <el-tag :type="row.is_show ? 'success' : 'danger'">{{ row.is_show ? '显示' : '隐藏' }}</el-tag>
+                        <el-tag 
+                            :type="row.is_show ? 'success' : 'danger'" 
+                            style="cursor: pointer;"
+                            @click="toggleShow(row)"
+                        >{{ row.is_show ? '显示' : '隐藏' }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column label="操作" width="200" resizable>
@@ -122,6 +130,24 @@ const del = (id) => {
     ElMessageBox.confirm('确定删除吗？', '提示').then(async () => {
         await post('/video/delete', { id })
         loadList()
+    }).catch(() => {})
+}
+
+const toggleVip = (row) => {
+    const newValue = row.is_vip ? 0 : 1
+    const newText = newValue ? '是' : '否'
+    ElMessageBox.confirm(`确定将VIP状态设置为"${newText}"吗？`, '提示').then(async () => {
+        await post('/video/updateStatus', { id: row.id, field: 'is_vip', value: newValue })
+        row.is_vip = newValue
+    }).catch(() => {})
+}
+
+const toggleShow = (row) => {
+    const newValue = row.is_show ? 0 : 1
+    const newText = newValue ? '显示' : '隐藏'
+    ElMessageBox.confirm(`确定将显示状态设置为"${newText}"吗？`, '提示').then(async () => {
+        await post('/video/updateStatus', { id: row.id, field: 'is_show', value: newValue })
+        row.is_show = newValue
     }).catch(() => {})
 }
 

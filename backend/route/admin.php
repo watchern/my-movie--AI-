@@ -16,6 +16,7 @@ Route::group('admin/api', function () {
     Route::get('video/list', [VideoController::class, 'list']);
     Route::post('video/save', [VideoController::class, 'save']);
     Route::post('video/delete', [VideoController::class, 'delete']);
+    Route::post('video/updateStatus', [VideoController::class, 'updateStatus']);
     Route::get('video/categories', [VideoController::class, 'categories']);
     Route::post('video/saveCategory', [VideoController::class, 'saveCategory']);
     Route::post('video/deleteCategory', [VideoController::class, 'deleteCategory']);

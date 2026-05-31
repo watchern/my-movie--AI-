@@ -132,6 +132,35 @@ class VideoController extends BaseController
     }
 
     /**
+     * 快捷更新视频状态
+     */
+    public function updateStatus()
+    {
+        $data = $this->getData();
+        $id = intval($data['id'] ?? 0);
+        $field = $data['field'] ?? '';
+        $value = intval($data['value'] ?? 0);
+
+        if ($id <= 0) {
+            return $this->error('参数错误');
+        }
+
+        if (!in_array($field, ['is_vip', 'is_show'])) {
+            return $this->error('不支持的字段');
+        }
+
+        $video = Video::find($id);
+        if (!$video) {
+            return $this->error('视频不存在');
+        }
+
+        $video->$field = $value;
+        $video->save();
+
+        return $this->success(null, '更新成功');
+    }
+
+    /**
      * 分类列表
      */
     public function categories()
