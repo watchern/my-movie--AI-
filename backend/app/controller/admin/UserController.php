@@ -102,8 +102,9 @@ class UserController extends BaseController
      */
     public function addUser()
     {
-        $data = $this->getData();
-        $email = trim($data['email'] ?? '');
+        $input = file_get_contents('php://input');
+        $json = json_decode($input, true) ?: [];
+        $email = trim($json['email'] ?? '');
 
         if (empty($email)) {
             return $this->error('邮箱不能为空');
@@ -120,6 +121,7 @@ class UserController extends BaseController
 
         $user = new User();
         $user->email = $email;
+        $user->password = '';
         $user->vip_status = 0;
         $user->save();
 

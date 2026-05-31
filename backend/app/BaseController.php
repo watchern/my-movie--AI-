@@ -51,10 +51,7 @@ abstract class BaseController
      */
     protected function getData()
     {
-        $json = $this->request->json();
-        $get = $this->request->get();
-        $post = $this->request->post();
-        return array_merge($get, $post, $json ?: []);
+        return array_merge($this->request->get(), $this->request->post());
     }
 
     /**
