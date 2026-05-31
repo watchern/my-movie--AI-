@@ -5,6 +5,21 @@
                 <el-button type="primary" @click="showAddDialog = true">新增用户</el-button>
             </template>
 
+            <el-form :inline="true" :model="query">
+                <el-form-item label="邮箱">
+                    <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable />
+                </el-form-item>
+                <el-form-item label="VIP状态">
+                    <el-select v-model="query.vip_status" placeholder="全部" clearable style="width: 100px">
+                        <el-option label="普通用户" :value="0" />
+                        <el-option label="VIP用户" :value="1" />
+                    </el-select>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="loadList">搜索</el-button>
+                </el-form-item>
+            </el-form>
+
             <el-table :data="list" stripe border>
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="email" label="邮箱" resizable />
@@ -21,6 +36,15 @@
                     </template>
                 </el-table-column>
             </el-table>
+
+            <el-pagination
+                v-model:current-page="query.page"
+                v-model:page-size="query.limit"
+                :total="total"
+                layout="total, prev, pager, next"
+                @current-change="loadList"
+                style="margin-top: 20px; justify-content: flex-end;"
+            />
         </el-card>
 
         <el-dialog v-model="showAddDialog" title="新增用户" width="400px">
@@ -63,15 +87,18 @@ import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage } from 'element-plus'
 
+const query = ref({ page: 1, limit: 20, keyword: '', vip_status: '' })
 const list = ref([])
+const total = ref(0)
 const showDialog = ref(false)
 const showAddDialog = ref(false)
 const form = ref({})
 const addForm = ref({ email: '' })
 
 const loadList = async () => {
-    const res = await get('/user/list')
+    const res = await get('/user/list', query.value)
     list.value = res.data.list
+    total.value = res.data.total
 }
 
 const addUser = async () => {
