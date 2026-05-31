@@ -208,8 +208,7 @@ class UserController extends BaseController
         $cards = [];
         for ($i = 0; $i < $count; $i++) {
             $card = new CardKey();
-            $card->card_no = $this->generateCardNo();
-            $card->card_pwd = $this->generateCardPwd();
+            $card->code = $this->generateCode();
             $card->type = $type;
             $card->days = $days;
             $card->price = $price;
@@ -218,14 +217,19 @@ class UserController extends BaseController
             $card->save();
 
             $cards[] = [
-                'card_no' => $card->card_no,
-                'card_pwd' => $card->card_pwd,
+                'code' => $card->code,
                 'type_name' => $card->type_name,
                 'days' => $card->days,
             ];
         }
 
         return $this->success($cards, '生成成功');
+    }
+
+    private function generateCode(): string
+    {
+        return strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8)) . '-' .
+               strtoupper(substr(md5(uniqid(mt_rand(), true)), 8, 8));
     }
 
     private function getTypeByDays(int $days): int
@@ -267,22 +271,5 @@ class UserController extends BaseController
             ->delete();
 
         return $this->success(null, '删除成功');
-    }
-
-    /**
-     * 生成卡号
-     */
-    private function generateCardNo(): string
-    {
-        return strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8)) . '-' .
-               strtoupper(substr(md5(uniqid(mt_rand(), true)), 8, 8));
-    }
-
-    /**
-     * 生成卡密
-     */
-    private function generateCardPwd(): string
-    {
-        return strtoupper(substr(md5(uniqid(mt_rand(), true)), 0, 8));
     }
 }

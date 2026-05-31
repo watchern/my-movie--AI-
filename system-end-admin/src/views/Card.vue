@@ -2,13 +2,13 @@
   <div>
     <el-card>
       <template #header>
-        <el-button type="primary" @click="showGenerate = true">生成卡密</el-button>
+        <el-button type="primary" @click="showGenerate = true">生成兑换码</el-button>
       </template>
       <el-table :data="list" stripe style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="card_no" label="卡号" min-width="150" show-overflow-tooltip />
-        <el-table-column prop="card_pwd" label="密码" width="100" />
+        <el-table-column prop="code" label="兑换码" min-width="200" show-overflow-tooltip />
         <el-table-column prop="days" label="VIP天数" width="100" />
+        <el-table-column prop="type_name" label="类型" width="100" />
         <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'info'">{{ row.status === 0 ? '未使用' : '已使用' }}</el-tag>
@@ -27,7 +27,7 @@
       />
     </el-card>
 
-    <el-dialog v-model="showGenerate" title="生成卡密" width="500px">
+    <el-dialog v-model="showGenerate" title="生成兑换码" width="500px">
       <el-form :model="form" label-width="100px">
         <el-form-item label="生成数量">
           <el-input-number v-model="form.count" :min="1" :max="100" />

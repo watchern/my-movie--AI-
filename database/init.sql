@@ -123,12 +123,11 @@ CREATE TABLE IF NOT EXISTS `favorites` (
 CREATE INDEX IF NOT EXISTS `idx_favorites_user` ON `favorites`(`user_id`);
 
 -- -----------------------------------------
--- 7. 卡密表
+-- 7. 兑换码表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `card_keys` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
-    `card_no` VARCHAR(50) NOT NULL UNIQUE COMMENT '卡号',
-    `card_pwd` VARCHAR(50) NOT NULL COMMENT '密码',
+    `code` VARCHAR(50) NOT NULL UNIQUE COMMENT '兑换码',
     `type` TINYINT(1) DEFAULT 1 COMMENT '类型: 1天卡 2周卡 3月卡 4季卡 5年卡 6永久',
     `days` INTEGER DEFAULT 1 COMMENT '天数',
     `price` DECIMAL(10,2) DEFAULT 0 COMMENT '面值',

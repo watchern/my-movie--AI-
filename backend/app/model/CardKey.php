@@ -4,7 +4,7 @@ namespace app\model;
 use think\Model;
 
 /**
- * 卡密模型
+ * 兑换码模型
  */
 class CardKey extends Model
 {
@@ -40,18 +40,7 @@ class CardKey extends Model
         3 => 30,
         4 => 90,
         5 => 365,
-        6 => 36500, // 永久约100年
-    ];
-
-    protected $type = [
-        'type' => 'integer',
-        'days' => 'integer',
-        'price' => 'float',
-        'status' => 'integer',
-        'used_user_id' => 'integer',
-        'created_at' => 'datetime',
-        'used_at' => 'datetime',
-        'expired_at' => 'datetime',
+        6 => 36500,
     ];
 
     // 获取类型名称
