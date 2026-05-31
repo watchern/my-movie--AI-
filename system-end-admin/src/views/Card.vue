@@ -6,8 +6,9 @@
       </template>
       <el-table :data="list" stripe>
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="card_key" label="卡密" />
-        <el-table-column prop="vip_days" label="VIP天数" width="100" />
+        <el-table-column prop="card_no" label="卡号" />
+        <el-table-column prop="card_pwd" label="密码" />
+        <el-table-column prop="days" label="VIP天数" width="100" />
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'info'">{{ row.status === 0 ? '未使用' : '已使用' }}</el-tag>
