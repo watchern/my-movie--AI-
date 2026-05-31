@@ -46,7 +46,12 @@ class UserController extends BaseController
             foreach ($allList as &$item) {
                 $expireTime = !empty($item['vip_expire_time']) ? strtotime($item['vip_expire_time']) : 0;
                 if ($item['vip_status'] && $expireTime > 0) {
-                    $item['vip_remain_days'] = max(0, ceil(($expireTime - $now) / 86400));
+                    $diff = $expireTime - $now;
+                    if ($diff <= 0) {
+                        $item['vip_remain_days'] = 0;
+                    } else {
+                        $item['vip_remain_days'] = floor($diff / 86400);
+                    }
                 } else {
                     $item['vip_remain_days'] = 0;
                 }
