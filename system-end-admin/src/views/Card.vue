@@ -9,12 +9,12 @@
         <el-table-column prop="card_no" label="卡号" min-width="150" show-overflow-tooltip />
         <el-table-column prop="card_pwd" label="密码" width="100" />
         <el-table-column prop="days" label="VIP天数" width="100" />
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="status" label="状态" width="100">
           <template #default="{ row }">
             <el-tag :type="row.status === 0 ? 'success' : 'info'">{{ row.status === 0 ? '未使用' : '已使用' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="180" />
+        <el-table-column prop="created_at" label="创建时间" width="200" />
       </el-table>
 
       <el-pagination
