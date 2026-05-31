@@ -24,13 +24,21 @@
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="email" label="邮箱" resizable />
                 <el-table-column prop="phone" label="手机号" width="150" resizable />
-                <el-table-column prop="vip_status" label="VIP" width="80" resizable>
+                <el-table-column label="VIP状态" width="160" resizable>
                     <template #default="{ row }">
-                        <el-tag :type="row.vip_status ? 'success' : 'info'">{{ row.vip_status ? '是' : '否' }}</el-tag>
+                        <el-tooltip :disabled="!row.vip_status">
+                            <template #content>
+                                <div v-if="row.vip_status">
+                                    <div>到期时间: {{ row.vip_expire_time || '永久' }}</div>
+                                    <div>剩余: {{ row.vip_remain_days }}天</div>
+                                </div>
+                            </template>
+                            <el-tag :type="row.vip_status ? 'success' : 'info'">
+                                {{ row.vip_status ? (row.vip_remain_days > 0 ? 'VIP(剩'+row.vip_remain_days+'天)' : 'VIP') : '普通' }}
+                            </el-tag>
+                        </el-tooltip>
                     </template>
                 </el-table-column>
-                <el-table-column prop="vip_expire_time" label="VIP到期" width="180" resizable />
-                <el-table-column prop="vip_remain_days" label="剩余天数" width="100" resizable />
                 <el-table-column prop="total_watch_time" label="观看时长" width="120" resizable>
                     <template #default="{ row }">{{ row.total_watch_time }}分钟</template>
                 </el-table-column>
