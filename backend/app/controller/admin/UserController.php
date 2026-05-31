@@ -139,17 +139,25 @@ class UserController extends BaseController
     public function cardList()
     {
         $data = $this->getData();
+        $code = trim($data['code'] ?? '');
         $status = isset($data['status']) ? intval($data['status']) : -1;
         $type = isset($data['type']) ? intval($data['type']) : 0;
+        $usedUserId = trim($data['used_user_id'] ?? '');
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(100, intval($data['limit'] ?? 20)));
 
         $where = [];
+        if (!empty($code)) {
+            $where[] = ['code', 'like', "%{$code}%"];
+        }
         if ($status >= 0) {
             $where[] = ['status', '=', $status];
         }
         if ($type > 0) {
             $where[] = ['type', '=', $type];
+        }
+        if (!empty($usedUserId)) {
+            $where[] = ['used_user_id', 'like', "%{$usedUserId}%"];
         }
 
         $list = CardKey::where($where)

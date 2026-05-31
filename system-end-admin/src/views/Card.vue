@@ -5,6 +5,35 @@
         <el-button type="primary" @click="showGenerate = true">生成兑换码</el-button>
         <el-button type="danger" @click="handleDisable" :disabled="selectedIds.length === 0">设置失效</el-button>
       </template>
+
+      <el-form :inline="true" :model="query">
+        <el-form-item label="兑换码">
+          <el-input v-model="query.code" placeholder="兑换码" clearable />
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-select v-model="query.status" placeholder="全部" clearable style="width: 100px">
+            <el-option label="未使用" :value="0" />
+            <el-option label="已使用" :value="1" />
+            <el-option label="已失效" :value="2" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="类型">
+          <el-select v-model="query.type" placeholder="全部" clearable style="width: 100px">
+            <el-option label="天卡" :value="1" />
+            <el-option label="周卡" :value="7" />
+            <el-option label="月卡" :value="30" />
+            <el-option label="季卡" :value="90" />
+            <el-option label="年卡" :value="365" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="使用人">
+          <el-input v-model="query.used_user_id" placeholder="使用人ID" clearable />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="primary" @click="loadList">搜索</el-button>
+        </el-form-item>
+      </el-form>
+
       <el-table :data="list" stripe border @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" />
         <el-table-column prop="id" label="ID" width="70" resizable />
@@ -71,7 +100,7 @@ import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage } from 'element-plus'
 
-const query = ref({ page: 1, limit: 20 })
+const query = ref({ page: 1, limit: 20, code: '', status: '', type: '', used_user_id: '' })
 const list = ref([])
 const total = ref(0)
 const showGenerate = ref(false)
