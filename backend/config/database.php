@@ -4,20 +4,20 @@ use think\facade\Env;
 // 数据库配置
 return [
     // 默认数据库连接
-    'default' => Env::get('database.type', 'mysql'),
+    'default' => Env::get('DATABASE_TYPE', 'mysql'),
 
     // 数据库连接信息
     'connections' => [
         'mysql' => [
-            'type' => Env::get('database.type', 'mysql'),
-            'hostname' => Env::get('database.hostname', '127.0.0.1'),
-            'database' => Env::get('database.database', 'moive_app'),
-            'username' => Env::get('database.username', 'root'),
-            'password' => Env::get('database.password', ''),
-            'hostport' => Env::get('database.hostport', '3306'),
+            'type' => Env::get('DATABASE_TYPE', 'mysql'),
+            'hostname' => Env::get('database_hostname', '127.0.0.1'),
+            'database' => Env::get('database_database', 'moive_app'),
+            'username' => Env::get('database_username', 'root'),
+            'password' => Env::get('database_password', ''),
+            'hostport' => Env::get('database_hostport', '3306'),
             'params' => [],
-            'charset' => Env::get('database.charset', 'utf8mb4'),
-            'prefix' => Env::get('database.prefix', ''),
+            'charset' => Env::get('database_charset', 'utf8mb4'),
+            'prefix' => Env::get('database_prefix', ''),
             'deploy' => 0,
             'rw_separate' => false,
             'master_num' => 1,
@@ -28,8 +28,8 @@ return [
         ],
         'sqlite' => [
             'type' => 'sqlite',
-            'database' => Env::get('database.sqlite_path', dirname(__DIR__) . '/database/database.sqlite'),
-            'prefix' => Env::get('database.prefix', ''),
+            'database' => Env::get('DATABASE_SQLITE_PATH', dirname(__DIR__) . '/database/database.sqlite'),
+            'prefix' => Env::get('database_prefix', ''),
             'charset' => 'utf8',
         ],
     ],

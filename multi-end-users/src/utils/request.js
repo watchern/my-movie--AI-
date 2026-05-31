@@ -2,8 +2,9 @@ import axios from 'axios'
 import { showToast, showLoadingToast, closeToast } from 'vant'
 import { useUserStore } from '@/stores/user'
 
+const apiBase = import.meta.env.VITE_API_BASE_URL || ''
 const service = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiBase + '/api/v1',
   timeout: 30000
 })
 

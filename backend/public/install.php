@@ -12,6 +12,19 @@ define('ROOT_PATH', dirname(__DIR__) . '/../');  // 指向项目根目录 (backe
 define('BACKEND_PATH', dirname(__DIR__) . '/');  // 指向 backend 目录
 define('DATABASE_PATH', ROOT_PATH . 'database/');
 define('ENV_PATH', BACKEND_PATH . '.env');  // .env 放在 backend 目录下
+define('INSTALL_LOCK', BACKEND_PATH . 'install.lock');  // 安装锁定文件
+
+// 检查是否已安装
+if (file_exists(INSTALL_LOCK) || (file_exists(ENV_PATH) && file_exists(BACKEND_PATH . 'vendor/autoload.php'))) {
+    // 已安装，显示提示信息
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8"><title>安装完成</title>';
+    echo '<style>body{font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center;}';
+    echo '.card{background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); text-align: center; max-width: 500px;}';
+    echo 'h1{color: #28a745; margin-bottom: 20px;}.btn{display: inline-block; padding: 12px 30px; background: #667eea; color: #fff; text-decoration: none; border-radius: 8px; margin-top: 20px;}';
+    echo '</style></head><body><div class="card"><h1>✓ 系统已安装</h1><p>系统已经安装完成，安装向导已锁定。</p><p>如果需要重新安装，请先删除 <code>install.lock</code> 文件。</p><a href="../" class="btn">返回首页</a></div></body></html>';
+    exit;
+}
 
 // 错误状态
 $error = '';
@@ -375,6 +388,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $env_content .= "jwt.expire = 86400\n";
 
             file_put_contents(ENV_PATH, $env_content);
+
+            // 生成安装锁定文件
+            $lock_content = "安装时间: " . date('Y-m-d H:i:s') . "\n";
+            $lock_content .= "数据库类型: {$db_type}\n";
+            $lock_content .= "管理员用户名: {$admin_username}\n";
+            file_put_contents(INSTALL_LOCK, $lock_content);
 
             $result['success'] = true;
             $result['message'] = '安装成功！';
@@ -865,7 +884,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             document.querySelectorAll('.db-config').forEach(c => c.classList.remove('active'));
             document.getElementById(type + 'Config').classList.add('active');
             dbConnected = false;
-            document.getElementById('nextStep3').disabled = true;
+            document.getElementById('nextStep3').disabled = false; // 始终启用下一步按钮
             document.getElementById('dbMessage').innerHTML = ''; // 清除旧消息
         }
 

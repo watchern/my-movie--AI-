@@ -17,6 +17,7 @@ class Video extends Model
     const TYPE_SHORT = 4;     // 短视频
     const TYPE_DOCUMENTARY = 5; // 纪录片
 
+    // 类型转换
     protected $type = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -80,6 +81,8 @@ class Video extends Model
             self::TYPE_SHORT => '短视频',
             self::TYPE_DOCUMENTARY => '纪录片',
         ];
-        return $typeMap[$this->type] ?? '电影';
+        // 使用 getData('type') 获取原始类型值，避免与 $type 属性冲突
+        $videoType = $this->getData('type');
+        return $typeMap[$videoType] ?? '电影';
     }
 }
