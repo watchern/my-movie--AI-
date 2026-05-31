@@ -57,8 +57,17 @@
                 <el-table-column prop="total_watch_time" label="观看时长" width="120" resizable>
                     <template #default="{ row }">{{ row.total_watch_time }}分钟</template>
                 </el-table-column>
-                <el-table-column prop="created_at" label="注册时间" width="180" resizable />
-                <el-table-column prop="updated_at" label="更新时间" width="180" resizable />
+                <el-table-column label="注册时间" width="180" resizable>
+                    <template #default="{ row }">
+                        <el-tooltip :disabled="row.created_at == row.updated_at">
+                            <template #content>
+                                <div>注册时间: {{ row.created_at }}</div>
+                                <div>更新时间: {{ row.updated_at }}</div>
+                            </template>
+                            <span>{{ row.created_at }}</span>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
                 <el-table-column label="操作" width="200" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editVip(row)">VIP设置</el-button>
