@@ -3,7 +3,7 @@
         <el-card>
             <el-form :inline="true" :model="query">
                 <el-form-item label="类型">
-                    <el-select v-model="query.type" placeholder="全部" clearable>
+                    <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
                         <el-option label="电影" :value="1" />
                         <el-option label="电视剧" :value="2" />
                         <el-option label="动漫" :value="3" />
@@ -12,7 +12,7 @@
                     </el-select>
                 </el-form-item>
                 <el-form-item label="关键词">
-                    <el-input v-model="query.keyword" placeholder="标题" />
+                    <el-input v-model="query.keyword" placeholder="标题" clearable style="width: 200px" />
                 </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="loadList">搜索</el-button>

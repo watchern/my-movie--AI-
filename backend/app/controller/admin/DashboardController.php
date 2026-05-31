@@ -18,6 +18,9 @@ class DashboardController extends BaseController
      */
     public function stats()
     {
+        $data = $this->getData();
+        $type = isset($data['type']) && $data['type'] !== '' && $data['type'] !== null ? intval($data['type']) : 0;
+
         $today = date('Y-m-d');
 
         // 会员统计
@@ -40,7 +43,11 @@ class DashboardController extends BaseController
         $todayWatchHistory = WatchHistory::where('watched_at', '>=', $today . ' 00:00:00')->count();
 
         // 播放排行TOP10
-        $topVideos = Video::where('is_show', 1)
+        $videoQuery = Video::where('is_show', 1);
+        if ($type > 0) {
+            $videoQuery->where('type', $type);
+        }
+        $topVideos = $videoQuery
             ->order('play_count', 'desc')
             ->limit(10)
             ->select();
