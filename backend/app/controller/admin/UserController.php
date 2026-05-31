@@ -23,6 +23,8 @@ class UserController extends BaseController
         if (isset($data['vip_status']) && $data['vip_status'] !== '' && $data['vip_status'] !== null) {
             $vipStatus = intval($data['vip_status']);
         }
+        $vipDaysOperator = $data['vip_days_operator'] ?? '';
+        $vipDaysValue = isset($data['vip_days_value']) ? intval($data['vip_days_value']) : -1;
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(100, intval($data['limit'] ?? 20)));
 
@@ -32,6 +34,61 @@ class UserController extends BaseController
         }
         if ($vipStatus >= 0) {
             $where[] = ['vip_status', '=', $vipStatus];
+        }
+
+        if (!empty($vipDaysOperator) && $vipDaysValue >= 0 && in_array($vipDaysOperator, ['>', '=', '<'])) {
+            $now = time();
+            $allList = User::where($where)
+                ->order('id', 'desc')
+                ->select()
+                ->toArray();
+
+            foreach ($allList as &$item) {
+                $expireTime = strtotime($item['vip_expire_time']);
+                if ($item['vip_status'] && $expireTime > 0) {
+                    $item['vip_remain_days'] = max(0, ceil(($expireTime - $now) / 86400));
+                } else {
+                    $item['vip_remain_days'] = 0;
+                }
+            }
+
+            $filteredList = array_filter($allList, function($item) use ($vipDaysOperator, $vipDaysValue) {
+                $remainDays = $item['vip_remain_days'] ?? 0;
+                switch ($vipDaysOperator) {
+                    case '>':
+                        return $remainDays > $vipDaysValue;
+                    case '=':
+                        return $remainDays == $vipDaysValue;
+                    case '<':
+                        return $remainDays < $vipDaysValue;
+                    default:
+                        return true;
+                }
+            });
+
+            $total = count($filteredList);
+            $filteredList = array_values($filteredList);
+            $list = array_slice($filteredList, ($page - 1) * $limit, $limit);
+
+            $result = [];
+            foreach ($list as $item) {
+                $result[] = [
+                    'id' => $item['id'],
+                    'email' => $item['email'],
+                    'phone' => $item['phone'],
+                    'vip_status' => $item['vip_status'],
+                    'vip_expire_time' => $item['vip_expire_time'],
+                    'vip_remain_days' => $item['vip_remain_days'],
+                    'total_watch_time' => $item['total_watch_time'],
+                    'created_at' => $item['created_at'],
+                    'updated_at' => $item['updated_at'],
+                ];
+            }
+
+            return $this->success([
+                'list' => $result,
+                'total' => $total,
+            ]);
         }
 
         $list = User::where($where)

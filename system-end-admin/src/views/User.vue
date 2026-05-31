@@ -15,6 +15,21 @@
                         <el-option label="VIP用户" :value="1" />
                     </el-select>
                 </el-form-item>
+                <el-form-item label="VIP剩余天数">
+                    <el-select v-model="query.vip_days_operator" placeholder="选择" clearable style="width: 80px">
+                        <el-option label="大于" :value="'>'" />
+                        <el-option label="等于" :value="'='" />
+                        <el-option label="小于" :value="'<'" />
+                    </el-select>
+                    <el-input 
+                        v-model.number="query.vip_days_value" 
+                        placeholder="天数" 
+                        clearable 
+                        type="number" 
+                        min="0"
+                        style="width: 100px; margin-left: 5px;"
+                    />
+                </el-form-item>
                 <el-form-item>
                     <el-button type="primary" @click="loadList">搜索</el-button>
                 </el-form-item>
