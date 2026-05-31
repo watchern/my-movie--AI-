@@ -4,7 +4,7 @@
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.vip_count }}</div>
+                        <div class="num">{{ stats.user?.vip || 0 }}</div>
                         <div class="label">VIP用户</div>
                     </div>
                 </el-card>
@@ -12,7 +12,7 @@
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.total_users }}</div>
+                        <div class="num">{{ stats.user?.total || 0 }}</div>
                         <div class="label">总用户</div>
                     </div>
                 </el-card>
@@ -20,7 +20,7 @@
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.total_videos }}</div>
+                        <div class="num">{{ stats.video?.total || 0 }}</div>
                         <div class="label">视频数</div>
                     </div>
                 </el-card>
@@ -28,7 +28,7 @@
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.unused_cards }}</div>
+                        <div class="num">{{ stats.card?.unused || 0 }}</div>
                         <div class="label">剩余兑换码</div>
                     </div>
                 </el-card>
@@ -40,11 +40,7 @@
             <el-table :data="stats.top_videos" stripe>
                 <el-table-column prop="title" label="标题" />
                 <el-table-column prop="play_count" label="播放量" sortable />
-                <el-table-column prop="type" label="类型">
-                    <template #default="{ row }">
-                        {{ ['', '电影', '电视剧', '动漫', '短视频', '纪录片'][row.type] }}
-                    </template>
-                </el-table-column>
+                <el-table-column prop="type_name" label="类型" />
             </el-table>
         </el-card>
     </div>
