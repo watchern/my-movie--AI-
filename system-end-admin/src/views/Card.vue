@@ -7,11 +7,16 @@
       </template>
       <el-table :data="list" stripe @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="50" />
-        <el-table-column prop="id" label="ID" width="70" />
-        <el-table-column prop="code" label="兑换码" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="days" label="天数" width="70" align="center" />
-        <el-table-column prop="type_name" label="类型" width="80" align="center" />
-        <el-table-column prop="status" label="状态" width="90" align="center">
+        <el-table-column prop="id" label="ID" width="70" resizable />
+        <el-table-column prop="code" label="兑换码" min-width="160" show-overflow-tooltip resizable />
+        <el-table-column prop="type_name" label="类型" width="100" align="center" resizable>
+          <template #default="{ row }">
+            <el-tooltip :content="`${row.days}天`" placement="top">
+              <span>{{ row.type_name }}</span>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="90" align="center" resizable>
           <template #default="{ row }">
             <el-tag v-if="row.status === 0" type="success" size="small">未使用</el-tag>
             <el-tag v-else-if="row.status === 1" type="info" size="small">已使用</el-tag>
@@ -19,13 +24,13 @@
             <el-tag v-else type="warning" size="small">未知</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="used_user_id" label="使用人" width="100" align="center">
+        <el-table-column prop="used_user_id" label="使用人" width="100" align="center" resizable>
           <template #default="{ row }">
             {{ row.used_user_id || '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="used_at" label="使用时间" width="160" />
-        <el-table-column prop="created_at" label="创建时间" width="160" />
+        <el-table-column prop="used_at" label="使用时间" width="160" resizable />
+        <el-table-column prop="created_at" label="创建时间" width="160" resizable />
       </el-table>
 
       <el-pagination
@@ -43,13 +48,13 @@
         <el-form-item label="生成数量">
           <el-input-number v-model="form.count" :min="1" :max="100" />
         </el-form-item>
-        <el-form-item label="VIP天数">
+        <el-form-item label="VIP类型">
           <el-select v-model="form.days">
-            <el-option label="1天" :value="1" />
-            <el-option label="7天" :value="7" />
-            <el-option label="30天" :value="30" />
-            <el-option label="90天" :value="90" />
-            <el-option label="365天" :value="365" />
+            <el-option label="天卡(1天)" :value="1" />
+            <el-option label="周卡(7天)" :value="7" />
+            <el-option label="月卡(30天)" :value="30" />
+            <el-option label="季卡(90天)" :value="90" />
+            <el-option label="年卡(365天)" :value="365" />
           </el-select>
         </el-form-item>
       </el-form>
