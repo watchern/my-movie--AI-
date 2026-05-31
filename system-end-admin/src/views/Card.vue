@@ -4,10 +4,10 @@
       <template #header>
         <el-button type="primary" @click="showGenerate = true">生成卡密</el-button>
       </template>
-      <el-table :data="list" stripe>
+      <el-table :data="list" stripe style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="card_no" label="卡号" width="180" />
-        <el-table-column prop="card_pwd" label="密码" width="120" />
+        <el-table-column prop="card_no" label="卡号" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="card_pwd" label="密码" width="100" />
         <el-table-column prop="days" label="VIP天数" width="100" />
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }">
