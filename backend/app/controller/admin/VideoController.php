@@ -52,7 +52,17 @@ class VideoController extends BaseController
                 'title' => $item->title,
                 'type' => $item->type,
                 'type_name' => $item->type_name,
+                'category_id' => $item->category_id,
+                'tags' => $item->tags,
                 'cover' => $item->cover,
+                'banner' => $item->banner,
+                'director' => $item->director,
+                'actors' => $item->actors,
+                'description' => $item->description,
+                'duration' => $item->duration,
+                'release_year' => $item->release_year,
+                'region' => $item->region,
+                'language' => $item->language,
                 'rating' => $item->rating,
                 'play_count' => $item->play_count,
                 'is_vip' => $item->is_vip,
@@ -92,9 +102,9 @@ class VideoController extends BaseController
         }
 
         $video->title = trim($data['title']);
-        $video->subtitle = trim($data['subtitle'] ?? '');
         $video->type = intval($data['type'] ?? Video::TYPE_MOVIE);
         $video->category_id = intval($data['category_id'] ?? 0);
+        $video->tags = is_array($data['tags'] ?? '') ? json_encode($data['tags'], JSON_UNESCAPED_UNICODE) : ($data['tags'] ?? '[]');
         $video->cover = trim($data['cover'] ?? '');
         $video->banner = trim($data['banner'] ?? '');
         $video->director = trim($data['director'] ?? '');
@@ -105,7 +115,7 @@ class VideoController extends BaseController
         $video->region = trim($data['region'] ?? '');
         $video->language = trim($data['language'] ?? '');
         $video->rating = floatval($data['rating'] ?? 0);
-        $video->play_url = is_array($data['play_url'] ?? '') ? json_encode($data['play_url'], JSON_UNESCAPED_UNICODE) : ($data['play_url'] ?? '[]');
+        $video->play_count = intval($data['play_count'] ?? 0);
         $video->is_vip = intval($data['is_vip'] ?? 0);
         $video->is_show = intval($data['is_show'] ?? 1);
 
