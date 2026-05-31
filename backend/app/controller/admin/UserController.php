@@ -44,7 +44,7 @@ class UserController extends BaseController
                 ->toArray();
 
             foreach ($allList as &$item) {
-                $expireTime = strtotime($item['vip_expire_time']);
+                $expireTime = !empty($item['vip_expire_time']) ? strtotime($item['vip_expire_time']) : 0;
                 if ($item['vip_status'] && $expireTime > 0) {
                     $item['vip_remain_days'] = max(0, ceil(($expireTime - $now) / 86400));
                 } else {
