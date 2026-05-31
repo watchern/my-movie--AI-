@@ -29,7 +29,7 @@
                 <el-card>
                     <div class="stat">
                         <div class="num">{{ stats.unused_cards }}</div>
-                        <div class="label">剩余卡密</div>
+                        <div class="label">剩余兑换码</div>
                     </div>
                 </el-card>
             </el-col>

@@ -6,7 +6,7 @@
         <el-menu-item index="/dashboard"><el-icon><DataLine /></el-icon>数据看板</el-menu-item>
         <el-menu-item index="/video"><el-icon><VideoCamera /></el-icon>视频管理</el-menu-item>
         <el-menu-item index="/user"><el-icon><User /></el-icon>用户管理</el-menu-item>
-        <el-menu-item index="/card"><el-icon><Tickets /></el-icon>卡密管理</el-menu-item>
+        <el-menu-item index="/card"><el-icon><Tickets /></el-icon>兑换码管理</el-menu-item>
         <el-menu-item index="/collect"><el-icon><Download /></el-icon>资源采集</el-menu-item>
       </el-menu>
     </el-aside>
