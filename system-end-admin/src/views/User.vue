@@ -23,13 +23,19 @@
             <el-table :data="list" stripe border>
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="email" label="邮箱" resizable />
+                <el-table-column prop="phone" label="手机号" width="150" resizable />
                 <el-table-column prop="vip_status" label="VIP" width="80" resizable>
                     <template #default="{ row }">
                         <el-tag :type="row.vip_status ? 'success' : 'info'">{{ row.vip_status ? '是' : '否' }}</el-tag>
                     </template>
                 </el-table-column>
                 <el-table-column prop="vip_expire_time" label="VIP到期" width="180" resizable />
+                <el-table-column prop="vip_remain_days" label="剩余天数" width="100" resizable />
+                <el-table-column prop="total_watch_time" label="观看时长" width="120" resizable>
+                    <template #default="{ row }">{{ row.total_watch_time }}分钟</template>
+                </el-table-column>
                 <el-table-column prop="created_at" label="注册时间" width="180" resizable />
+                <el-table-column prop="updated_at" label="更新时间" width="180" resizable />
                 <el-table-column label="操作" width="200" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editVip(row)">VIP设置</el-button>

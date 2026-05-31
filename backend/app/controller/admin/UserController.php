@@ -49,6 +49,7 @@ class UserController extends BaseController
                 'vip_remain_days' => $item->getVipRemainDays(),
                 'total_watch_time' => $item->total_watch_time,
                 'created_at' => $item->created_at,
+                'updated_at' => $item->updated_at,
             ];
         }
 
