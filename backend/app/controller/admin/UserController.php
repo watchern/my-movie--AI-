@@ -19,7 +19,10 @@ class UserController extends BaseController
     {
         $data = $this->getData();
         $keyword = trim($data['keyword'] ?? '');
-        $vipStatus = isset($data['vip_status']) ? intval($data['vip_status']) : -1;
+        $vipStatus = -1;
+        if (isset($data['vip_status']) && $data['vip_status'] !== '' && $data['vip_status'] !== null) {
+            $vipStatus = intval($data['vip_status']);
+        }
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(100, intval($data['limit'] ?? 20)));
 
@@ -172,8 +175,14 @@ class UserController extends BaseController
     {
         $data = $this->getData();
         $code = trim($data['code'] ?? '');
-        $status = isset($data['status']) ? intval($data['status']) : -1;
-        $type = isset($data['type']) ? intval($data['type']) : 0;
+        $status = -1;
+        if (isset($data['status']) && $data['status'] !== '' && $data['status'] !== null) {
+            $status = intval($data['status']);
+        }
+        $type = 0;
+        if (isset($data['type']) && $data['type'] !== '' && $data['type'] !== null) {
+            $type = intval($data['type']);
+        }
         $usedUserId = trim($data['used_user_id'] ?? '');
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(100, intval($data['limit'] ?? 20)));
