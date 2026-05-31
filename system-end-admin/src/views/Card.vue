@@ -6,8 +6,8 @@
       </template>
       <el-table :data="list" stripe>
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="card_no" label="卡号" />
-        <el-table-column prop="card_pwd" label="密码" />
+        <el-table-column prop="card_no" label="卡号" width="180" />
+        <el-table-column prop="card_pwd" label="密码" width="120" />
         <el-table-column prop="days" label="VIP天数" width="100" />
         <el-table-column prop="status" label="状态" width="80">
           <template #default="{ row }">
