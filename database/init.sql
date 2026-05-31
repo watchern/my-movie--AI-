@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
 -- 插入默认管理员账号 (admin / admin123)
 -- 密码是 password_hash('admin123', PASSWORD_DEFAULT) 的结果
 INSERT OR IGNORE INTO `admins` (`username`, `password`, `nickname`, `status`) VALUES
-('admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '管理员', 1);
+('admin', '$2y$10$tbW9zP3Tc3ts9rAvNzwlh.kG9WRxUD4IW3rXDarUDLGJ3scNS0rW6', '管理员', 1);
 
 -- -----------------------------------------
 -- 13. 软删除支持(为已删除的表添加deleted_at字段)
