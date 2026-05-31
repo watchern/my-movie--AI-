@@ -163,8 +163,7 @@ class UserController extends BaseController
         foreach ($list as $item) {
             $result[] = [
                 'id' => $item->id,
-                'card_no' => $item->card_no,
-                'card_pwd' => $item->card_pwd,
+                'code' => $item->code,
                 'type' => $item->type,
                 'type_name' => $item->type_name,
                 'days' => $item->days,
