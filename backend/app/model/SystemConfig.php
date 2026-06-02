@@ -15,7 +15,7 @@ class SystemConfig extends Model
     ];
 
     // 获取配置值
-    public static function getValue(string $key, $default = null)
+    public static function getConfigValue(string $key, $default = null)
     {
         $config = self::where('key', $key)->find();
         if (!$config) {
@@ -26,7 +26,7 @@ class SystemConfig extends Model
     }
 
     // 设置配置值
-    public static function setValue(string $key, $value, string $type = 'string', string $description = '')
+    public static function setConfigValue(string $key, $value, string $type = 'string', string $description = '')
     {
         $config = self::where('key', $key)->find();
         
@@ -46,7 +46,7 @@ class SystemConfig extends Model
     }
 
     // 获取所有配置
-    public static function getAll()
+    public static function getAllConfigs()
     {
         $list = self::order('id', 'asc')->select();
         $result = [];

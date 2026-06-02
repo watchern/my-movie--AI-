@@ -54,7 +54,7 @@ class ConfigController extends BaseController
                 continue;
             }
 
-            SystemConfig::setValue($key, $value, $type, $description);
+            SystemConfig::setConfigValue($key, $value, $type, $description);
         }
 
         return $this->success(null, '保存成功');
