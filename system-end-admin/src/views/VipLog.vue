@@ -6,10 +6,13 @@
                     <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable style="width: 200px" />
                 </el-form-item>
                 <el-form-item label="变动类型">
-                    <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
-                        <el-option label="兑换码" value="card" />
+                    <el-select v-model="query.type" placeholder="全部" clearable style="width: 140px">
+                        <el-option label="兑换码兑换" value="card" />
                         <el-option label="广告" value="ad" />
-                        <el-option label="管理员" value="admin" />
+                        <el-option label="管理员调整" value="admin" />
+                        <el-option label="兑换码生成" value="card_generate" />
+                        <el-option label="兑换码失效" value="card_disable" />
+                        <el-option label="兑换码删除" value="card_delete" />
                         <el-option label="其他" value="other" />
                     </el-select>
                 </el-form-item>
@@ -67,6 +70,9 @@ const getTypeTag = (type) => {
         'card': 'success',
         'ad': 'warning',
         'admin': 'primary',
+        'card_generate': 'success',
+        'card_disable': 'warning',
+        'card_delete': 'danger',
         'other': 'info'
     }
     return tagMap[type] || 'info'
