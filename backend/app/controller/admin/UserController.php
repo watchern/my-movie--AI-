@@ -356,7 +356,7 @@ class UserController extends BaseController
             ];
         }
 
-        // 添加生成记录
+        // 生成兑换码记录已移到管理员操作日志，这里不再写入VIP变动记录
         $typeNameMap = [
             CardKey::TYPE_DAY => '天卡',
             CardKey::TYPE_WEEK => '周卡',
@@ -367,7 +367,6 @@ class UserController extends BaseController
         ];
         $typeName = $typeNameMap[$type] ?? '未知';
         $description = "生成兑换码: {$typeName}x{$count}, 共{$count}个";
-        $this->addAdminLog(0, VipTransaction::TYPE_CARD_GENERATE, $description);
         
         // 记录到管理员操作日志
         $currentAdmin = $this->getCurrentAdmin();
