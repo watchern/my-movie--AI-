@@ -33,6 +33,14 @@ const routes = [
       {
         path: 'loginLog',
         component: () => import('@/views/LoginLog.vue')
+      },
+      {
+        path: 'vipLog',
+        component: () => import('@/views/VipLog.vue')
+      },
+      {
+        path: 'systemConfig',
+        component: () => import('@/views/SystemConfig.vue')
       }
     ]
   }

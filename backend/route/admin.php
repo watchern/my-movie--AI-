@@ -4,6 +4,7 @@ use app\controller\admin\LoginController;
 use app\controller\admin\DashboardController;
 use app\controller\admin\UserController;
 use app\controller\admin\VideoController;
+use app\controller\admin\ConfigController;
 
 // 管理端API路由
 Route::group('admin/api', function () {
@@ -40,6 +41,11 @@ Route::group('admin/api', function () {
 
     // 登录日志
     Route::get('user/loginLogs', [UserController::class, 'loginLogs']);
+
+    // 系统配置
+    Route::get('config/list', [ConfigController::class, 'list']);
+    Route::post('config/save', [ConfigController::class, 'save']);
+    Route::get('config/vipLogs', [ConfigController::class, 'vipLogs']);
 
     // 仪表盘统计
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);

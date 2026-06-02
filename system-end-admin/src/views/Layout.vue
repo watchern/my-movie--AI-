@@ -9,6 +9,8 @@
         <el-menu-item index="/card"><el-icon><Tickets /></el-icon>兑换码管理</el-menu-item>
         <el-menu-item index="/collect"><el-icon><Download /></el-icon>资源采集</el-menu-item>
         <el-menu-item index="/loginLog"><el-icon><Clock /></el-icon>登录日志</el-menu-item>
+        <el-menu-item index="/vipLog"><el-icon><Coin /></el-icon>VIP变动记录</el-menu-item>
+        <el-menu-item index="/systemConfig"><el-icon><Setting /></el-icon>系统配置</el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -29,7 +31,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { DataLine, VideoCamera, User, Tickets, Download, Clock } from '@element-plus/icons-vue'
+import { DataLine, VideoCamera, User, Tickets, Download, Clock, Coin, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()

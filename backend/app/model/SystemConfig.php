@@ -14,9 +14,7 @@ class SystemConfig extends Model
         'updated_at' => 'datetime',
     ];
 
-    /**
-     * 获取配置值
-     */
+    // 获取配置值
     public static function getValue(string $key, $default = null)
     {
         $config = self::where('key', $key)->find();
@@ -24,47 +22,65 @@ class SystemConfig extends Model
             return $default;
         }
 
-        $value = $config->value;
-        $type = $config->type ?? 'string';
+        return self::parseValue($config->value, $config->type);
+    }
 
+    // 设置配置值
+    public static function setValue(string $key, $value, string $type = 'string', string $description = '')
+    {
+        $config = self::where('key', $key)->find();
+        
+        if ($config) {
+            $config->value = self::formatValue($value, $type);
+            $config->save();
+        } else {
+            $config = new self();
+            $config->key = $key;
+            $config->value = self::formatValue($value, $type);
+            $config->type = $type;
+            $config->description = $description;
+            $config->save();
+        }
+
+        return true;
+    }
+
+    // 获取所有配置
+    public static function getAll()
+    {
+        $list = self::order('id', 'asc')->select();
+        $result = [];
+        foreach ($list as $item) {
+            $result[$item->key] = self::parseValue($item->value, $item->type);
+        }
+        return $result;
+    }
+
+    // 解析值
+    private static function parseValue($value, string $type)
+    {
         switch ($type) {
             case 'int':
                 return intval($value);
-            case 'float':
-                return floatval($value);
             case 'bool':
-                return in_array(strtolower($value), ['1', 'true', 'yes']) ? true : false;
+                return boolval($value);
             case 'json':
-                return json_decode($value, true);
+                return $value ? json_decode($value, true) : null;
             default:
                 return $value;
         }
     }
 
-    /**
-     * 设置配置值
-     */
-    public static function setValue(string $key, $value, string $type = 'string')
+    // 格式化值
+    private static function formatValue($value, string $type)
     {
-        $config = self::where('key', $key)->find();
-
-        if (!$config) {
-            $config = new self();
-            $config->key = $key;
+        switch ($type) {
+            case 'json':
+                return is_array($value) ? json_encode($value, JSON_UNESCAPED_UNICODE) : $value;
+            case 'bool':
+                return $value ? '1' : '0';
+            default:
+                return strval($value);
         }
-
-        if (is_array($value)) {
-            $value = json_encode($value, JSON_UNESCAPED_UNICODE);
-            $type = 'json';
-        } elseif (is_bool($value)) {
-            $value = $value ? '1' : '0';
-            $type = 'bool';
-        }
-
-        $config->value = strval($value);
-        $config->type = $type;
-        $config->save();
-
-        return true;
     }
 }
