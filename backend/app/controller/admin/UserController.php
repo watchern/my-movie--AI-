@@ -79,6 +79,7 @@ class UserController extends BaseController
 
             $result = [];
             foreach ($list as $item) {
+                $user = User::find($item['id']);
                 $result[] = [
                     'id' => $item['id'],
                     'email' => $item['email'],
@@ -86,6 +87,7 @@ class UserController extends BaseController
                     'vip_status' => $item['vip_status'],
                     'vip_expire_time' => $item['vip_expire_time'],
                     'vip_remain_days' => $item['vip_remain_days'],
+                    'vip_remain_time' => $user ? $user->getVipRemainTime() : '0天0小时0分钟',
                     'total_watch_time' => $item['total_watch_time'],
                     'created_at' => $item['created_at'],
                     'updated_at' => $item['updated_at'],
@@ -114,6 +116,7 @@ class UserController extends BaseController
                 'vip_status' => $item->vip_status,
                 'vip_expire_time' => $item->vip_expire_time,
                 'vip_remain_days' => $item->getVipRemainDays(),
+                'vip_remain_time' => $item->getVipRemainTime(),
                 'total_watch_time' => $item->total_watch_time,
                 'created_at' => $item->created_at,
                 'updated_at' => $item->updated_at,
@@ -157,6 +160,7 @@ class UserController extends BaseController
                 'vip_status' => $user->vip_status,
                 'vip_expire_time' => $user->vip_expire_time,
                 'vip_remain_days' => $user->getVipRemainDays(),
+                'vip_remain_time' => $user->getVipRemainTime(),
                 'total_watch_time' => $user->total_watch_time,
                 'created_at' => $user->created_at,
             ],

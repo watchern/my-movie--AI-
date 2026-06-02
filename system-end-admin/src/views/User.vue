@@ -39,17 +39,17 @@
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="email" label="邮箱" resizable />
                 <el-table-column prop="phone" label="手机号" width="150" resizable />
-                <el-table-column label="VIP状态" width="160" resizable>
+                <el-table-column label="VIP状态" width="200" resizable>
                     <template #default="{ row }">
                         <el-tooltip :disabled="!row.vip_status">
                             <template #content>
                                 <div v-if="row.vip_status">
                                     <div>到期时间: {{ row.vip_expire_time || '永久' }}</div>
-                                    <div>剩余: {{ row.vip_remain_days }}天</div>
+                                    <div>剩余: {{ row.vip_remain_time }}</div>
                                 </div>
                             </template>
                             <el-tag :type="row.vip_status ? 'success' : 'info'">
-                                {{ row.vip_status ? (row.vip_remain_days > 0 ? 'VIP(剩'+row.vip_remain_days+'天)' : 'VIP') : '普通' }}
+                                {{ row.vip_status ? (row.vip_remain_days > 0 ? 'VIP(剩'+row.vip_remain_time+')' : 'VIP') : '普通' }}
                             </el-tag>
                         </el-tooltip>
                     </template>

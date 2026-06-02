@@ -59,6 +59,25 @@ class User extends Model
         return max(0, floor($remain / 86400));
     }
 
+    // 获取VIP剩余精确时间（格式：xx天xx小时xx分钟）
+    public function getVipRemainTime(): string
+    {
+        if ($this->vip_status != self::VIP_ACTIVE) {
+            return '0天0小时0分钟';
+        }
+        if (empty($this->vip_expire_time)) {
+            return '永久';
+        }
+        $remain = strtotime($this->vip_expire_time) - time();
+        if ($remain <= 0) {
+            return '0天0小时0分钟';
+        }
+        $days = floor($remain / 86400);
+        $hours = floor(($remain % 86400) / 3600);
+        $minutes = floor(($remain % 3600) / 60);
+        return "{$days}天{$hours}小时{$minutes}分钟";
+    }
+
     // 添加VIP天数
     public function addVipDays(int $days, string $type = VipTransaction::TYPE_OTHER, string $subType = null, int $relatedId = null, string $description = null): bool
     {
