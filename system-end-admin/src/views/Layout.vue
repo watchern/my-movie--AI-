@@ -97,8 +97,13 @@ const logout = () => {
   }
 }
 
+:deep(.el-sub-menu .el-menu) {
+  background: #000c17;
+}
+
 :deep(.el-menu-item) {
   color: rgba(255, 255, 255, 0.85);
+  background: transparent;
   
   &:hover {
     color: #fff;
