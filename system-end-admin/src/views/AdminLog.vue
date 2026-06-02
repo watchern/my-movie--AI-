@@ -41,9 +41,27 @@
                     </template>
                 </el-table-column>
                 <el-table-column prop="type_name" label="操作类型" width="120" resizable />
-                <el-table-column prop="detail" label="操作详情" min-width="200" resizable show-overflow-tooltip />
+                <el-table-column prop="detail" label="操作详情" min-width="200" resizable>
+                    <template #default="{ row }">
+                        <el-tooltip effect="dark" placement="top" :show-after="300">
+                            <template #content>
+                                <div class="tooltip-content">{{ row.detail }}</div>
+                            </template>
+                            <div class="cell-content">{{ row.detail }}</div>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
                 <el-table-column prop="ip" label="IP" width="140" resizable />
-                <el-table-column prop="device_info" label="设备信息" min-width="200" resizable show-overflow-tooltip />
+                <el-table-column prop="device_info" label="设备信息" min-width="200" resizable>
+                    <template #default="{ row }">
+                        <el-tooltip effect="dark" placement="top" :show-after="300">
+                            <template #content>
+                                <div class="tooltip-content">{{ row.device_info }}</div>
+                            </template>
+                            <div class="cell-content">{{ row.device_info }}</div>
+                        </el-tooltip>
+                    </template>
+                </el-table-column>
                 <el-table-column prop="created_at" label="操作时间" width="180" resizable />
             </el-table>
 
@@ -77,4 +95,16 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.cell-content {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+</style>
+<style lang="scss">
+.tooltip-content {
+    max-width: 400px;
+    word-wrap: break-word;
+    word-break: break-all;
+}
 </style>
