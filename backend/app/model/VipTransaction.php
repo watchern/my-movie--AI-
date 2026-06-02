@@ -30,7 +30,7 @@ class VipTransaction extends Model
     }
 
     // 获取类型名称
-    public function getTypeNameAttr()
+    public function getTypeNameAttr($value, $data)
     {
         $typeMap = [
             self::TYPE_CARD => '兑换码兑换',
