@@ -41,6 +41,6 @@ class VipTransaction extends Model
             self::TYPE_CARD_GENERATE => '兑换码生成',
             self::TYPE_OTHER => '其他',
         ];
-        return $typeMap[$this->type] ?? '未知';
+        return $typeMap[$data['type']] ?? '未知';
     }
 }
