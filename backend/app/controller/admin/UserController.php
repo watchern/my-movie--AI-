@@ -455,4 +455,97 @@ class UserController extends BaseController
             'limit' => $limit,
         ]);
     }
+
+    /**
+     * 观看历史列表
+     */
+    public function watchHistory()
+    {
+        $data = $this->getData();
+        $keyword = trim($data['keyword'] ?? '');
+        $page = max(1, intval($data['page'] ?? 1));
+        $limit = max(1, min(100, intval($data['limit'] ?? 20)));
+
+        $query = WatchHistory::with(['user', 'video']);
+
+        if (!empty($keyword)) {
+            $query->whereHas('user', function($q) use ($keyword) {
+                $q->where('email', 'like', "%{$keyword}%");
+            })->whereOr('id', 'in', function($q) use ($keyword) {
+                $q->table('videos')->where('title', 'like', "%{$keyword}%")->field('id');
+            });
+        }
+
+        $list = $query->order('watched_at', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        $total = $query->count();
+
+        $result = [];
+        foreach ($list as $item) {
+            $result[] = [
+                'id' => $item->id,
+                'user_id' => $item->user_id,
+                'email' => $item->user ? $item->user->email : '用户已删除',
+                'video_id' => $item->video_id,
+                'video_title' => $item->video ? $item->video->title : '视频已删除',
+                'progress' => $item->progress_text,
+                'last_position' => $item->last_position,
+                'duration' => $item->duration,
+                'watched_at' => $item->watched_at,
+            ];
+        }
+
+        return $this->success([
+            'list' => $result,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+        ]);
+    }
+
+    /**
+     * 收藏列表
+     */
+    public function favorites()
+    {
+        $data = $this->getData();
+        $keyword = trim($data['keyword'] ?? '');
+        $page = max(1, intval($data['page'] ?? 1));
+        $limit = max(1, min(100, intval($data['limit'] ?? 20)));
+
+        $query = Favorite::with(['user', 'video']);
+
+        if (!empty($keyword)) {
+            $query->whereHas('user', function($q) use ($keyword) {
+                $q->where('email', 'like', "%{$keyword}%");
+            });
+        }
+
+        $list = $query->order('created_at', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        $total = $query->count();
+
+        $result = [];
+        foreach ($list as $item) {
+            $result[] = [
+                'id' => $item->id,
+                'user_id' => $item->user_id,
+                'email' => $item->user ? $item->user->email : '用户已删除',
+                'video_id' => $item->video_id,
+                'video_title' => $item->video ? $item->video->title : '视频已删除',
+                'created_at' => $item->created_at,
+            ];
+        }
+
+        return $this->success([
+            'list' => $result,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+        ]);
+    }
 }

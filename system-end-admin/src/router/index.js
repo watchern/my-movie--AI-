@@ -41,6 +41,18 @@ const routes = [
       {
         path: 'systemConfig',
         component: () => import('@/views/SystemConfig.vue')
+      },
+      {
+        path: 'watchHistory',
+        component: () => import('@/views/WatchHistory.vue')
+      },
+      {
+        path: 'favorite',
+        component: () => import('@/views/Favorite.vue')
+      },
+      {
+        path: 'adminManager',
+        component: () => import('@/views/AdminManager.vue')
       }
     ]
   }

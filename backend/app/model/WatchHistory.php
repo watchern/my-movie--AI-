@@ -11,12 +11,6 @@ class WatchHistory extends Model
     protected $name = 'watch_history';
 
     protected $type = [
-        'user_id' => 'integer',
-        'video_id' => 'integer',
-        'episode_id' => 'integer',
-        'progress' => 'integer',
-        'duration' => 'integer',
-        'last_position' => 'integer',
         'watched_at' => 'datetime',
     ];
 
@@ -32,9 +26,32 @@ class WatchHistory extends Model
         return $this->belongsTo(Video::class, 'video_id');
     }
 
-    // 关联剧集（实际上是 video_sources 表）
-    public function episode()
+    // 获取格式化观看进度
+    public function getProgressTextAttr()
     {
-        return $this->belongsTo(VideoSource::class, 'episode_id');
+        $last = $this->last_position;
+        $total = $this->duration;
+        
+        if ($total > 0) {
+            $percent = round(($last / $total) * 100, 1);
+            $lastText = $this->formatTime($last);
+            $totalText = $this->formatTime($total);
+            return "{$lastText} / {$totalText} ({$percent}%)";
+        }
+        
+        return $this->formatTime($last);
+    }
+
+    // 格式化时间
+    private function formatTime($seconds)
+    {
+        $hours = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        $secs = $seconds % 60;
+        
+        if ($hours > 0) {
+            return sprintf('%d:%02d:%02d', $hours, $minutes, $secs);
+        }
+        return sprintf('%d:%02d', $minutes, $secs);
     }
 }

@@ -11,8 +11,6 @@ class Favorite extends Model
     protected $name = 'favorites';
 
     protected $type = [
-        'user_id' => 'integer',
-        'video_id' => 'integer',
         'created_at' => 'datetime',
     ];
 

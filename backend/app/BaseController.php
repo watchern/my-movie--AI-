@@ -4,6 +4,8 @@ namespace app;
 use think\App;
 use think\exception\ValidateException;
 use think\Validate;
+use app\common\JwtHelper;
+use app\model\Admin;
 
 abstract class BaseController
 {
@@ -62,5 +64,26 @@ abstract class BaseController
         $page = max(1, intval($this->request->param('page', 1)));
         $limit = max(1, min(100, intval($this->request->param('limit', 20))));
         return [$page, $limit];
+    }
+
+    /**
+     * 获取当前管理员
+     */
+    protected function getCurrentAdmin()
+    {
+        $token = $this->request->header('Authorization', '');
+        if (empty($token)) {
+            return null;
+        }
+
+        $token = str_replace('Bearer ', '', $token);
+        $payload = JwtHelper::verifyToken($token);
+
+        if (!$payload || ($payload['type'] ?? '') !== 'admin') {
+            return null;
+        }
+
+        $admin = Admin::find($payload['id']);
+        return $admin ? $admin->toArray() : null;
     }
 }

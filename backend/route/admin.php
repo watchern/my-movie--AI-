@@ -5,6 +5,7 @@ use app\controller\admin\DashboardController;
 use app\controller\admin\UserController;
 use app\controller\admin\VideoController;
 use app\controller\admin\ConfigController;
+use app\controller\admin\AdminController;
 
 // 管理端API路由
 Route::group('admin/api', function () {
@@ -42,10 +43,22 @@ Route::group('admin/api', function () {
     // 登录日志
     Route::get('user/loginLogs', [UserController::class, 'loginLogs']);
 
+    // 观看历史
+    Route::get('user/watchHistory', [UserController::class, 'watchHistory']);
+
+    // 收藏记录
+    Route::get('user/favorites', [UserController::class, 'favorites']);
+
     // 系统配置
     Route::get('config/list', [ConfigController::class, 'list']);
     Route::post('config/save', [ConfigController::class, 'save']);
     Route::get('config/vipLogs', [ConfigController::class, 'vipLogs']);
+
+    // 管理员管理
+    Route::get('admin/list', [AdminController::class, 'list']);
+    Route::post('admin/add', [AdminController::class, 'add']);
+    Route::post('admin/update', [AdminController::class, 'update']);
+    Route::post('admin/delete', [AdminController::class, 'delete']);
 
     // 仪表盘统计
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
