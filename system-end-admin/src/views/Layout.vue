@@ -4,17 +4,33 @@
       <div class="logo">管理后台</div>
       <el-menu :default-active="route.path" router>
         <el-menu-item index="/dashboard"><el-icon><DataLine /></el-icon>数据看板</el-menu-item>
-        <el-menu-item index="/video"><el-icon><VideoCamera /></el-icon>视频管理</el-menu-item>
-        <el-menu-item index="/user"><el-icon><User /></el-icon>用户管理</el-menu-item>
-        <el-menu-item index="/card"><el-icon><Tickets /></el-icon>兑换码管理</el-menu-item>
-        <el-menu-item index="/collect"><el-icon><Download /></el-icon>资源采集</el-menu-item>
-        <el-menu-item index="/loginLog"><el-icon><Clock /></el-icon>登录日志</el-menu-item>
-        <el-menu-item index="/adminLoginLog"><el-icon><UserFilled /></el-icon>管理员登录日志</el-menu-item>
-        <el-menu-item index="/watchHistory"><el-icon><VideoPlay /></el-icon>观看历史</el-menu-item>
-        <el-menu-item index="/favorite"><el-icon><Star /></el-icon>收藏记录</el-menu-item>
-        <el-menu-item index="/vipLog"><el-icon><Coin /></el-icon>VIP变动记录</el-menu-item>
-        <el-menu-item index="/adminManager"><el-icon><Key /></el-icon>管理员管理</el-menu-item>
-        <el-menu-item index="/systemConfig"><el-icon><Setting /></el-icon>系统配置</el-menu-item>
+
+        <el-sub-menu index="content">
+          <template #title><el-icon><VideoCamera /></el-icon>内容管理</template>
+          <el-menu-item index="/video">视频管理</el-menu-item>
+          <el-menu-item index="/collect">资源采集</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="user">
+          <template #title><el-icon><User /></el-icon>用户管理</template>
+          <el-menu-item index="/user">用户管理</el-menu-item>
+          <el-menu-item index="/card">兑换码管理</el-menu-item>
+          <el-menu-item index="/loginLog">用户登录日志</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="record">
+          <template #title><el-icon><Coin /></el-icon>记录查询</template>
+          <el-menu-item index="/watchHistory">观看历史</el-menu-item>
+          <el-menu-item index="/favorite">收藏记录</el-menu-item>
+          <el-menu-item index="/vipLog">VIP变动记录</el-menu-item>
+        </el-sub-menu>
+
+        <el-sub-menu index="system">
+          <template #title><el-icon><Setting /></el-icon>系统管理</template>
+          <el-menu-item index="/adminManager">管理员管理</el-menu-item>
+          <el-menu-item index="/adminLoginLog">管理员登录日志</el-menu-item>
+          <el-menu-item index="/systemConfig">系统配置</el-menu-item>
+        </el-sub-menu>
       </el-menu>
     </el-aside>
 
@@ -35,7 +51,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { DataLine, VideoCamera, User, Tickets, Download, Clock, Coin, Setting, VideoPlay, Star, Key, UserFilled } from '@element-plus/icons-vue'
+import { DataLine, VideoCamera, User, Coin, Setting } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
