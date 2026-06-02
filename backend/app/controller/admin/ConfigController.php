@@ -82,11 +82,12 @@ class ConfigController extends BaseController
             $query->where('type', $type);
         }
 
+        // 先计算总数，再分页查询
+        $total = $query->count();
+
         $list = $query->order('created_at', 'desc')
             ->page($page, $limit)
             ->select();
-
-        $total = $query->count();
 
         $result = [];
         foreach ($list as $item) {
