@@ -21,9 +21,12 @@
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="username" label="用户名" min-width="120" resizable />
                 <el-table-column prop="nickname" label="昵称" min-width="120" resizable />
-                <el-table-column label="状态" width="100" resizable>
+                <el-table-column label="状态" width="120" resizable>
                     <template #default="{ row }">
                         <el-tag :type="row.status === 1 ? 'success' : 'danger'">{{ row.status_name }}</el-tag>
+                        <el-button link :type="row.status === 1 ? 'danger' : 'success'" @click="toggleStatus(row)" style="margin-left: 8px">
+                            {{ row.status === 1 ? '禁用' : '启用' }}
+                        </el-button>
                     </template>
                 </el-table-column>
                 <el-table-column prop="last_login_time" label="最后登录" width="170" resizable />
@@ -153,6 +156,20 @@ const deleteAdmin = (row) => {
     }).then(async () => {
         await post('/admin/delete', { ids: [row.id] })
         ElMessage.success('删除成功')
+        loadList()
+    }).catch(() => {})
+}
+
+const toggleStatus = (row) => {
+    const action = row.status === 1 ? '禁用' : '启用'
+    ElMessageBox.confirm(`确定要${action}该管理员吗？`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+    }).then(async () => {
+        const newStatus = row.status === 1 ? 0 : 1
+        await post('/admin/update', { id: row.id, status: newStatus })
+        ElMessage.success(`${action}成功`)
         loadList()
     }).catch(() => {})
 }

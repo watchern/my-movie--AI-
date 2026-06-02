@@ -5,8 +5,8 @@ install.lock
 .env
 .env.local
 .env.*.local
-database/database.sqlite
-database/database.sqlite3
+database/*.sqlite
+database/*.sqlite3
 backend/runtime
 backend/public/test*.php
 backend/public/test_*.php
