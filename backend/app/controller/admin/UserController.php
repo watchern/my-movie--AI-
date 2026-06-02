@@ -7,6 +7,7 @@ use app\model\CardKey;
 use app\model\WatchHistory;
 use app\model\Favorite;
 use app\model\LoginLog;
+use app\model\VipTransaction;
 
 /**
  * 管理端 - 用户管理
@@ -214,6 +215,9 @@ class UserController extends BaseController
             return $this->error('用户不存在');
         }
 
+        $oldStatus = $user->vip_status;
+        $oldExpireTime = $user->vip_expire_time;
+
         $user->vip_status = $vipStatus;
 
         if ($vipStatus == 1) {
@@ -227,6 +231,19 @@ class UserController extends BaseController
         }
 
         $user->save();
+
+        // 添加VIP调整记录
+        $description = "管理员调整VIP: ";
+        if ($vipStatus == 1) {
+            if ($days > 0) {
+                $description .= "开通VIP，延长{$days}天";
+            } else {
+                $description .= "开通永久VIP";
+            }
+        } else {
+            $description .= "取消VIP";
+        }
+        $this->addAdminLog($userId, VipTransaction::TYPE_ADMIN, $description);
 
         return $this->success(null, '更新成功');
     }
@@ -334,6 +351,19 @@ class UserController extends BaseController
             ];
         }
 
+        // 添加生成记录
+        $typeNameMap = [
+            CardKey::TYPE_DAY => '天卡',
+            CardKey::TYPE_WEEK => '周卡',
+            CardKey::TYPE_MONTH => '月卡',
+            CardKey::TYPE_QUARTER => '季卡',
+            CardKey::TYPE_YEAR => '年卡',
+            CardKey::TYPE_FOREVER => '永久卡',
+        ];
+        $typeName = $typeNameMap[$type] ?? '未知';
+        $description = "生成兑换码: {$typeName}x{$count}, 共{$count}个";
+        $this->addAdminLog(0, VipTransaction::TYPE_CARD_GENERATE, $description);
+
         return $this->success($cards, '生成成功');
     }
 
@@ -376,7 +406,22 @@ class UserController extends BaseController
             return $this->error('请选择要删除的兑换码');
         }
 
-        // 只删除未使用的
+        // 获取要删除的兑换码信息用于记录
+        $cards = CardKey::whereIn('id', $ids)
+            ->where('status', CardKey::STATUS_UNUSED)
+            ->select();
+
+        if ($cards->isEmpty()) {
+            return $this->error('没有可删除的兑换码');
+        }
+
+        $cardCodes = $cards->pluck('code')->toArray();
+        $description = '删除兑换码: ' . implode(', ', $cardCodes);
+
+        // 添加操作记录
+        $this->addAdminLog(0, VipTransaction::TYPE_CARD_DELETE, $description);
+
+        // 删除兑换码
         CardKey::whereIn('id', $ids)
             ->where('status', CardKey::STATUS_UNUSED)
             ->delete();
@@ -396,6 +441,22 @@ class UserController extends BaseController
             return $this->error('请选择要失效的兑换码');
         }
 
+        // 获取要失效的兑换码信息用于记录
+        $cards = CardKey::whereIn('id', $ids)
+            ->where('status', CardKey::STATUS_UNUSED)
+            ->select();
+
+        if ($cards->isEmpty()) {
+            return $this->error('没有可失效的兑换码');
+        }
+
+        $cardCodes = $cards->pluck('code')->toArray();
+        $description = '设置兑换码失效: ' . implode(', ', $cardCodes);
+
+        // 添加操作记录
+        $this->addAdminLog(0, VipTransaction::TYPE_CARD_DISABLE, $description);
+
+        // 设置兑换码失效
         CardKey::whereIn('id', $ids)
             ->where('status', CardKey::STATUS_UNUSED)
             ->update([
@@ -404,6 +465,19 @@ class UserController extends BaseController
             ]);
 
         return $this->success(null, '设置成功');
+    }
+
+    /**
+     * 添加管理员操作日志
+     */
+    private function addAdminLog(int $userId, string $type, string $description)
+    {
+        $transaction = new VipTransaction();
+        $transaction->user_id = $userId;
+        $transaction->type = $type;
+        $transaction->days = 0;
+        $transaction->description = $description;
+        $transaction->save();
     }
 
     /**
