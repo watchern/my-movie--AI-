@@ -77,7 +77,7 @@ abstract class BaseController
         }
 
         $token = str_replace('Bearer ', '', $token);
-        $payload = JwtHelper::verifyToken($token);
+        $payload = JwtHelper::verify($token);
 
         if (!$payload || ($payload['type'] ?? '') !== 'admin') {
             return null;
