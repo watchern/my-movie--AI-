@@ -122,7 +122,7 @@ class AdminController extends BaseController
             }
         }
 
-        if ($id == $currentAdmin['id']) {
+        if ($currentAdmin && $id == $currentAdmin['id']) {
             if ($status == 0) {
                 return $this->error('不能禁用自己');
             }
