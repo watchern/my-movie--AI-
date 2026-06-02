@@ -1,5 +1,5 @@
 <template>
-    <div>
+    <div ref="containerRef">
         <el-card>
             <template #header>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -17,7 +17,8 @@
                 </el-form-item>
             </el-form>
 
-            <el-table :data="list" stripe border>
+            <!-- 桌面端表格 -->
+            <el-table v-if="!isMobile" :data="list" stripe border>
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="username" label="用户名" min-width="120" resizable />
                 <el-table-column prop="nickname" label="昵称" min-width="120" resizable />
@@ -41,11 +42,32 @@
                 <el-table-column label="操作" width="220" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editAdmin(row)">编辑</el-button>
-                        <el-button link type="warning" @click="showChangePasswordDialog(row)">修改密码</el-button>
+                        <el-button link type="warning" @click="showChangePasswordDialog(row)">改密</el-button>
                         <el-button link type="danger" @click="deleteAdmin(row)">删除</el-button>
                     </template>
                 </el-table-column>
             </el-table>
+
+            <!-- 移动端卡片列表 -->
+            <div v-else class="mobile-list">
+                <el-card v-for="row in list" :key="row.id" class="mobile-card">
+                    <div class="mobile-item"><span class="label">ID</span><span class="value">{{ row.id }}</span></div>
+                    <div class="mobile-item"><span class="label">用户名</span><span class="value">{{ row.username }}</span></div>
+                    <div class="mobile-item"><span class="label">昵称</span><span class="value">{{ row.nickname }}</span></div>
+                    <div class="mobile-item">
+                        <span class="label">状态</span>
+                        <el-tag :type="row.status === 1 ? 'success' : 'danger'" size="small">{{ row.status_name }}</el-tag>
+                    </div>
+                    <div class="mobile-item"><span class="label">最后登录</span><span class="value">{{ row.last_login_time || '-' }}</span></div>
+                    <div class="mobile-item"><span class="label">登录IP</span><span class="value">{{ row.last_login_ip || '-' }}</span></div>
+                    <div class="mobile-item"><span class="label">创建时间</span><span class="value">{{ row.created_at }}</span></div>
+                    <div class="mobile-item actions">
+                        <el-button size="small" type="primary" @click="editAdmin(row)">编辑</el-button>
+                        <el-button size="small" type="warning" @click="showChangePasswordDialog(row)">改密</el-button>
+                        <el-button size="small" type="danger" @click="deleteAdmin(row)">删除</el-button>
+                    </div>
+                </el-card>
+            </div>
 
             <el-pagination
                 v-model:current-page="query.page"
@@ -105,13 +127,40 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const query = ref({ page: 1, limit: 20, keyword: '' })
 const list = ref([])
 const total = ref(0)
+const containerRef = ref(null)
+const isMobile = ref(false)
+
+const checkMobile = () => {
+    if (containerRef.value) {
+        isMobile.value = containerRef.value.offsetWidth < 768
+    }
+}
+
+let resizeObserver = null
+
+onMounted(() => {
+    loadList()
+    checkMobile()
+    if (containerRef.value) {
+        resizeObserver = new ResizeObserver(() => {
+            checkMobile()
+        })
+        resizeObserver.observe(containerRef.value)
+    }
+})
+
+onUnmounted(() => {
+    if (resizeObserver) {
+        resizeObserver.disconnect()
+    }
+})
 
 const showDialog = ref(false)
 const isEdit = ref(false)
@@ -260,9 +309,38 @@ const changePassword = async () => {
     ElMessage.success('密码修改成功')
     showPasswordDialog.value = false
 }
-
-onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.mobile-list {
+    .mobile-card {
+        margin-bottom: 12px;
+    }
+    .mobile-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+        &:last-child {
+            border-bottom: none;
+        }
+        .label {
+            color: #999;
+            font-size: 13px;
+        }
+        .value {
+            color: #333;
+            font-size: 13px;
+        }
+        &.actions {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #eee;
+            border-bottom: none;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+    }
+}
 </style>
