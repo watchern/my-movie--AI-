@@ -410,9 +410,9 @@ class UserController extends BaseController
             return $this->error('请选择要删除的兑换码');
         }
 
-        // 获取要删除的兑换码信息用于记录
+        // 获取要删除的兑换码信息（未使用和已过期的）
         $cards = CardKey::whereIn('id', $ids)
-            ->where('status', CardKey::STATUS_UNUSED)
+            ->whereIn('status', [CardKey::STATUS_UNUSED, CardKey::STATUS_EXPIRED])
             ->select();
 
         if ($cards->isEmpty()) {
@@ -425,9 +425,9 @@ class UserController extends BaseController
         // 添加操作记录
         $this->addAdminLog(0, VipTransaction::TYPE_CARD_DELETE, $description);
 
-        // 删除兑换码
+        // 删除兑换码（未使用和已过期的）
         CardKey::whereIn('id', $ids)
-            ->where('status', CardKey::STATUS_UNUSED)
+            ->whereIn('status', [CardKey::STATUS_UNUSED, CardKey::STATUS_EXPIRED])
             ->delete();
 
         return $this->success(null, '删除成功');
