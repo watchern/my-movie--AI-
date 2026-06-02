@@ -223,16 +223,27 @@ class AdminController extends BaseController
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(100, intval($data['limit'] ?? 20)));
 
-        $query = AdminLog::with(['admin']);
+        // 先查询日志表
+        $query = new AdminLog();
 
+        // 如果有关键词搜索，先找到匹配的管理员ID
+        $adminIds = [];
         if (!empty($keyword)) {
-            $query->whereHas('admin', function($q) use ($keyword) {
-                $q->where('username', 'like', "%{$keyword}%")
-                  ->whereOr('nickname', 'like', "%{$keyword}%");
-            });
+            $admins = Admin::where('username', 'like', "%{$keyword}%")
+                ->whereOr('nickname', 'like', "%{$keyword}%")
+                ->select();
+            foreach ($admins as $admin) {
+                $adminIds[] = $admin->id;
+            }
+            // 如果没有找到匹配的管理员ID，就添加一个不存在的ID，确保查询结果为空
+            if (empty($adminIds)) {
+                $adminIds[] = -1;
+            }
+            $query = $query->whereIn('admin_id', $adminIds);
         }
+
         if (!empty($type)) {
-            $query->where('type', $type);
+            $query = $query->where('type', $type);
         }
 
         $total = $query->count();
@@ -241,13 +252,31 @@ class AdminController extends BaseController
             ->page($page, $limit)
             ->select();
 
+        // 收集所有管理员ID
+        $adminIdsForQuery = [];
+        foreach ($list as $item) {
+            if ($item->admin_id > 0 && !in_array($item->admin_id, $adminIdsForQuery)) {
+                $adminIdsForQuery[] = $item->admin_id;
+            }
+        }
+
+        // 批量查询管理员信息
+        $adminMap = [];
+        if (!empty($adminIdsForQuery)) {
+            $admins = Admin::whereIn('id', $adminIdsForQuery)->select();
+            foreach ($admins as $admin) {
+                $adminMap[$admin->id] = $admin;
+            }
+        }
+
         $result = [];
         foreach ($list as $item) {
+            $admin = isset($adminMap[$item->admin_id]) ? $adminMap[$item->admin_id] : null;
             $result[] = [
                 'id' => $item->id,
                 'admin_id' => $item->admin_id,
-                'username' => $item->admin ? $item->admin->username : '未知',
-                'nickname' => $item->admin ? $item->admin->nickname : '',
+                'username' => $admin ? $admin->username : '未知',
+                'nickname' => $admin ? $admin->nickname : '',
                 'type' => $item->type,
                 'type_name' => $item->type_name,
                 'detail' => $item->detail,
