@@ -29,6 +29,10 @@ const routes = [
       {
         path: 'collect',
         component: () => import('@/views/Collect.vue')
+      },
+      {
+        path: 'loginLog',
+        component: () => import('@/views/LoginLog.vue')
       }
     ]
   }

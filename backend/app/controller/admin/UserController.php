@@ -6,6 +6,7 @@ use app\model\User;
 use app\model\CardKey;
 use app\model\WatchHistory;
 use app\model\Favorite;
+use app\model\LoginLog;
 
 /**
  * 管理端 - 用户管理
@@ -403,5 +404,55 @@ class UserController extends BaseController
             ]);
 
         return $this->success(null, '设置成功');
+    }
+
+    /**
+     * 登录日志列表
+     */
+    public function loginLogs()
+    {
+        $data = $this->getData();
+        $keyword = trim($data['keyword'] ?? '');
+        $device = trim($data['device'] ?? '');
+        $page = max(1, intval($data['page'] ?? 1));
+        $limit = max(1, min(100, intval($data['limit'] ?? 20)));
+
+        $query = LoginLog::with(['user']);
+
+        if (!empty($keyword)) {
+            $query->whereHas('user', function($q) use ($keyword) {
+                $q->where('email', 'like', "%{$keyword}%");
+            });
+        }
+        if (!empty($device)) {
+            $query->where('device', $device);
+        }
+
+        $list = $query->order('login_at', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        $total = $query->count();
+
+        $result = [];
+        foreach ($list as $item) {
+            $result[] = [
+                'id' => $item->id,
+                'user_id' => $item->user_id,
+                'email' => $item->user ? $item->user->email : '用户已删除',
+                'login_ip' => $item->login_ip,
+                'device' => $item->device,
+                'device_name' => $item->device_name,
+                'device_info' => $item->device_info,
+                'login_at' => $item->login_at,
+            ];
+        }
+
+        return $this->success([
+            'list' => $result,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+        ]);
     }
 }

@@ -65,7 +65,7 @@
             />
         </el-card>
 
-        <el-dialog v-model="showDialog" :title="isEdit ? '编辑' : '添加'" width="800px">
+        <el-dialog v-model="showDialog" :title="isEdit ? '编辑' : '添加'" width="1000px">
             <el-form :model="form" label-width="100px">
                 <el-row :gutter="20">
                     <el-col :span="12">
@@ -87,7 +87,7 @@
                     </el-col>
                 </el-row>
                 <el-row :gutter="20">
-                    <el-col :span="12">
+                    <el-col :span="8">
                         <el-form-item label="类型">
                             <el-select v-model="form.type" style="width: 100%">
                                 <el-option label="电影" :value="1" />
@@ -98,7 +98,7 @@
                             </el-select>
                         </el-form-item>
                     </el-col>
-                    <el-col :span="12">
+                    <el-col :span="16">
                         <el-form-item label="标签">
                             <el-input v-model="form.tags" placeholder="多个标签用逗号分隔" />
                         </el-form-item>
@@ -122,45 +122,6 @@
                             <el-input v-model="form.director" />
                         </el-form-item>
                     </el-col>
-                    <el-col :span="12">
-                        <el-form-item label="演员">
-                            <el-input v-model="form.actors" placeholder="多个演员用逗号分隔" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="6">
-                        <el-form-item label="时长(分)">
-                            <el-input-number v-model="form.duration" :min="0" style="width: 100%" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="发行年份">
-                            <el-input v-model="form.release_year" placeholder="如2024" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="地区">
-                            <el-input v-model="form.region" placeholder="如中国大陆" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="语言">
-                            <el-input v-model="form.language" placeholder="如普通话" />
-                        </el-form-item>
-                    </el-col>
-                </el-row>
-                <el-row :gutter="20">
-                    <el-col :span="6">
-                        <el-form-item label="评分">
-                            <el-input-number v-model="form.rating" :min="0" :max="10" :step="0.1" style="width: 100%" />
-                        </el-form-item>
-                    </el-col>
-                    <el-col :span="6">
-                        <el-form-item label="播放量">
-                            <el-input-number v-model="form.play_count" :min="0" style="width: 100%" />
-                        </el-form-item>
-                    </el-col>
                     <el-col :span="6">
                         <el-form-item label="VIP专享">
                             <el-switch v-model="form.is_vip" />
@@ -169,6 +130,47 @@
                     <el-col :span="6">
                         <el-form-item label="显示">
                             <el-switch v-model="form.is_show" />
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="24">
+                        <el-form-item label="演员">
+                            <el-input v-model="form.actors" placeholder="多个演员用逗号分隔" />
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="8">
+                        <el-form-item label="时长(分)">
+                            <el-input-number v-model="form.duration" :min="0" style="width: 100%" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-form-item label="发行年份">
+                            <el-input v-model="form.release_year" placeholder="如2024" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-form-item label="地区">
+                            <el-input v-model="form.region" placeholder="如中国大陆" />
+                        </el-form-item>
+                    </el-col>
+                </el-row>
+                <el-row :gutter="20">
+                    <el-col :span="8">
+                        <el-form-item label="语言">
+                            <el-input v-model="form.language" placeholder="如普通话" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-form-item label="评分">
+                            <el-input-number v-model="form.rating" :min="0" :max="10" :step="0.1" style="width: 100%" />
+                        </el-form-item>
+                    </el-col>
+                    <el-col :span="8">
+                        <el-form-item label="播放量">
+                            <el-input-number v-model="form.play_count" :min="0" style="width: 100%" />
                         </el-form-item>
                     </el-col>
                 </el-row>
