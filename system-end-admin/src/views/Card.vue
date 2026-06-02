@@ -3,7 +3,8 @@
     <el-card>
       <template #header>
         <el-button type="primary" @click="showGenerate = true">生成兑换码</el-button>
-        <el-button type="danger" @click="handleDisable" :disabled="selectedIds.length === 0">设置失效</el-button>
+        <el-button type="warning" @click="handleDisable" :disabled="selectedIds.length === 0">设置失效</el-button>
+        <el-button type="danger" @click="handleDelete" :disabled="selectedIds.length === 0">删除</el-button>
       </template>
 
       <el-form :inline="true" :model="query">
@@ -124,6 +125,17 @@ const handleDisable = async () => {
   }
   await post('/user/disableCard', { ids: selectedIds.value })
   ElMessage.success('设置成功')
+  selectedIds.value = []
+  loadList()
+}
+
+const handleDelete = async () => {
+  if (selectedIds.value.length === 0) {
+    ElMessage.warning('请选择要删除的兑换码')
+    return
+  }
+  await post('/user/deleteCard', { ids: selectedIds.value })
+  ElMessage.success('删除成功')
   selectedIds.value = []
   loadList()
 }
