@@ -114,6 +114,20 @@ class AdminController extends BaseController
             return $this->error('管理员不存在');
         }
 
+        $currentAdmin = $this->getCurrentAdmin();
+
+        if ($id == 1) {
+            if ($status == 0) {
+                return $this->error('不能禁用第一个管理员');
+            }
+        }
+
+        if ($id == $currentAdmin['id']) {
+            if ($status == 0) {
+                return $this->error('不能禁用自己');
+            }
+        }
+
         if (!empty($nickname)) {
             $admin->nickname = $nickname;
         }
@@ -148,6 +162,9 @@ class AdminController extends BaseController
         foreach ($ids as $id) {
             if ($id == $currentAdmin['id']) {
                 return $this->error('不能删除当前登录的管理员');
+            }
+            if ($id == 1) {
+                return $this->error('不能删除第一个管理员');
             }
         }
 

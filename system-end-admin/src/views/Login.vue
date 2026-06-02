@@ -33,6 +33,11 @@ const onLogin = async () => {
   try {
     const res = await post('/login', form.value)
     localStorage.setItem('adminToken', res.data.token)
+    localStorage.setItem('adminInfo', JSON.stringify({
+      id: res.data.id,
+      username: res.data.username,
+      nickname: res.data.nickname
+    }))
     router.replace('/')
   } catch (e) {
   } finally {

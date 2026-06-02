@@ -21,10 +21,16 @@
                 <el-table-column prop="id" label="ID" width="80" resizable />
                 <el-table-column prop="username" label="用户名" min-width="120" resizable />
                 <el-table-column prop="nickname" label="昵称" min-width="120" resizable />
-                <el-table-column label="状态" width="120" resizable>
+                <el-table-column label="状态" width="140" resizable>
                     <template #default="{ row }">
                         <el-tag :type="row.status === 1 ? 'success' : 'danger'">{{ row.status_name }}</el-tag>
-                        <el-button link :type="row.status === 1 ? 'danger' : 'success'" @click="toggleStatus(row)" style="margin-left: 8px">
+                        <el-button 
+                            link 
+                            :type="row.status === 1 ? 'danger' : 'success'" 
+                            @click="toggleStatus(row)" 
+                            style="margin-left: 8px"
+                            :disabled="canToggleStatus(row) === false"
+                        >
                             {{ row.status === 1 ? '禁用' : '启用' }}
                         </el-button>
                     </template>
@@ -32,9 +38,10 @@
                 <el-table-column prop="last_login_time" label="最后登录" width="170" resizable />
                 <el-table-column prop="last_login_ip" label="登录IP" width="140" resizable />
                 <el-table-column prop="created_at" label="创建时间" width="170" resizable />
-                <el-table-column label="操作" width="150" resizable>
+                <el-table-column label="操作" width="220" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editAdmin(row)">编辑</el-button>
+                        <el-button link type="warning" @click="showChangePasswordDialog(row)">修改密码</el-button>
                         <el-button link type="danger" @click="deleteAdmin(row)">删除</el-button>
                     </template>
                 </el-table-column>
@@ -75,6 +82,25 @@
                 <el-button type="primary" @click="save">保存</el-button>
             </template>
         </el-dialog>
+
+        <!-- 修改密码对话框 -->
+        <el-dialog v-model="showPasswordDialog" title="修改密码" width="500px">
+            <el-form :model="passwordForm" label-width="80px">
+                <el-form-item label="用户名">
+                    <el-input v-model="passwordForm.username" disabled />
+                </el-form-item>
+                <el-form-item label="新密码">
+                    <el-input v-model="passwordForm.password" type="password" placeholder="请输入新密码" show-password />
+                </el-form-item>
+                <el-form-item label="确认密码">
+                    <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showPasswordDialog = false">取消</el-button>
+                <el-button type="primary" @click="changePassword">保存</el-button>
+            </template>
+        </el-dialog>
     </div>
 </template>
 
@@ -96,6 +122,33 @@ const form = ref({
     password: '',
     status: 1
 })
+
+const showPasswordDialog = ref(false)
+const passwordForm = ref({
+    id: 0,
+    username: '',
+    password: '',
+    confirmPassword: ''
+})
+
+const getCurrentAdminInfo = () => {
+    const adminInfo = localStorage.getItem('adminInfo')
+    if (adminInfo) {
+        return JSON.parse(adminInfo)
+    }
+    return null
+}
+
+const canToggleStatus = (row) => {
+    const currentAdmin = getCurrentAdminInfo()
+    if (row.id == 1) {
+        return false
+    }
+    if (currentAdmin && row.id == currentAdmin.id) {
+        return false
+    }
+    return true
+}
 
 const loadList = async () => {
     const res = await get('/admin/list', query.value)
@@ -161,6 +214,9 @@ const deleteAdmin = (row) => {
 }
 
 const toggleStatus = (row) => {
+    if (!canToggleStatus(row)) {
+        return
+    }
     const action = row.status === 1 ? '禁用' : '启用'
     ElMessageBox.confirm(`确定要${action}该管理员吗？`, '提示', {
         confirmButtonText: '确定',
@@ -172,6 +228,37 @@ const toggleStatus = (row) => {
         ElMessage.success(`${action}成功`)
         loadList()
     }).catch(() => {})
+}
+
+const showChangePasswordDialog = (row) => {
+    passwordForm.value = {
+        id: row.id,
+        username: row.username,
+        password: '',
+        confirmPassword: ''
+    }
+    showPasswordDialog.value = true
+}
+
+const changePassword = async () => {
+    if (!passwordForm.value.password) {
+        ElMessage.error('请输入新密码')
+        return
+    }
+    if (passwordForm.value.password.length < 6) {
+        ElMessage.error('密码长度不能少于6位')
+        return
+    }
+    if (passwordForm.value.password !== passwordForm.value.confirmPassword) {
+        ElMessage.error('两次输入的密码不一致')
+        return
+    }
+    await post('/admin/update', {
+        id: passwordForm.value.id,
+        password: passwordForm.value.password
+    })
+    ElMessage.success('密码修改成功')
+    showPasswordDialog.value = false
 }
 
 onMounted(() => loadList())
