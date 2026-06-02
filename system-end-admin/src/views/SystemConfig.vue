@@ -15,6 +15,9 @@
                 <el-form-item label="网站Logo">
                     <el-input v-model="form.site_logo" placeholder="Logo图片URL" />
                 </el-form-item>
+                <el-form-item label="统计代码">
+                    <el-input v-model="form.statistics_code" type="textarea" :rows="4" placeholder="如百度统计、Google Analytics等统计代码" />
+                </el-form-item>
                 <el-form-item label="看广告奖励时长(分钟)">
                     <el-input-number v-model="form.ad_video_reward" :min="0" />
                 </el-form-item>
@@ -37,6 +40,7 @@ import { ElMessage } from 'element-plus'
 const form = ref({
     site_name: '',
     site_logo: '',
+    statistics_code: '',
     ad_video_reward: 30,
     ad_daily_limit: 10,
     default_vip_days: 0,
@@ -45,6 +49,7 @@ const form = ref({
 const configMap = {
     site_name: 'site_name',
     site_logo: 'site_logo',
+    statistics_code: 'statistics_code',
     ad_video_reward: 'ad_video_reward',
     ad_daily_limit: 'ad_daily_limit',
     default_vip_days: 'default_vip_days',
@@ -66,6 +71,7 @@ const save = async () => {
     const configs = [
         { key: 'site_name', value: form.value.site_name, type: 'string', description: '网站名称' },
         { key: 'site_logo', value: form.value.site_logo, type: 'string', description: '网站Logo' },
+        { key: 'statistics_code', value: form.value.statistics_code, type: 'text', description: '统计代码' },
         { key: 'ad_video_reward', value: form.value.ad_video_reward, type: 'int', description: '看广告奖励时长(分钟)' },
         { key: 'ad_daily_limit', value: form.value.ad_daily_limit, type: 'int', description: '每日广告观看次数上限' },
         { key: 'default_vip_days', value: form.value.default_vip_days, type: 'int', description: '新用户注册赠送VIP天数' },

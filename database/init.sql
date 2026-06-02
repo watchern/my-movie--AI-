@@ -222,6 +222,7 @@ CREATE TABLE IF NOT EXISTS `system_config` (
 INSERT OR IGNORE INTO `system_config` (`key`, `value`, `type`, `description`) VALUES
 ('site_name', '影视系统', 'string', '网站名称'),
 ('site_logo', '/static/logo.png', 'string', '网站Logo'),
+('statistics_code', '', 'text', '统计代码'),
 ('ad_video_reward', '30', 'int', '看广告奖励时长(分钟)'),
 ('ad_daily_limit', '10', 'int', '每日广告观看次数上限'),
 ('default_vip_days', '0', 'int', '新用户注册赠送VIP天数');
