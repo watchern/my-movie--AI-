@@ -428,9 +428,6 @@ class UserController extends BaseController
         $cardCodes = $cards->pluck('code')->toArray();
         $description = '删除兑换码: ' . implode(', ', $cardCodes);
 
-        // 添加操作记录
-        $this->addAdminLog(0, VipTransaction::TYPE_CARD_DELETE, $description);
-        
         // 记录到管理员操作日志
         $currentAdmin = $this->getCurrentAdmin();
         if ($currentAdmin) {
@@ -469,9 +466,6 @@ class UserController extends BaseController
         $cardCodes = $cards->pluck('code')->toArray();
         $description = '设置兑换码失效: ' . implode(', ', $cardCodes);
 
-        // 添加操作记录
-        $this->addAdminLog(0, VipTransaction::TYPE_CARD_DISABLE, $description);
-        
         // 记录到管理员操作日志
         $currentAdmin = $this->getCurrentAdmin();
         if ($currentAdmin) {
