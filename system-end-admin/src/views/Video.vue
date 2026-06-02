@@ -62,8 +62,10 @@
                         v-model:current-page="query.page"
                         v-model:page-size="query.limit"
                         :total="total"
-                        layout="total, prev, pager, next"
+                        :page-sizes="[10, 20, 50, 100]"
+                        layout="total, sizes, prev, pager, next"
                         @current-change="loadList"
+                        @size-change="loadList"
                         style="margin-top: 20px; justify-content: flex-end;"
                     />
                 </el-card>
