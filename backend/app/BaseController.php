@@ -79,11 +79,11 @@ abstract class BaseController
         $token = str_replace('Bearer ', '', $token);
         $payload = JwtHelper::verify($token);
 
-        if (!$payload || ($payload['type'] ?? '') !== 'admin') {
+        if (!$payload || ($payload->type ?? '') !== 'admin') {
             return null;
         }
 
-        $admin = Admin::find($payload['id']);
+        $admin = Admin::find($payload->id);
         return $admin ? $admin->toArray() : null;
     }
 }
