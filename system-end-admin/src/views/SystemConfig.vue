@@ -42,7 +42,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage } from 'element-plus'
 import { QuestionFilled } from '@element-plus/icons-vue'
@@ -65,19 +65,34 @@ const configMap = {
     default_vip_days: 'default_vip_days',
 }
 
+const originalForm = ref('')
+const saveTimer = ref(null)
+const saveing = ref(false)
+
 const loadConfig = async () => {
     const res = await get('/config/list')
     const configs = res.data
-    
+
     configs.forEach(item => {
         const key = configMap[item.key]
         if (key) {
             form.value[key] = item.value
         }
     })
+    originalForm.value = JSON.stringify(form.value)
 }
 
-const save = async () => {
+const save = async (auto = false) => {
+    if (saveing.value) return
+
+    if (auto && JSON.stringify(form.value) === originalForm.value) {
+        return
+    }
+
+    if (auto) {
+        saveing.value = true
+    }
+
     const configs = [
         { key: 'site_name', value: form.value.site_name, type: 'string', description: '网站名称' },
         { key: 'site_logo', value: form.value.site_logo, type: 'string', description: '网站Logo' },
@@ -86,10 +101,36 @@ const save = async () => {
         { key: 'ad_daily_limit', value: form.value.ad_daily_limit, type: 'int', description: '每日广告观看次数上限' },
         { key: 'default_vip_days', value: form.value.default_vip_days, type: 'int', description: '新用户注册赠送VIP天数' },
     ]
-    
-    await post('/config/save', { configs })
-    ElMessage.success('保存成功')
+
+    try {
+        await post('/config/save', { configs })
+        originalForm.value = JSON.stringify(form.value)
+        if (auto) {
+            ElMessage.success('自动保存成功')
+        }
+    } catch (e) {
+        if (auto) {
+            ElMessage.error('自动保存失败')
+        }
+    } finally {
+        if (auto) {
+            saveing.value = false
+        }
+    }
 }
+
+const debounceSave = () => {
+    if (saveTimer.value) {
+        clearTimeout(saveTimer.value)
+    }
+    saveTimer.value = setTimeout(() => {
+        save(true)
+    }, 1000)
+}
+
+watch(() => form.value, () => {
+    debounceSave()
+}, { deep: true })
 
 onMounted(() => loadConfig())
 </script>
