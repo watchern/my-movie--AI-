@@ -35,8 +35,8 @@ const routes = [
         component: () => import('@/views/LoginLog.vue')
       },
       {
-        path: 'adminLoginLog',
-        component: () => import('@/views/AdminLoginLog.vue')
+        path: 'adminLog',
+        component: () => import('@/views/AdminLog.vue')
       },
       {
         path: 'vipLog',

@@ -59,7 +59,7 @@ Route::group('admin/api', function () {
     Route::post('admin/add', [AdminController::class, 'add']);
     Route::post('admin/update', [AdminController::class, 'update']);
     Route::post('admin/delete', [AdminController::class, 'delete']);
-    Route::get('admin/loginLogs', [AdminController::class, 'loginLogs']);
+    Route::get('admin/logs', [AdminController::class, 'logs']);
 
     // 仪表盘统计
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);

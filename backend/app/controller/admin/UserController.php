@@ -8,6 +8,7 @@ use app\model\WatchHistory;
 use app\model\Favorite;
 use app\model\LoginLog;
 use app\model\VipTransaction;
+use app\model\AdminLog;
 
 /**
  * 管理端 - 用户管理
@@ -367,6 +368,12 @@ class UserController extends BaseController
         $typeName = $typeNameMap[$type] ?? '未知';
         $description = "生成兑换码: {$typeName}x{$count}, 共{$count}个";
         $this->addAdminLog(0, VipTransaction::TYPE_CARD_GENERATE, $description);
+        
+        // 记录到管理员操作日志
+        $currentAdmin = $this->getCurrentAdmin();
+        if ($currentAdmin) {
+            AdminLog::record($currentAdmin['id'], AdminLog::TYPE_ADD_VIP_CARD, $description, $this->request->ip());
+        }
 
         return $this->success($cards, '生成成功');
     }
@@ -424,6 +431,12 @@ class UserController extends BaseController
 
         // 添加操作记录
         $this->addAdminLog(0, VipTransaction::TYPE_CARD_DELETE, $description);
+        
+        // 记录到管理员操作日志
+        $currentAdmin = $this->getCurrentAdmin();
+        if ($currentAdmin) {
+            AdminLog::record($currentAdmin['id'], AdminLog::TYPE_DELETE_VIP_CARD, $description, $this->request->ip());
+        }
 
         // 删除兑换码（未使用和已过期的）
         CardKey::whereIn('id', $ids)
@@ -459,6 +472,12 @@ class UserController extends BaseController
 
         // 添加操作记录
         $this->addAdminLog(0, VipTransaction::TYPE_CARD_DISABLE, $description);
+        
+        // 记录到管理员操作日志
+        $currentAdmin = $this->getCurrentAdmin();
+        if ($currentAdmin) {
+            AdminLog::record($currentAdmin['id'], AdminLog::TYPE_DISABLE_VIP_CARD, $description, $this->request->ip());
+        }
 
         // 设置兑换码失效
         CardKey::whereIn('id', $ids)

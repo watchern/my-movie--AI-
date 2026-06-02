@@ -3,7 +3,7 @@ namespace app\controller\admin;
 
 use app\BaseController;
 use app\model\Admin;
-use app\model\AdminLoginLog;
+use app\model\AdminLog;
 
 /**
  * 管理端 - 管理员管理
@@ -91,6 +91,12 @@ class AdminController extends BaseController
         $admin->status = $status;
         $admin->save();
 
+        // 记录操作日志
+        $currentAdmin = $this->getCurrentAdmin();
+        if ($currentAdmin) {
+            AdminLog::record($currentAdmin['id'], AdminLog::TYPE_ADD_ADMIN, "添加管理员: {$username}", $this->request->ip());
+        }
+
         return $this->success(['id' => $admin->id], '添加成功');
     }
 
@@ -139,8 +145,26 @@ class AdminController extends BaseController
             $admin->password = $password;
         }
 
+        // 记录操作日志（在更新前获取旧状态）
+        $oldStatus = $admin->status;
         $admin->status = $status;
         $admin->save();
+
+        // 记录操作日志
+        $currentAdmin = $this->getCurrentAdmin();
+        if ($currentAdmin) {
+            if (!empty($nickname)) {
+                AdminLog::record($currentAdmin['id'], AdminLog::TYPE_EDIT_ADMIN, "编辑管理员: {$admin->username}, 昵称: {$nickname}", $this->request->ip());
+            }
+            if (!empty($password)) {
+                AdminLog::record($currentAdmin['id'], AdminLog::TYPE_CHANGE_PASSWORD, "修改管理员密码: {$admin->username}", $this->request->ip());
+            }
+            if ($oldStatus != $status) {
+                $type = $status == 1 ? AdminLog::TYPE_ENABLE_ADMIN : AdminLog::TYPE_DISABLE_ADMIN;
+                $typeName = $status == 1 ? '启用' : '禁用';
+                AdminLog::record($currentAdmin['id'], $type, "{$typeName}管理员: {$admin->username}", $this->request->ip());
+            }
+        }
 
         return $this->success(null, '更新成功');
     }
@@ -171,23 +195,35 @@ class AdminController extends BaseController
             }
         }
 
+        // 记录删除前的管理员信息
+        $admins = Admin::whereIn('id', $ids)->select();
+        $deletedUsernames = [];
+        foreach ($admins as $admin) {
+            $deletedUsernames[] = $admin->username;
+        }
+
         Admin::whereIn('id', $ids)->delete();
+
+        // 记录操作日志
+        if ($currentAdmin && !empty($deletedUsernames)) {
+            AdminLog::record($currentAdmin['id'], AdminLog::TYPE_DELETE_ADMIN, "删除管理员: " . implode(', ', $deletedUsernames), $this->request->ip());
+        }
 
         return $this->success(null, '删除成功');
     }
 
     /**
-     * 管理员登录日志
+     * 管理员操作日志
      */
-    public function loginLogs()
+    public function logs()
     {
         $data = $this->getData();
         $keyword = trim($data['keyword'] ?? '');
-        $device = trim($data['device'] ?? '');
+        $type = trim($data['type'] ?? '');
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(100, intval($data['limit'] ?? 20)));
 
-        $query = AdminLoginLog::with(['admin']);
+        $query = AdminLog::with(['admin']);
 
         if (!empty($keyword)) {
             $query->whereHas('admin', function($q) use ($keyword) {
@@ -195,13 +231,13 @@ class AdminController extends BaseController
                   ->whereOr('nickname', 'like', "%{$keyword}%");
             });
         }
-        if (!empty($device)) {
-            $query->where('device', $device);
+        if (!empty($type)) {
+            $query->where('type', $type);
         }
 
         $total = $query->count();
 
-        $list = $query->order('login_at', 'desc')
+        $list = $query->order('created_at', 'desc')
             ->page($page, $limit)
             ->select();
 
@@ -212,11 +248,12 @@ class AdminController extends BaseController
                 'admin_id' => $item->admin_id,
                 'username' => $item->admin ? $item->admin->username : '未知',
                 'nickname' => $item->admin ? $item->admin->nickname : '',
-                'login_ip' => $item->login_ip,
-                'device' => $item->device,
-                'device_name' => $item->device_name,
+                'type' => $item->type,
+                'type_name' => $item->type_name,
+                'detail' => $item->detail,
+                'ip' => $item->ip,
                 'device_info' => $item->device_info,
-                'login_at' => $item->login_at,
+                'created_at' => $item->created_at,
             ];
         }
 

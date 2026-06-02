@@ -28,7 +28,7 @@
         <el-sub-menu index="system">
           <template #title><el-icon><Setting /></el-icon>系统管理</template>
           <el-menu-item index="/adminManager">管理员管理</el-menu-item>
-          <el-menu-item index="/adminLoginLog">管理员登录日志</el-menu-item>
+          <el-menu-item index="/adminLog">管理员操作记录</el-menu-item>
           <el-menu-item index="/systemConfig">系统配置</el-menu-item>
         </el-sub-menu>
       </el-menu>

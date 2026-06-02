@@ -5,6 +5,7 @@ use app\BaseController;
 use app\model\SystemConfig;
 use app\model\VipTransaction;
 use app\model\User;
+use app\model\AdminLog;
 
 /**
  * 管理端 - 系统配置
@@ -44,6 +45,8 @@ class ConfigController extends BaseController
             return $this->error('配置数据格式错误');
         }
 
+        // 记录修改的配置
+        $changedConfigs = [];
         foreach ($configs as $config) {
             $key = $config['key'] ?? '';
             $value = $config['value'] ?? '';
@@ -54,7 +57,21 @@ class ConfigController extends BaseController
                 continue;
             }
 
+            // 获取旧值
+            $oldConfig = SystemConfig::where('key', $key)->find();
+            $oldValue = $oldConfig ? $oldConfig->value : '';
+            
+            if ($oldValue != $value) {
+                $changedConfigs[] = "{$key}: {$oldValue} -> {$value}";
+            }
+
             SystemConfig::setConfigValue($key, $value, $type, $description);
+        }
+
+        // 记录操作日志
+        $currentAdmin = $this->getCurrentAdmin();
+        if ($currentAdmin && !empty($changedConfigs)) {
+            AdminLog::record($currentAdmin['id'], AdminLog::TYPE_EDIT_CONFIG, "修改系统配置: " . implode('; ', $changedConfigs), $this->request->ip());
         }
 
         return $this->success(null, '保存成功');

@@ -3,7 +3,7 @@ namespace app\controller\admin;
 
 use app\BaseController;
 use app\model\Admin;
-use app\model\AdminLoginLog;
+use app\model\AdminLog;
 use app\common\JwtHelper;
 
 /**
@@ -40,7 +40,7 @@ class LoginController extends BaseController
         }
 
         // 记录登录日志
-        $this->recordLoginLog($admin->id);
+        AdminLog::record($admin->id, AdminLog::TYPE_LOGIN, '', $this->request->ip());
 
         // 更新登录信息
         $admin->last_login_time = date('Y-m-d H:i:s');
@@ -60,40 +60,14 @@ class LoginController extends BaseController
     }
 
     /**
-     * 记录管理员登录日志
-     */
-    private function recordLoginLog(int $adminId)
-    {
-        $log = new AdminLoginLog();
-        $log->admin_id = $adminId;
-        $log->login_ip = $this->request->ip();
-        $log->device = $this->getDevice();
-        $log->device_info = $this->request->header('User-Agent') ?? '';
-        $log->login_at = date('Y-m-d H:i:s');
-        $log->save();
-    }
-
-    /**
-     * 获取设备类型
-     */
-    private function getDevice(): string
-    {
-        $userAgent = $this->request->header('User-Agent') ?? '';
-        if (preg_match('/mobile/i', $userAgent)) {
-            return 'mobile';
-        } elseif (preg_match('/tablet|ipad/i', $userAgent)) {
-            return 'tablet';
-        } elseif (preg_match('/windows|mac|linux/i', $userAgent)) {
-            return 'desktop';
-        }
-        return 'other';
-    }
-
-    /**
      * 退出登录
      */
     public function logout()
     {
+        $admin = $this->getCurrentAdmin();
+        if ($admin) {
+            AdminLog::record($admin['id'], AdminLog::TYPE_LOGOUT, '', $this->request->ip());
+        }
         return $this->success(null, '已退出');
     }
 }
