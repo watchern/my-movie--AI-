@@ -65,7 +65,8 @@ class AdminLog extends Model
             self::TYPE_EDIT_CONFIG => '修改配置',
             self::TYPE_OTHER => '其他操作',
         ];
-        return $typeMap[$this->type] ?? '未知操作';
+        $type = is_object($this->type) ? (string)$this->type : $this->type;
+        return $typeMap[$type] ?? '未知操作';
     }
 
     // 获取设备名称

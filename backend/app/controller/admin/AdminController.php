@@ -269,16 +269,40 @@ class AdminController extends BaseController
             }
         }
 
+        // 定义类型映射
+        $typeMap = [
+            \app\model\AdminLog::TYPE_LOGIN => '登录',
+            \app\model\AdminLog::TYPE_LOGOUT => '登出',
+            \app\model\AdminLog::TYPE_ADD_ADMIN => '添加管理员',
+            \app\model\AdminLog::TYPE_EDIT_ADMIN => '编辑管理员',
+            \app\model\AdminLog::TYPE_DELETE_ADMIN => '删除管理员',
+            \app\model\AdminLog::TYPE_DISABLE_ADMIN => '禁用管理员',
+            \app\model\AdminLog::TYPE_ENABLE_ADMIN => '启用管理员',
+            \app\model\AdminLog::TYPE_CHANGE_PASSWORD => '修改密码',
+            \app\model\AdminLog::TYPE_ADD_VIDEO => '添加视频',
+            \app\model\AdminLog::TYPE_EDIT_VIDEO => '编辑视频',
+            \app\model\AdminLog::TYPE_DELETE_VIDEO => '删除视频',
+            \app\model\AdminLog::TYPE_ADD_CATEGORY => '添加分类',
+            \app\model\AdminLog::TYPE_EDIT_CATEGORY => '编辑分类',
+            \app\model\AdminLog::TYPE_DELETE_CATEGORY => '删除分类',
+            \app\model\AdminLog::TYPE_ADD_VIP_CARD => '生成兑换码',
+            \app\model\AdminLog::TYPE_DELETE_VIP_CARD => '删除兑换码',
+            \app\model\AdminLog::TYPE_DISABLE_VIP_CARD => '禁用兑换码',
+            \app\model\AdminLog::TYPE_EDIT_CONFIG => '修改配置',
+            \app\model\AdminLog::TYPE_OTHER => '其他操作',
+        ];
+        
         $result = [];
         foreach ($list as $item) {
             $admin = isset($adminMap[$item->admin_id]) ? $adminMap[$item->admin_id] : null;
+            $type = is_object($item->type) ? (string)$item->type : $item->type;
             $result[] = [
                 'id' => $item->id,
                 'admin_id' => $item->admin_id,
                 'username' => $admin ? $admin->username : '未知',
                 'nickname' => $admin ? $admin->nickname : '',
                 'type' => $item->type,
-                'type_name' => $item->type_name,
+                'type_name' => $typeMap[$type] ?? '未知操作',
                 'detail' => $item->detail,
                 'ip' => $item->ip,
                 'device_info' => $item->device_info,
