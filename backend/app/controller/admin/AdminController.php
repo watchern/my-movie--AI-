@@ -159,6 +159,9 @@ class AdminController extends BaseController
 
         // 不允许删除自己
         $currentAdmin = $this->getCurrentAdmin();
+        if (!$currentAdmin) {
+            return $this->error('管理员未登录');
+        }
         foreach ($ids as $id) {
             if ($id == $currentAdmin['id']) {
                 return $this->error('不能删除当前登录的管理员');
