@@ -3,6 +3,7 @@ namespace app\controller\admin;
 
 use app\BaseController;
 use app\model\Admin;
+use app\model\AdminLoginLog;
 use app\common\JwtHelper;
 
 /**
@@ -38,6 +39,9 @@ class LoginController extends BaseController
             return $this->error('账号已被禁用');
         }
 
+        // 记录登录日志
+        $this->recordLoginLog($admin->id);
+
         // 更新登录信息
         $admin->last_login_time = date('Y-m-d H:i:s');
         $admin->last_login_ip = $this->request->ip();
@@ -53,6 +57,36 @@ class LoginController extends BaseController
             'avatar' => $admin->avatar,
             'token' => $token,
         ], '登录成功');
+    }
+
+    /**
+     * 记录管理员登录日志
+     */
+    private function recordLoginLog(int $adminId)
+    {
+        $log = new AdminLoginLog();
+        $log->admin_id = $adminId;
+        $log->login_ip = $this->request->ip();
+        $log->device = $this->getDevice();
+        $log->device_info = $this->request->header('User-Agent') ?? '';
+        $log->login_at = date('Y-m-d H:i:s');
+        $log->save();
+    }
+
+    /**
+     * 获取设备类型
+     */
+    private function getDevice(): string
+    {
+        $userAgent = $this->request->header('User-Agent') ?? '';
+        if (preg_match('/mobile/i', $userAgent)) {
+            return 'mobile';
+        } elseif (preg_match('/tablet|ipad/i', $userAgent)) {
+            return 'tablet';
+        } elseif (preg_match('/windows|mac|linux/i', $userAgent)) {
+            return 'desktop';
+        }
+        return 'other';
     }
 
     /**

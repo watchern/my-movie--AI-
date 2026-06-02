@@ -3,6 +3,7 @@ namespace app\controller\admin;
 
 use app\BaseController;
 use app\model\Admin;
+use app\model\AdminLoginLog;
 
 /**
  * 管理端 - 管理员管理
@@ -153,5 +154,57 @@ class AdminController extends BaseController
         Admin::whereIn('id', $ids)->delete();
 
         return $this->success(null, '删除成功');
+    }
+
+    /**
+     * 管理员登录日志
+     */
+    public function loginLogs()
+    {
+        $data = $this->getData();
+        $keyword = trim($data['keyword'] ?? '');
+        $device = trim($data['device'] ?? '');
+        $page = max(1, intval($data['page'] ?? 1));
+        $limit = max(1, min(100, intval($data['limit'] ?? 20)));
+
+        $query = AdminLoginLog::with(['admin']);
+
+        if (!empty($keyword)) {
+            $query->whereHas('admin', function($q) use ($keyword) {
+                $q->where('username', 'like', "%{$keyword}%")
+                  ->whereOr('nickname', 'like', "%{$keyword}%");
+            });
+        }
+        if (!empty($device)) {
+            $query->where('device', $device);
+        }
+
+        $total = $query->count();
+
+        $list = $query->order('login_at', 'desc')
+            ->page($page, $limit)
+            ->select();
+
+        $result = [];
+        foreach ($list as $item) {
+            $result[] = [
+                'id' => $item->id,
+                'admin_id' => $item->admin_id,
+                'username' => $item->admin ? $item->admin->username : '未知',
+                'nickname' => $item->admin ? $item->admin->nickname : '',
+                'login_ip' => $item->login_ip,
+                'device' => $item->device,
+                'device_name' => $item->device_name,
+                'device_info' => $item->device_info,
+                'login_at' => $item->login_at,
+            ];
+        }
+
+        return $this->success([
+            'list' => $result,
+            'total' => $total,
+            'page' => $page,
+            'limit' => $limit,
+        ]);
     }
 }

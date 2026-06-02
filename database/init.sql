@@ -174,6 +174,21 @@ CREATE INDEX IF NOT EXISTS `idx_login_user` ON `login_logs`(`user_id`);
 CREATE INDEX IF NOT EXISTS `idx_login_time` ON `login_logs`(`login_at`);
 
 -- -----------------------------------------
+-- 9.5 管理员登录日志表
+-- -----------------------------------------
+CREATE TABLE IF NOT EXISTS `admin_login_logs` (
+    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+    `admin_id` INTEGER NOT NULL COMMENT '管理员ID',
+    `login_ip` VARCHAR(50) DEFAULT NULL COMMENT '登录IP',
+    `device` VARCHAR(20) DEFAULT NULL COMMENT '设备: mobile/tablet/desktop/other',
+    `device_info` VARCHAR(500) DEFAULT NULL COMMENT '设备信息(UA)',
+    `login_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS `idx_admin_login_admin` ON `admin_login_logs`(`admin_id`);
+CREATE INDEX IF NOT EXISTS `idx_admin_login_time` ON `admin_login_logs`(`login_at`);
+
+-- -----------------------------------------
 -- 10. 资源站点配置表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `source_sites` (
