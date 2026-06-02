@@ -8,24 +8,33 @@
                 </div>
             </template>
 
-            <el-form :model="form" label-width="140px">
+            <el-form :model="form" label-width="130px">
                 <el-form-item label="网站名称">
-                    <el-input v-model="form.site_name" />
+                    <el-input v-model="form.site_name" style="width: 300px" />
                 </el-form-item>
                 <el-form-item label="网站Logo">
-                    <el-input v-model="form.site_logo" placeholder="Logo图片URL" />
+                    <el-input v-model="form.site_logo" placeholder="Logo图片URL" style="width: 400px" />
                 </el-form-item>
                 <el-form-item label="统计代码">
-                    <el-input v-model="form.statistics_code" type="textarea" :rows="4" placeholder="如百度统计、Google Analytics等统计代码" />
+                    <el-input v-model="form.statistics_code" type="textarea" :rows="4" placeholder="如百度统计、Google Analytics等统计代码" style="width: 500px" />
                 </el-form-item>
-                <el-form-item label="看广告奖励时长(分钟)">
-                    <el-input-number v-model="form.ad_video_reward" :min="0" />
+                <el-form-item>
+                    <template #label>
+                        <el-tooltip content="用户观看广告后获得的VIP奖励时长" placement="top">看广告奖励<el-icon><QuestionFilled /></el-icon></el-tooltip>
+                    </template>
+                    <el-input-number v-model="form.ad_video_reward" :min="0" /> 分钟
                 </el-form-item>
-                <el-form-item label="每日广告观看次数上限">
-                    <el-input-number v-model="form.ad_daily_limit" :min="0" />
+                <el-form-item>
+                    <template #label>
+                        <el-tooltip content="每个用户每天最多观看广告的次数" placement="top">每日广告上限<el-icon><QuestionFilled /></el-icon></el-tooltip>
+                    </template>
+                    <el-input-number v-model="form.ad_daily_limit" :min="0" /> 次
                 </el-form-item>
-                <el-form-item label="新用户注册赠送VIP天数">
-                    <el-input-number v-model="form.default_vip_days" :min="0" />
+                <el-form-item>
+                    <template #label>
+                        <el-tooltip content="新用户注册时自动赠送的VIP天数" placement="top">注册赠送VIP<el-icon><QuestionFilled /></el-icon></el-tooltip>
+                    </template>
+                    <el-input-number v-model="form.default_vip_days" :min="0" /> 天
                 </el-form-item>
             </el-form>
         </el-card>
@@ -36,6 +45,7 @@
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage } from 'element-plus'
+import { QuestionFilled } from '@element-plus/icons-vue'
 
 const form = ref({
     site_name: '',
