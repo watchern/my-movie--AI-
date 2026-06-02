@@ -12,6 +12,7 @@ class AdminLog extends Model
 
     protected $type = [
         'created_at' => 'datetime',
+        'type' => 'string',
     ];
 
     // 操作类型常量
@@ -86,13 +87,14 @@ class AdminLog extends Model
      */
     public static function record(int $adminId, string $type, string $detail = '', string $ip = ''): bool
     {
-        $log = new self();
-        $log->admin_id = $adminId;
-        $log->type = $type;
-        $log->detail = $detail;
-        $log->ip = $ip;
-        $log->device_info = request()->header('User-Agent') ?? '';
-        $log->save();
+        \think\facade\Db::table('admin_logs')->insert([
+            'admin_id' => $adminId,
+            'type' => $type,
+            'detail' => $detail,
+            'ip' => $ip,
+            'device_info' => request()->header('User-Agent') ?? '',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
         return true;
     }
 }
