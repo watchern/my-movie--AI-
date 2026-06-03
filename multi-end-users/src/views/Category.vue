@@ -49,7 +49,7 @@ const loadList = async () => {
     limit: 20
   })
   list.value = page === 1 ? res.data.list : [...list.value, ...res.data.list]
-  finished.value = page >= res.data.total_pages
+  finished.value = page >= res.data.pages
   page++
   loading.value = false
 }
