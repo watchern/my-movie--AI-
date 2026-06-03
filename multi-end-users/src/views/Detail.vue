@@ -4,7 +4,7 @@
 
     <div v-if="detail.id" class="detail">
       <div class="detail-header">
-        <img :src="detail.cover_url" :alt="detail.title" />
+        <img :src="detail.cover" :alt="detail.title" />
         <div class="info">
           <div class="title">{{ detail.title }}</div>
           <div class="sub">
@@ -20,7 +20,7 @@
 
       <div class="section">
         <div class="section-title">简介</div>
-        <div class="desc">{{ detail.desc || '暂无简介' }}</div>
+        <div class="desc">{{ detail.description || '暂无简介' }}</div>
       </div>
 
       <div class="section" v-if="episodes.length">
@@ -80,11 +80,12 @@ const related = ref([])
 const isFavorited = ref(false)
 
 const loadDetail = async () => {
-  const res = await get(`/video/detail/${route.params.id}`)
-  detail.value = res.data.detail || {}
-  episodes.value = res.data.episodes || []
-  related.value = res.data.related || []
-  isFavorited.value = res.data.is_favorited || false
+  const res = await get('/video/detail', { id: route.params.id })
+  detail.value = res.data || {}
+  episodes.value = res.data?.episodes || []
+  // 猜你喜欢暂时使用空数组，后端未提供该接口
+  related.value = []
+  isFavorited.value = res.data?.is_favorited || false
 }
 
 const toggleFav = async () => {
