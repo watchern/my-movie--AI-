@@ -15,14 +15,14 @@ try {
     
     // 生成视频数据
     $videos = [
-        ['title' => '流浪地球2', 'type' => 1, 'cover' => 'https://picsum.photos/seed/movie1/300/400', 'rating' => 8.5, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '郭帆', 'description' => '太阳即将毁灭，人类在地球表面建造出巨大的推进器，寻找新的家园。'],
-        ['title' => '满江红', 'type' => 1, 'cover' => 'https://picsum.photos/seed/movie2/300/400', 'rating' => 7.8, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '张艺谋', 'description' => '南宋绍兴年间，秦桧率兵与金国会谈。会谈前夜，金国使者死在宰相驻地。'],
-        ['title' => '狂飙', 'type' => 2, 'cover' => 'https://picsum.photos/seed/tv1/300/400', 'rating' => 9.1, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '徐纪周', 'description' => '京海市一线刑警安欣，在与黑恶势力的斗争中，不断遭到保护伞的打击。'],
-        ['title' => '漫长的季节', 'type' => 2, 'cover' => 'https://picsum.photos/seed/tv2/300/400', 'rating' => 9.2, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '辛爽', 'description' => '小城桦林，一家人的命运在时代洪流中翻天覆地。'],
-        ['title' => '进击的巨人 最终季', 'type' => 3, 'cover' => 'https://picsum.photos/seed/anime1/300/400', 'rating' => 9.5, 'region' => '日本', 'release_year' => '2023', 'director' => '林祐一郎', 'description' => '讲述人类与巨人的生死之战。'],
-        ['title' => '鬼灭之刃 刀匠村篇', 'type' => 3, 'cover' => 'https://picsum.photos/seed/anime2/300/400', 'rating' => 8.8, 'region' => '日本', 'release_year' => '2023', 'director' => '外崎春雄', 'description' => '炭治郎为了救回祢豆子，踏上新的旅程。'],
-        ['title' => '搞笑短视频合集', 'type' => 4, 'cover' => 'https://picsum.photos/seed/short1/300/400', 'rating' => 7.5, 'region' => '中国大陆', 'release_year' => '2023', 'director' => ' Various', 'description' => '各种搞笑短视频精彩合集'],
-        ['title' => '宇宙探索纪录片', 'type' => 5, 'cover' => 'https://picsum.photos/seed/doc1/300/400', 'rating' => 9.0, 'region' => '美国', 'release_year' => '2023', 'director' => 'various', 'description' => '探索宇宙奥秘的纪录片'],
+        ['title' => '流浪地球2', 'type' => 1, 'cover' => 'https://picsum.photos/400/600?random=1', 'rating' => 8.5, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '郭帆', 'description' => '太阳即将毁灭，人类在地球表面建造出巨大的推进器，寻找新的家园。'],
+        ['title' => '满江红', 'type' => 1, 'cover' => 'https://picsum.photos/400/600?random=2', 'rating' => 7.8, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '张艺谋', 'description' => '南宋绍兴年间，秦桧率兵与金国会谈。会谈前夜，金国使者死在宰相驻地。'],
+        ['title' => '狂飙', 'type' => 2, 'cover' => 'https://picsum.photos/400/600?random=3', 'rating' => 9.1, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '徐纪周', 'description' => '京海市一线刑警安欣，在与黑恶势力的斗争中，不断遭到保护伞的打击。'],
+        ['title' => '漫长的季节', 'type' => 2, 'cover' => 'https://picsum.photos/400/600?random=4', 'rating' => 9.2, 'region' => '中国大陆', 'release_year' => '2023', 'director' => '辛爽', 'description' => '小城桦林，一家人的命运在时代洪流中翻天覆地。'],
+        ['title' => '进击的巨人 最终季', 'type' => 3, 'cover' => 'https://picsum.photos/400/600?random=5', 'rating' => 9.5, 'region' => '日本', 'release_year' => '2023', 'director' => '林祐一郎', 'description' => '讲述人类与巨人的生死之战。'],
+        ['title' => '鬼灭之刃 刀匠村篇', 'type' => 3, 'cover' => 'https://picsum.photos/400/600?random=6', 'rating' => 8.8, 'region' => '日本', 'release_year' => '2023', 'director' => '外崎春雄', 'description' => '炭治郎为了救回祢豆子，踏上新的旅程。'],
+        ['title' => '搞笑短视频合集', 'type' => 4, 'cover' => 'https://picsum.photos/400/600?random=7', 'rating' => 7.5, 'region' => '中国大陆', 'release_year' => '2023', 'director' => 'Various', 'description' => '各种搞笑短视频精彩合集'],
+        ['title' => '宇宙探索纪录片', 'type' => 5, 'cover' => 'https://picsum.photos/400/600?random=8', 'rating' => 9.0, 'region' => '美国', 'release_year' => '2023', 'director' => 'various', 'description' => '探索宇宙奥秘的纪录片'],
     ];
     
     $stmt = $pdo->prepare("INSERT INTO videos (title, type, cover, rating, region, release_year, director, description, play_count, is_vip, is_show, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))");

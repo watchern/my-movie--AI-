@@ -17,23 +17,23 @@
 
             <div class="category-nav">
                 <div class="nav-item" @click="goCategory(1)">
-                    <img src="https://img.icons8.com/fluency-systems-regular/48/movie-projector.png" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/3459/3459506.png" />
                     <span>电影</span>
                 </div>
                 <div class="nav-item" @click="goCategory(2)">
-                    <img src="https://img.icons8.com/fluency-systems-regular/48/film.png" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/2910/2910791.png" />
                     <span>电视剧</span>
                 </div>
                 <div class="nav-item" @click="goCategory(3)">
-                    <img src="https://img.icons8.com/fluency-systems-regular/48/kirby.png" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/190/190411.png" />
                     <span>动漫</span>
                 </div>
                 <div class="nav-item" @click="goCategory(4)">
-                    <img src="https://img.icons8.com/fluency-systems-regular/48/video.png" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/3958/3958267.png" />
                     <span>短视频</span>
                 </div>
                 <div class="nav-item" @click="goCategory(5)">
-                    <img src="https://img.icons8.com/fluency-systems-regular/48/documentary.png" />
+                    <img src="https://cdn-icons-png.flaticon.com/128/2910/2910891.png" />
                     <span>纪录片</span>
                 </div>
             </div>
