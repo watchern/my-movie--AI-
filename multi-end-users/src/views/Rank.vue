@@ -112,10 +112,10 @@ onMounted(() => loadList())
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
 
     .title {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 500;
       color: #333;
       overflow: hidden;
@@ -123,21 +123,21 @@ onMounted(() => loadList())
       white-space: nowrap;
     }
 
+    .counts {
+      margin-top: 4px;
+      font-size: 12px;
+      color: #666;
+    }
+
     .desc {
-      margin-top: 6px;
-      font-size: 13px;
+      margin-top: 4px;
+      font-size: 12px;
       color: #999;
       overflow: hidden;
       text-overflow: ellipsis;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-    }
-
-    .counts {
-      margin-top: 8px;
-      font-size: 12px;
-      color: #666;
     }
   }
 }
