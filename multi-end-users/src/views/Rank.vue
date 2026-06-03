@@ -27,6 +27,10 @@
             <img :src="item.cover_url" :alt="item.title" />
             <div class="info">
               <div class="title">{{ item.title }}</div>
+              <div class="desc">{{ item.desc || '暂无简介' }}</div>
+              <div class="counts">
+                <span>播放 {{ formatCount(item.play_count) }}</span>
+              </div>
             </div>
           </div>
         </div>
