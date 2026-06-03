@@ -17,23 +17,23 @@
 
             <div class="category-nav">
                 <div class="nav-item" @click="goCategory(1)">
-                    <img src="https://cdn-icons-png.flaticon.com/128/3459/3459506.png" />
+                    <van-icon name="video" size="32" color="#1989fa" />
                     <span>电影</span>
                 </div>
                 <div class="nav-item" @click="goCategory(2)">
-                    <img src="https://cdn-icons-png.flaticon.com/128/2910/2910791.png" />
+                    <van-icon name="tv-o" size="32" color="#ff976a" />
                     <span>电视剧</span>
                 </div>
                 <div class="nav-item" @click="goCategory(3)">
-                    <img src="https://cdn-icons-png.flaticon.com/128/190/190411.png" />
+                    <van-icon name="fire" size="32" color="#ee0a24" />
                     <span>动漫</span>
                 </div>
                 <div class="nav-item" @click="goCategory(4)">
-                    <img src="https://cdn-icons-png.flaticon.com/128/3958/3958267.png" />
+                    <van-icon name="play-circle-o" size="32" color="#07c160" />
                     <span>短视频</span>
                 </div>
                 <div class="nav-item" @click="goCategory(5)">
-                    <img src="https://cdn-icons-png.flaticon.com/128/2910/2910891.png" />
+                    <van-icon name="location-o" size="32" color="#1989fa" />
                     <span>纪录片</span>
                 </div>
             </div>
@@ -177,11 +177,6 @@ onMounted(() => loadData())
         flex-direction: column;
         align-items: center;
         gap: 6px;
-
-        img {
-            width: 40px;
-            height: 40px;
-        }
 
         span {
             font-size: 13px;
