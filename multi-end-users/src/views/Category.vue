@@ -2,21 +2,21 @@
   <div class="page">
     <van-nav-bar :title="pageTitle" left-arrow @click-left="goBack" :fixed="true" placeholder />
 
-    <van-tabs v-model:active="tabActive" sticky>
-      <van-tab v-for="cat in categories" :key="cat.id" :title="cat.name">
-        <van-list v-model:loading="loading" :finished="finished" @load="loadList">
-          <div class="video-grid">
-            <div v-for="item in list" :key="item.id" class="video-item" @click="goDetail(item.id)">
-              <div class="video-cover">
-                <img :src="item.cover_url" :alt="item.title" />
-                <span v-if="item.is_vip" class="vip-tag">VIP</span>
-              </div>
-              <div class="video-title">{{ item.title }}</div>
+    <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+      <div class="video-list">
+        <div class="video-grid">
+          <div v-for="item in list" :key="item.id" class="video-item" @click="goDetail(item.id)">
+            <div class="video-cover">
+              <img :src="item.cover_url" :alt="item.title" />
+              <span v-if="item.is_vip" class="vip-tag">VIP</span>
             </div>
+            <div class="video-title">{{ item.title }}</div>
           </div>
-        </van-list>
-      </van-tab>
-    </van-tabs>
+        </div>
+        <van-loading v-if="loading" class="loading-center" />
+        <van-empty v-if="!loading && list.length === 0" description="暂无数据" />
+      </div>
+    </van-pull-refresh>
   </div>
 </template>
 
@@ -30,28 +30,38 @@ const route = useRoute()
 
 const type = computed(() => +route.params.type)
 const pageTitle = computed(() => {
-  const titles = { 1: '电影', 2: '电视剧', 3: '动漫', 4: '短视频' }
+  const titles = { 1: '电影', 2: '电视剧', 3: '动漫', 4: '短视频', 5: '纪录片' }
   return titles[type.value] || '分类'
 })
 
-const tabActive = ref(0)
-const categories = ref([])
+const refreshing = ref(false)
 const list = ref([])
 const loading = ref(false)
 const finished = ref(false)
 let page = 1
 
 const loadList = async () => {
+  if (loading.value) return
+  loading.value = true
+  
   const res = await get('/video/list', {
     type: type.value,
-    category_id: categories.value[tabActive.value]?.id,
     page,
     limit: 20
   })
-  list.value = page === 1 ? res.data.list : [...list.value, ...res.data.list]
+  
+  const newList = res.data.list || []
+  list.value = page === 1 ? newList : [...list.value, ...newList]
   finished.value = page >= res.data.pages
   page++
   loading.value = false
+}
+
+const onRefresh = async () => {
+  page = 1
+  finished.value = false
+  await loadList()
+  refreshing.value = false
 }
 
 const goDetail = (id) => router.push(`/detail/${id}`)
@@ -61,6 +71,10 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.video-list {
+  min-height: 60vh;
+}
+
 .video-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -100,5 +114,11 @@ onMounted(() => loadList())
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+.loading-center {
+  display: flex;
+  justify-content: center;
+  padding: 20px;
 }
 </style>
