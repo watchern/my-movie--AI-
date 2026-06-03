@@ -55,7 +55,7 @@ const loading = ref(false)
 
 const loadList = async () => {
   const res = await get('/video/rank')
-  list.value = res.data.hot || []
+  list.value = res.data.list || []
   newList.value = res.data.new || []
   loading.value = false
 }

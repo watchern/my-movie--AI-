@@ -9,8 +9,13 @@
             <div class="video-cover">
               <img :src="item.cover_url" :alt="item.title" />
               <span v-if="item.is_vip" class="vip-tag">VIP</span>
+              <span class="play-count">{{ formatCount(item.play_count) }}</span>
             </div>
             <div class="video-title">{{ item.title }}</div>
+            <div class="video-info">
+              <span>{{ item.release_year }}</span>
+              <span>{{ item.region }}</span>
+            </div>
           </div>
         </div>
         <van-loading v-if="loading" class="loading-center" />
@@ -39,6 +44,13 @@ const list = ref([])
 const loading = ref(false)
 const finished = ref(false)
 let page = 1
+
+const formatCount = (count) => {
+  if (count >= 10000) {
+    return (count / 10000).toFixed(1) + '万'
+  }
+  return count
+}
 
 const loadList = async () => {
   if (loading.value) return
@@ -78,41 +90,65 @@ onMounted(() => loadList())
 .video-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  gap: 6px;
   padding: 12px 16px;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(6, 1fr);
+    gap: 8px;
+  }
 }
 
 .video-item {
   .video-cover {
     position: relative;
-    border-radius: 6px;
+    border-radius: 4px;
     overflow: hidden;
 
     img {
       width: 100%;
-      aspect-ratio: 3/4;
+      aspect-ratio: 1/1.3;
       object-fit: cover;
     }
 
     .vip-tag {
       position: absolute;
-      top: 6px;
-      right: 6px;
+      top: 2px;
+      right: 2px;
       background: linear-gradient(135deg, #ff9500, #ff6a00);
       color: white;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 12px;
+      padding: 0 2px;
+      border-radius: 2px;
+      font-size: 8px;
+    }
+
+    .play-count {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      background: rgba(0, 0, 0, 0.6);
+      color: white;
+      padding: 0 2px;
+      border-radius: 2px;
+      font-size: 8px;
     }
   }
 
   .video-title {
-    margin-top: 6px;
-    font-size: 14px;
+    font-size: 11px;
     color: #333;
+    margin-top: 3px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .video-info {
+    display: flex;
+    gap: 4px;
+    font-size: 9px;
+    color: #999;
+    margin-top: 1px;
   }
 }
 

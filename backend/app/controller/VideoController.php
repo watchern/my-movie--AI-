@@ -184,13 +184,21 @@ class VideoController extends BaseController
             $where[] = ['type', '=', $type];
         }
 
-        $list = Video::where($where)
+        // 热播榜（按播放量）
+        $hotList = Video::where($where)
             ->order('play_count', 'desc')
             ->page($page, $limit)
             ->select();
 
+        // 新上线（按更新时间）
+        $newList = Video::where($where)
+            ->order('updated_at', 'desc')
+            ->page($page, $limit)
+            ->select();
+
         return $this->success([
-            'list' => $this->formatVideoList($list),
+            'list' => $this->formatVideoList($hotList),
+            'new' => $this->formatVideoList($newList),
             'page' => $page,
             'limit' => $limit,
         ]);
