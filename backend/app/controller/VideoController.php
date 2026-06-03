@@ -322,7 +322,7 @@ class VideoController extends BaseController
                 'id' => $item->id,
                 'title' => $item->title,
                 'subtitle' => $item->subtitle,
-                'cover' => $item->cover_url,
+                'cover_url' => $item->cover_url,
                 'type' => $item->type,
                 'type_name' => $item->type_name,
                 'rating' => $item->rating,
