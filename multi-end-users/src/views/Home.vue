@@ -161,6 +161,7 @@ onMounted(() => loadData())
     }
 
     :deep(.van-swipe-item) {
+        display: block;
         height: 180px;
 
         img {
