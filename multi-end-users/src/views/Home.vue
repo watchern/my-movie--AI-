@@ -7,14 +7,6 @@
                 </template>
             </van-nav-bar>
 
-            <div class="banner-section">
-                <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
-                    <van-swipe-item v-for="item in banners" :key="item.id" @click="goDetail(item.id)">
-                        <img :src="item.cover_url" :alt="item.title" />
-                    </van-swipe-item>
-                </van-swipe>
-            </div>
-
             <div class="category-nav">
                 <div class="nav-item" @click="goCategory(1)">
                     <van-icon name="video" size="32" color="#1989fa" />
@@ -36,6 +28,14 @@
                     <van-icon name="location-o" size="32" color="#1989fa" />
                     <span>纪录片</span>
                 </div>
+            </div>
+
+            <div class="banner-section">
+                <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
+                    <van-swipe-item v-for="item in banners" :key="item.id" @click="goDetail(item.id)">
+                        <img :src="item.cover_url" :alt="item.title" />
+                    </van-swipe-item>
+                </van-swipe>
             </div>
 
             <div v-if="hotMovies.length" class="section">
@@ -148,7 +148,7 @@ onMounted(() => loadData())
 
 <style lang="scss" scoped>
 .page {
-    padding-top: 46px;
+    // padding-top: 46px;
 }
 
 .banner-section {
@@ -211,8 +211,12 @@ onMounted(() => loadData())
 
 .video-grid {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 6px;
+
+    @media (min-width: 768px) {
+        grid-template-columns: repeat(6, 1fr);
+    }
 }
 
 .video-item {
