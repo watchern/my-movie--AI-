@@ -4,22 +4,26 @@
 
     <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
       <div class="video-list">
-        <div class="video-grid">
-          <div v-for="item in list" :key="item.id" class="video-item" @click="goDetail(item.id)">
-            <div class="video-cover">
-              <img :src="item.cover_url" :alt="item.title" />
-              <span v-if="item.is_vip" class="vip-tag">VIP</span>
-              <span class="play-count">{{ formatCount(item.play_count) }}</span>
-            </div>
-            <div class="video-title">{{ item.title }}</div>
-            <div class="video-info">
-              <span>{{ item.release_year }}</span>
-              <span>{{ item.region }}</span>
+        <div v-if="loading" class="loading-wrapper">
+          <van-loading>加载中...</van-loading>
+        </div>
+        <div v-else>
+          <div v-if="list.length" class="video-grid">
+            <div v-for="item in list" :key="item.id" class="video-item" @click="goDetail(item.id)">
+              <div class="video-cover">
+                <img :src="item.cover_url" :alt="item.title" />
+                <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                <span class="play-count">{{ formatCount(item.play_count) }}</span>
+              </div>
+              <div class="video-title">{{ item.title }}</div>
+              <div class="video-info">
+                <span>{{ item.release_year }}</span>
+                <span>{{ item.region }}</span>
+              </div>
             </div>
           </div>
+          <van-empty v-else description="暂无数据" />
         </div>
-        <van-loading v-if="loading" class="loading-center" />
-        <van-empty v-if="!loading && list.length === 0" description="暂无数据" />
       </div>
     </van-pull-refresh>
   </div>
@@ -87,6 +91,14 @@ onMounted(() => loadList())
   min-height: 60vh;
 }
 
+.loading-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding-top: 20px;
+}
+
 .video-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -150,11 +162,5 @@ onMounted(() => loadList())
     color: #999;
     margin-top: 1px;
   }
-}
-
-.loading-center {
-  display: flex;
-  justify-content: center;
-  padding: 20px;
 }
 </style>

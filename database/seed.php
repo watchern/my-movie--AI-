@@ -85,12 +85,20 @@ try {
         if ($video['type'] == 2 || $video['type'] == 3) {
             $episodeCount = rand(10, 24);
             for ($i = 1; $i <= $episodeCount; $i++) {
-                $pdo->exec("INSERT INTO video_sources (video_id, source_site_id, name, play_url, sort_order, status, created_at, updated_at) VALUES ({$videoId}, 1, '第{$i}集', 'https://example.com/play/{$videoId}/{$i}', {$i}, 1, datetime('now'), datetime('now'))");
+                $playUrl = $i % 2 == 0 
+                    ? 'https://www.w3schools.com/html/mov_bbb.mp4' 
+                    : 'https://www.w3schools.com/html/movie.mp4';
+                $pdo->exec("INSERT INTO video_sources (video_id, source_site_id, name, play_url, sort_order, status, created_at, updated_at) VALUES ({$videoId}, 1, '第{$i}集', '{$playUrl}', {$i}, 1, datetime('now'), datetime('now'))");
             }
             echo "  -> 插入 {$episodeCount} 个剧集\n";
         } else {
             // 电影/短视频插入一个播放地址
-            $pdo->exec("INSERT INTO video_sources (video_id, source_site_id, name, play_url, sort_order, status, created_at, updated_at) VALUES ({$videoId}, 1, '正片', 'https://example.com/play/{$videoId}', 0, 1, datetime('now'), datetime('now'))");
+            $playUrls = [
+                'https://www.w3schools.com/html/mov_bbb.mp4',
+                'https://www.w3schools.com/html/movie.mp4',
+            ];
+            $playUrl = $playUrls[rand(0, 1)];
+            $pdo->exec("INSERT INTO video_sources (video_id, source_site_id, name, play_url, sort_order, status, created_at, updated_at) VALUES ({$videoId}, 1, '正片', '{$playUrl}', 0, 1, datetime('now'), datetime('now'))");
         }
     }
     

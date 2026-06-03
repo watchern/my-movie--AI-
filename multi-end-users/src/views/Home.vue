@@ -7,93 +7,99 @@
                 </template>
             </van-nav-bar>
 
-            <div class="category-nav">
-                <div class="nav-item" @click="goCategory(1)">
-                    <van-icon name="video" size="32" color="#1989fa" />
-                    <span>电影</span>
-                </div>
-                <div class="nav-item" @click="goCategory(2)">
-                    <van-icon name="tv-o" size="32" color="#ff976a" />
-                    <span>电视剧</span>
-                </div>
-                <div class="nav-item" @click="goCategory(3)">
-                    <van-icon name="fire" size="32" color="#ee0a24" />
-                    <span>动漫</span>
-                </div>
-                <div class="nav-item" @click="goCategory(4)">
-                    <van-icon name="play-circle-o" size="32" color="#07c160" />
-                    <span>短视频</span>
-                </div>
-                <div class="nav-item" @click="goCategory(5)">
-                    <van-icon name="location-o" size="32" color="#1989fa" />
-                    <span>纪录片</span>
-                </div>
+            <div v-if="loading" class="loading-wrapper">
+                <van-loading>加载中...</van-loading>
             </div>
 
-            <div class="banner-section">
-                <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
-                    <van-swipe-item v-for="item in banners" :key="item.id" @click="goDetail(item.id)">
-                        <img :src="item.cover_url" :alt="item.title" />
-                    </van-swipe-item>
-                </van-swipe>
-            </div>
-
-            <div v-if="hotMovies.length" class="section">
-                <div class="section-title">
-                    <span>热门电影</span>
-                    <span class="more" @click="goCategory(1)">更多 ></span>
+            <div v-else>
+                <div class="category-nav">
+                    <div class="nav-item" @click="goCategory(1)">
+                        <van-icon name="video" size="32" color="#1989fa" />
+                        <span>电影</span>
+                    </div>
+                    <div class="nav-item" @click="goCategory(2)">
+                        <van-icon name="tv-o" size="32" color="#ff976a" />
+                        <span>电视剧</span>
+                    </div>
+                    <div class="nav-item" @click="goCategory(3)">
+                        <van-icon name="fire" size="32" color="#ee0a24" />
+                        <span>动漫</span>
+                    </div>
+                    <div class="nav-item" @click="goCategory(4)">
+                        <van-icon name="play-circle-o" size="32" color="#07c160" />
+                        <span>短视频</span>
+                    </div>
+                    <div class="nav-item" @click="goCategory(5)">
+                        <van-icon name="location-o" size="32" color="#1989fa" />
+                        <span>纪录片</span>
+                    </div>
                 </div>
-                <div class="video-grid">
-                    <div v-for="item in hotMovies" :key="item.id" class="video-item" @click="goDetail(item.id)">
-                        <div class="video-cover">
+
+                <div class="banner-section">
+                    <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
+                        <van-swipe-item v-for="item in banners" :key="item.id" @click="goDetail(item.id)">
                             <img :src="item.cover_url" :alt="item.title" />
-                            <span v-if="item.is_vip" class="vip-tag">VIP</span>
-                            <span class="play-count">{{ formatCount(item.play_count) }}</span>
-                        </div>
-                        <div class="video-title">{{ item.title }}</div>
-                        <div class="video-info">
-                            <span>{{ item.release_year }}</span>
-                            <span>{{ item.region }}</span>
+                        </van-swipe-item>
+                    </van-swipe>
+                </div>
+
+                <div v-if="hotMovies.length" class="section">
+                    <div class="section-title">
+                        <span>热门电影</span>
+                        <span class="more" @click="goCategory(1)">更多 ></span>
+                    </div>
+                    <div class="video-grid">
+                        <div v-for="item in hotMovies" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                            <div class="video-cover">
+                                <img :src="item.cover_url" :alt="item.title" />
+                                <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                                <span class="play-count">{{ formatCount(item.play_count) }}</span>
+                            </div>
+                            <div class="video-title">{{ item.title }}</div>
+                            <div class="video-info">
+                                <span>{{ item.release_year }}</span>
+                                <span>{{ item.region }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div v-if="hotTvs.length" class="section">
-                <div class="section-title">
-                    <span>热门电视剧</span>
-                    <span class="more" @click="goCategory(2)">更多 ></span>
-                </div>
-                <div class="video-grid">
-                    <div v-for="item in hotTvs" :key="item.id" class="video-item" @click="goDetail(item.id)">
-                        <div class="video-cover">
-                            <img :src="item.cover_url" :alt="item.title" />
-                            <span v-if="item.is_vip" class="vip-tag">VIP</span>
-                        </div>
-                        <div class="video-title">{{ item.title }}</div>
-                        <div class="video-info">
-                            <span>{{ item.release_year }}</span>
-                            <span>{{ item.region }}</span>
+                <div v-if="hotTvs.length" class="section">
+                    <div class="section-title">
+                        <span>热门电视剧</span>
+                        <span class="more" @click="goCategory(2)">更多 ></span>
+                    </div>
+                    <div class="video-grid">
+                        <div v-for="item in hotTvs" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                            <div class="video-cover">
+                                <img :src="item.cover_url" :alt="item.title" />
+                                <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                            </div>
+                            <div class="video-title">{{ item.title }}</div>
+                            <div class="video-info">
+                                <span>{{ item.release_year }}</span>
+                                <span>{{ item.region }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div v-if="hotAnimes.length" class="section">
-                <div class="section-title">
-                    <span>热门动漫</span>
-                    <span class="more" @click="goCategory(3)">更多 ></span>
-                </div>
-                <div class="video-grid">
-                    <div v-for="item in hotAnimes" :key="item.id" class="video-item" @click="goDetail(item.id)">
-                        <div class="video-cover">
-                            <img :src="item.cover_url" :alt="item.title" />
-                            <span v-if="item.is_vip" class="vip-tag">VIP</span>
-                        </div>
-                        <div class="video-title">{{ item.title }}</div>
-                        <div class="video-info">
-                            <span>{{ item.release_year }}</span>
-                            <span>{{ item.region }}</span>
+                <div v-if="hotAnimes.length" class="section">
+                    <div class="section-title">
+                        <span>热门动漫</span>
+                        <span class="more" @click="goCategory(3)">更多 ></span>
+                    </div>
+                    <div class="video-grid">
+                        <div v-for="item in hotAnimes" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                            <div class="video-cover">
+                                <img :src="item.cover_url" :alt="item.title" />
+                                <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                            </div>
+                            <div class="video-title">{{ item.title }}</div>
+                            <div class="video-info">
+                                <span>{{ item.release_year }}</span>
+                                <span>{{ item.region }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -116,6 +122,7 @@ import { get } from '@/utils/request'
 const router = useRouter()
 const refreshing = ref(false)
 const active = ref('home')
+const loading = ref(true)
 
 const banners = ref([])
 const hotMovies = ref([])
@@ -123,11 +130,13 @@ const hotTvs = ref([])
 const hotAnimes = ref([])
 
 const loadData = async () => {
+    loading.value = true
     const res = await get('/video/home')
     banners.value = res.data.banners || []
     hotMovies.value = res.data.hot_movies || []
     hotTvs.value = res.data.hot_tvs || []
     hotAnimes.value = res.data.hot_animes || []
+    loading.value = false
 }
 
 const onRefresh = async () => {
@@ -157,6 +166,14 @@ onMounted(() => loadData())
 <style lang="scss" scoped>
 .page {
     // padding-top: 46px;
+}
+
+.loading-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    padding-top: 20px;
 }
 
 .banner-section {

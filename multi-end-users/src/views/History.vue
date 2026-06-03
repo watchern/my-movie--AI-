@@ -2,17 +2,22 @@
   <div class="page">
     <van-nav-bar title="观看历史" left-arrow @click-left="goBack" :fixed="true" placeholder />
 
-    <div v-if="list.length" class="list">
-      <div v-for="item in list" :key="item.id" class="item" @click="goPlay(item.episode_id)">
-        <img :src="item.cover_url" :alt="item.title" />
-        <div class="info">
-          <div class="title">{{ item.title }}</div>
-          <div class="time">{{ item.watched_at }}</div>
+    <div v-if="loading" class="loading-wrapper">
+      <van-loading>加载中...</van-loading>
+    </div>
+    <div v-else>
+      <div v-if="list.length" class="list">
+        <div v-for="item in list" :key="item.id" class="item" @click="goPlay(item.episode_id)">
+          <img :src="item.cover_url" :alt="item.title" />
+          <div class="info">
+            <div class="title">{{ item.title }}</div>
+            <div class="time">{{ item.watched_at }}</div>
+          </div>
         </div>
       </div>
-    </div>
-    <div v-else class="empty">
-      <van-empty description="暂无观看历史" />
+      <div v-else class="empty">
+        <van-empty description="暂无观看历史" />
+      </div>
     </div>
   </div>
 </template>
@@ -28,14 +33,17 @@ const router = useRouter()
 const historyStore = useHistoryStore()
 const userStore = useUserStore()
 const list = ref([])
+const loading = ref(true)
 
 const loadList = async () => {
+  loading.value = true
   if (userStore.isLogin) {
     const res = await get('/history/list')
     list.value = res.data || []
   } else {
     list.value = historyStore.historyList
   }
+  loading.value = false
 }
 
 const goPlay = (epId) => router.push(`/play/${epId}`)
@@ -45,6 +53,14 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.loading-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding-top: 20px;
+}
+
 .list {
   padding: 12px 16px;
 }

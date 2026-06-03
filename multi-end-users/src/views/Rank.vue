@@ -2,9 +2,13 @@
   <div class="page">
     <van-nav-bar title="排行榜" :fixed="true" placeholder />
 
-    <van-tabs v-model:active="tabActive" sticky>
-      <van-tab title="热播榜">
-        <van-list v-model:loading="loading" @load="loadList">
+    <div v-if="loading" class="loading-wrapper">
+      <van-loading>加载中...</van-loading>
+    </div>
+
+    <div v-else>
+      <van-tabs v-model:active="tabActive" sticky>
+        <van-tab title="热播榜">
           <div class="rank-list">
             <div v-for="(item, index) in list" :key="item.id" class="rank-item" @click="goDetail(item.id)">
               <div class="rank-num" :class="'rank-' + Math.min(index, 3)">{{ index + 1 }}</div>
@@ -18,24 +22,24 @@
               </div>
             </div>
           </div>
-        </van-list>
-      </van-tab>
-      <van-tab title="新上线">
-        <div class="rank-list">
-          <div v-for="(item, index) in newList" :key="item.id" class="rank-item" @click="goDetail(item.id)">
-            <div class="rank-num" :class="'rank-' + Math.min(index, 3)">{{ index + 1 }}</div>
-            <img :src="item.cover_url" :alt="item.title" />
-            <div class="info">
-              <div class="title">{{ item.title }}</div>
-              <div class="counts">
-                <span>播放 {{ formatCount(item.play_count) }}</span>
+        </van-tab>
+        <van-tab title="新上线">
+          <div class="rank-list">
+            <div v-for="(item, index) in newList" :key="item.id" class="rank-item" @click="goDetail(item.id)">
+              <div class="rank-num" :class="'rank-' + Math.min(index, 3)">{{ index + 1 }}</div>
+              <img :src="item.cover_url" :alt="item.title" />
+              <div class="info">
+                <div class="title">{{ item.title }}</div>
+                <div class="counts">
+                  <span>播放 {{ formatCount(item.play_count) }}</span>
+                </div>
+                <div class="desc">{{ item.desc || '暂无简介' }}</div>
               </div>
-              <div class="desc">{{ item.desc || '暂无简介' }}</div>
             </div>
           </div>
-        </div>
-      </van-tab>
-    </van-tabs>
+        </van-tab>
+      </van-tabs>
+    </div>
 
     <van-tabbar v-model="active" @change="onTabChange">
       <van-tabbar-item name="home" icon="home-o">首页</van-tabbar-item>
@@ -55,9 +59,10 @@ const tabActive = ref(0)
 const active = ref('rank')
 const list = ref([])
 const newList = ref([])
-const loading = ref(false)
+const loading = ref(true)
 
 const loadList = async () => {
+  loading.value = true
   const res = await get('/video/rank')
   list.value = res.data.list || []
   newList.value = res.data.new || []
@@ -79,6 +84,14 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.loading-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding-top: 20px;
+}
+
 .rank-list {
   padding: 12px 16px;
 }

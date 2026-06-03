@@ -58,7 +58,7 @@
       </van-goods-action>
     </div>
 
-    <div v-else>
+    <div v-else class="loading-wrapper">
       <van-loading>加载中...</van-loading>
     </div>
   </div>
@@ -113,6 +113,14 @@ onMounted(() => loadDetail())
 </script>
 
 <style lang="scss" scoped>
+.loading-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding-top: 20px;
+}
+
 .detail-header {
   display: flex;
   gap: 16px;
