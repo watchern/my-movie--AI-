@@ -110,9 +110,11 @@ onMounted(() => loadList())
 
   .info {
     flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
+    overflow: hidden;
 
     .title {
       font-size: 14px;
@@ -121,6 +123,7 @@ onMounted(() => loadList())
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      max-width: 100%;
     }
 
     .counts {
@@ -138,6 +141,7 @@ onMounted(() => loadList())
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
+      word-break: break-all;
     }
   }
 }
