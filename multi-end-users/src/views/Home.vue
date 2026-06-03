@@ -71,6 +71,10 @@
                             <span v-if="item.is_vip" class="vip-tag">VIP</span>
                         </div>
                         <div class="video-title">{{ item.title }}</div>
+                        <div class="video-info">
+                            <span>{{ item.release_year }}</span>
+                            <span>{{ item.region }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -87,6 +91,10 @@
                             <span v-if="item.is_vip" class="vip-tag">VIP</span>
                         </div>
                         <div class="video-title">{{ item.title }}</div>
+                        <div class="video-info">
+                            <span>{{ item.release_year }}</span>
+                            <span>{{ item.region }}</span>
+                        </div>
                     </div>
                 </div>
             </div>
