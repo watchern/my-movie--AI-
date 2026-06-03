@@ -8,11 +8,9 @@
             </van-nav-bar>
 
             <div class="banner-section">
-                <van-swipe :autoplay="3000" indicator-color="white" height="180" loop>
+                <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
                     <van-swipe-item v-for="item in banners" :key="item.id" @click="goDetail(item.id)">
-                        <div class="banner-item">
-                            <img :src="item.cover_url" :alt="item.title" />
-                        </div>
+                        <img :src="item.cover_url" :alt="item.title" />
                     </van-swipe-item>
                 </van-swipe>
             </div>
@@ -158,22 +156,17 @@ onMounted(() => loadData())
     border-radius: 8px;
     overflow: hidden;
 
-    .banner-item {
-        width: 100%;
-        height: 100%;
+    :deep(.van-swipe) {
+        height: 180px;
+    }
+
+    :deep(.van-swipe-item) {
+        height: 180px;
 
         img {
             width: 100%;
-            height: 180px;
+            height: 100%;
             object-fit: cover;
-
-            @media (min-width: 768px) {
-                height: 280px;
-            }
-
-            @media (min-width: 1024px) {
-                height: 360px;
-            }
         }
     }
 
