@@ -218,48 +218,48 @@ onMounted(() => loadData())
 .video-grid {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
-    gap: 8px;
+    gap: 6px;
 }
 
 .video-item {
     .video-cover {
         position: relative;
-        border-radius: 6px;
+        border-radius: 4px;
         overflow: hidden;
 
         img {
             width: 100%;
-            aspect-ratio: 1/1.5;
+            aspect-ratio: 1/1.3;
             object-fit: cover;
         }
 
         .vip-tag {
             position: absolute;
-            top: 3px;
-            right: 3px;
+            top: 2px;
+            right: 2px;
             background: linear-gradient(135deg, #ff9500, #ff6a00);
             color: white;
-            padding: 1px 3px;
+            padding: 0 2px;
             border-radius: 2px;
-            font-size: 9px;
+            font-size: 8px;
         }
 
         .play-count {
             position: absolute;
-            bottom: 3px;
-            right: 3px;
+            bottom: 2px;
+            right: 2px;
             background: rgba(0, 0, 0, 0.6);
             color: white;
-            padding: 1px 3px;
+            padding: 0 2px;
             border-radius: 2px;
-            font-size: 9px;
+            font-size: 8px;
         }
     }
 
     .video-title {
-        font-size: 12px;
+        font-size: 11px;
         color: #333;
-        margin-top: 4px;
+        margin-top: 3px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -267,10 +267,10 @@ onMounted(() => loadData())
 
     .video-info {
         display: flex;
-        gap: 6px;
-        font-size: 10px;
+        gap: 4px;
+        font-size: 9px;
         color: #999;
-        margin-top: 2px;
+        margin-top: 1px;
     }
 }
 </style>
