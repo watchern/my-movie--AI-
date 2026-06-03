@@ -39,10 +39,9 @@
                 <el-table-column prop="last_login_time" label="最后登录" width="170" resizable />
                 <el-table-column prop="last_login_ip" label="登录IP" width="140" resizable />
                 <el-table-column prop="created_at" label="创建时间" width="170" resizable />
-                <el-table-column label="操作" width="220" resizable>
+                <el-table-column label="操作" width="160" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editAdmin(row)">编辑</el-button>
-                        <el-button link type="warning" @click="showChangePasswordDialog(row)">改密</el-button>
                         <el-button link type="danger" @click="deleteAdmin(row)">删除</el-button>
                     </template>
                 </el-table-column>
@@ -63,7 +62,6 @@
                     <div class="mobile-item"><span class="label">创建时间</span><span class="value">{{ row.created_at }}</span></div>
                     <div class="mobile-item actions">
                         <el-button size="small" type="primary" @click="editAdmin(row)">编辑</el-button>
-                        <el-button size="small" type="warning" @click="showChangePasswordDialog(row)">改密</el-button>
                         <el-button size="small" type="danger" @click="deleteAdmin(row)">删除</el-button>
                     </div>
                 </el-card>
@@ -104,25 +102,6 @@
             <template #footer>
                 <el-button @click="showDialog = false">取消</el-button>
                 <el-button type="primary" @click="save">保存</el-button>
-            </template>
-        </el-dialog>
-
-        <!-- 修改密码对话框 -->
-        <el-dialog v-model="showPasswordDialog" title="修改密码" width="500px">
-            <el-form :model="passwordForm" label-width="80px">
-                <el-form-item label="用户名">
-                    <el-input v-model="passwordForm.username" disabled />
-                </el-form-item>
-                <el-form-item label="新密码">
-                    <el-input v-model="passwordForm.password" type="password" placeholder="请输入新密码" show-password />
-                </el-form-item>
-                <el-form-item label="确认密码">
-                    <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password />
-                </el-form-item>
-            </el-form>
-            <template #footer>
-                <el-button @click="showPasswordDialog = false">取消</el-button>
-                <el-button type="primary" @click="changePassword">保存</el-button>
             </template>
         </el-dialog>
     </div>
@@ -172,14 +151,6 @@ const form = ref({
     nickname: '',
     password: '',
     status: 1
-})
-
-const showPasswordDialog = ref(false)
-const passwordForm = ref({
-    id: 0,
-    username: '',
-    password: '',
-    confirmPassword: ''
 })
 
 const getCurrentAdminInfo = () => {
@@ -279,37 +250,6 @@ const toggleStatus = (row) => {
         ElMessage.success(`${action}成功`)
         loadList()
     }).catch(() => {})
-}
-
-const showChangePasswordDialog = (row) => {
-    passwordForm.value = {
-        id: row.id,
-        username: row.username,
-        password: '',
-        confirmPassword: ''
-    }
-    showPasswordDialog.value = true
-}
-
-const changePassword = async () => {
-    if (!passwordForm.value.password) {
-        ElMessage.error('请输入新密码')
-        return
-    }
-    if (passwordForm.value.password.length < 6) {
-        ElMessage.error('密码长度不能少于6位')
-        return
-    }
-    if (passwordForm.value.password !== passwordForm.value.confirmPassword) {
-        ElMessage.error('两次输入的密码不一致')
-        return
-    }
-    await post('/admin/update', {
-        id: passwordForm.value.id,
-        password: passwordForm.value.password
-    })
-    ElMessage.success('密码修改成功')
-    showPasswordDialog.value = false
 }
 </script>
 
