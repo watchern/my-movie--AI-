@@ -157,4 +157,65 @@ class HistoryController extends BaseController
 
         return $this->success(null, '已删除');
     }
+
+    /**
+     * 批量同步历史记录（从本地存储同步到服务器）
+     */
+    public function syncBatch()
+    {
+        $userId = $this->request->uid ?? 0;
+        $data = $this->getData();
+        
+        $items = $data['items'] ?? [];
+        
+        if (empty($items)) {
+            return $this->success(['synced' => 0], '无数据需要同步');
+        }
+
+        $synced = 0;
+        $now = date('Y-m-d H:i:s');
+
+        foreach ($items as $item) {
+            $videoId = intval($item['video_id'] ?? 0);
+            $episodeId = intval($item['episode_id'] ?? 0);
+            $progress = intval($item['progress'] ?? 0);
+            $lastPosition = intval($item['last_position'] ?? 0);
+            $duration = intval($item['duration'] ?? 0);
+            $watchedAt = $item['watched_at'] ?? $now;
+
+            if ($videoId <= 0) continue;
+
+            // 查找或创建历史记录
+            $where = [
+                'user_id' => $userId,
+                'video_id' => $videoId,
+            ];
+            if ($episodeId > 0) {
+                $where['episode_id'] = $episodeId;
+            } else {
+                $where['episode_id'] = 0;
+            }
+
+            $history = WatchHistory::where($where)->find();
+
+            if (!$history) {
+                $history = new WatchHistory();
+                $history->user_id = $userId;
+                $history->video_id = $videoId;
+                $history->episode_id = $episodeId ?: 0;
+            }
+
+            // 如果本地记录更新，则更新服务器数据
+            if ($history->watched_at === null || strtotime($watchedAt) > strtotime($history->watched_at)) {
+                $history->progress = $progress;
+                $history->last_position = $lastPosition;
+                $history->duration = $duration;
+                $history->watched_at = $watchedAt;
+                $history->save();
+                $synced++;
+            }
+        }
+
+        return $this->success(['synced' => $synced], "成功同步 {$synced} 条记录");
+    }
 }

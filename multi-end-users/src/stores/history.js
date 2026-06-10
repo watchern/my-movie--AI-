@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
+import { post } from '@/utils/request'
 
 export const useHistoryStore = defineStore('history', () => {
   const historyList = ref(JSON.parse(localStorage.getItem('historyList') || '[]'))
@@ -37,5 +38,55 @@ export const useHistoryStore = defineStore('history', () => {
     return historyList.value.find(h => h.video_id === videoId)
   }
 
-  return { historyList, addHistory, removeHistory, clearHistory, getHistory }
+  // 同步本地历史到服务器
+  const syncToServer = async () => {
+    if (historyList.value.length === 0) return { synced: 0 }
+    
+    try {
+      const res = await post('/history/sync', {
+        items: historyList.value.map(item => ({
+          video_id: item.video_id,
+          episode_id: item.episode_id,
+          progress: item.progress,
+          last_position: item.last_position,
+          duration: item.duration,
+          watched_at: item.watched_at
+        }))
+      })
+      return res.data || { synced: 0 }
+    } catch (e) {
+      console.error('同步历史记录失败', e)
+      return { synced: 0 }
+    }
+  }
+
+  // 合并服务器数据到本地（保留本地更新更快的记录）
+  const mergeServerData = (serverList) => {
+    if (!serverList || !Array.isArray(serverList)) return
+    
+    for (const serverItem of serverList) {
+      const localIndex = historyList.value.findIndex(
+        h => h.video_id === serverItem.video_id && h.episode_id === serverItem.episode_id
+      )
+      
+      if (localIndex === -1) {
+        // 本地没有，添加服务器数据
+        historyList.value.push({
+          id: serverItem.id,
+          video_id: serverItem.video_id,
+          episode_id: serverItem.episode_id,
+          progress: serverItem.progress,
+          last_position: serverItem.last_position,
+          duration: serverItem.duration,
+          watched_at: serverItem.watched_at
+        })
+      }
+      // 如果本地已有，不覆盖（本地数据优先）
+    }
+    
+    // 按时间排序
+    historyList.value.sort((a, b) => new Date(b.watched_at) - new Date(a.watched_at))
+  }
+
+  return { historyList, addHistory, removeHistory, clearHistory, getHistory, syncToServer, mergeServerData }
 })

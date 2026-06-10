@@ -77,6 +77,7 @@ Route::group('api', function () {
         Route::get('history/list', [HistoryController::class, 'list']);
         Route::post('history/add', [HistoryController::class, 'add']);
         Route::post('history/clear', [HistoryController::class, 'clear']);
+        Route::post('history/sync', [HistoryController::class, 'syncBatch']);
 
         // VIP卡密
         Route::post('card/redeem', [CardController::class, 'redeem']);

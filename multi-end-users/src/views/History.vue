@@ -7,7 +7,7 @@
     </div>
     <div v-else>
       <div v-if="list.length" class="list">
-        <div v-for="item in list" :key="item.id" class="item" @click="goPlay(item.episode_id)">
+        <div v-for="item in validList" :key="item.id" class="item" @click="goPlay(item.episode_id)">
           <img :src="item.cover_url" :alt="item.title" />
           <div class="info">
             <div class="title">{{ item.title }}</div>
@@ -23,12 +23,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { get } from '@/utils/request'
 import { useHistoryStore } from '@/stores/history'
 import { useUserStore } from '@/stores/user'
 import { useSafeBack } from '@/utils/router'
+import { showToast } from 'vant'
 
 const router = useRouter()
 const historyStore = useHistoryStore()
@@ -36,16 +37,49 @@ const userStore = useUserStore()
 const { safeBack } = useSafeBack()
 const list = ref([])
 const loading = ref(true)
+const syncing = ref(false)
+
+// 过滤有效数据
+const validList = computed(() => {
+  return list.value.filter(item => item && item.id)
+})
 
 const loadList = async () => {
   loading.value = true
-  if (userStore.isLogin) {
-    const res = await get('/history/list')
-    list.value = res.data || []
-  } else {
-    list.value = historyStore.historyList
+  try {
+    if (userStore.isLogin) {
+      // 如果有本地数据，先同步到服务器
+      if (historyStore.historyList.length > 0) {
+        await syncLocalToServer()
+      }
+      
+      // 从服务器获取数据
+      const res = await get('/history/list')
+      list.value = res.data?.list || []
+    } else {
+      list.value = historyStore.historyList || []
+    }
+  } catch (e) {
+    list.value = []
   }
   loading.value = false
+}
+
+// 同步本地数据到服务器
+const syncLocalToServer = async () => {
+  if (syncing.value) return
+  syncing.value = true
+  
+  try {
+    const result = await historyStore.syncToServer()
+    if (result.synced > 0) {
+      showToast(`已同步 ${result.synced} 条记录`)
+    }
+  } catch (e) {
+    console.error('同步失败', e)
+  } finally {
+    syncing.value = false
+  }
 }
 
 const goPlay = (epId) => router.push({ name: 'Detail', params: { id: '0' }, query: { episode_id: epId } })
