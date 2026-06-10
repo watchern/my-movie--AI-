@@ -24,9 +24,11 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { get } from '@/utils/request'
 import { useSafeBack } from '@/utils/router'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const { safeBack } = useSafeBack()
+const userStore = useUserStore()
 const list = ref([])
 const loading = ref(true)
 
@@ -45,7 +47,14 @@ const loadList = async () => {
 const goDetail = (id) => router.push(`/detail/${id}`)
 const goBack = () => safeBack('/')
 
-onMounted(() => loadList())
+// 页面加载时检查登录状态
+onMounted(() => {
+    if (!userStore.isLogin) {
+        router.replace('/login')
+        return
+    }
+    loadList()
+})
 </script>
 
 <style lang="scss" scoped>

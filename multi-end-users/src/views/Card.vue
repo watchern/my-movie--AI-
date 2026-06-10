@@ -16,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { post } from '@/utils/request'
 import { showToast } from 'vant'
@@ -51,6 +51,13 @@ const onAd = () => {
 }
 
 const goBack = () => safeBack('/')
+
+// 页面加载时检查登录状态
+onMounted(() => {
+  if (!userStore.isLogin) {
+    router.replace('/login')
+  }
+})
 </script>
 
 <style lang="scss" scoped>

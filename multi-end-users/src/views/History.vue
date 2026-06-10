@@ -108,7 +108,13 @@ const syncLocalToServer = async () => {
 const goPlay = (epId) => router.push({ name: 'Detail', params: { id: '0' }, query: { episode_id: epId } })
 const goBack = () => safeBack('/')
 
-onMounted(() => loadHistory())
+onMounted(() => {
+  if (!userStore.isLogin) {
+    router.replace('/login')
+    return
+  }
+  loadHistory()
+})
 </script>
 
 <style lang="scss" scoped>
