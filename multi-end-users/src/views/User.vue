@@ -47,19 +47,36 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { showConfirmDialog } from 'vant'
+import { showConfirmDialog, showToast } from 'vant'
 
 const router = useRouter()
 const userStore = useUserStore()
 const active = ref('user')
 
+// 检查登录状态，未登录则弹出提示
+const checkLogin = () => {
+    if (!userStore.isLogin) {
+        showToast('请先登录')
+        return false
+    }
+    return true
+}
+
 const goLogin = () => {
     if (!userStore.isLogin) router.push('/login')
 }
 
-const goHistory = () => router.push('/history')
-const goFavorites = () => router.push('/favorites')
-const goCard = () => router.push('/card')
+const goHistory = () => {
+    if (checkLogin()) router.push('/history')
+}
+
+const goFavorites = () => {
+    if (checkLogin()) router.push('/favorites')
+}
+
+const goCard = () => {
+    if (checkLogin()) router.push('/card')
+}
 
 const onTabChange = (name) => {
     if (name === 'home') router.push('/home')
