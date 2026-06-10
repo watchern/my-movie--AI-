@@ -81,6 +81,7 @@ import { get, post } from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
 import { useSafeBack } from '@/utils/router'
+import { showConfirmDialog } from 'vant'
 
 const router = useRouter()
 const route = useRoute()
@@ -176,7 +177,15 @@ const addHistoryRecord = (source) => {
 
 const toggleFav = async () => {
   if (!userStore.isLogin) {
-    router.push('/login')
+    // 弹出快捷登录框
+    showConfirmDialog({
+      title: '提示',
+      message: '登录后可收藏影视，是否去登录？',
+      confirmButtonText: '去登录',
+      cancelButtonText: '取消'
+    }).then(() => {
+      router.push('/login')
+    }).catch(() => {})
     return
   }
   const res = await post(isFavorited.value ? '/favorite/delete' : '/favorite/add', {
