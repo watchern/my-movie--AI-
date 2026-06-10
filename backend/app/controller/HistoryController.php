@@ -30,10 +30,18 @@ class HistoryController extends BaseController
         $result = [];
         foreach ($list as $item) {
             if ($item->video) {
+                // 获取剧集名称
+                $episodeName = '';
+                if ($item->video_source_id) {
+                    $source = \app\model\VideoSource::find($item->video_source_id);
+                    if ($source) {
+                        $episodeName = $source->name ?? '';
+                    }
+                }
                 $result[] = [
                     'id' => $item->id,
                     'video_id' => $item->video_id,
-                    'episode_id' => $item->episode_id,
+                    'episode_id' => $item->video_source_id, // video_source_id 作为 episode_id 返回
                     'title' => $item->video->title,
                     'cover' => $item->video->cover_url,
                     'type' => $item->video->type,
@@ -42,7 +50,7 @@ class HistoryController extends BaseController
                     'duration' => $item->duration,
                     'last_position' => $item->last_position,
                     'watched_at' => $item->watched_at,
-                    'episode_title' => $item->episode ? $item->episode->name : '',
+                    'episode_title' => $episodeName,
                 ];
             }
         }
@@ -64,7 +72,7 @@ class HistoryController extends BaseController
         $data = $this->getData();
 
         $videoId = intval($data['video_id'] ?? 0);
-        $episodeId = intval($data['episode_id'] ?? 0);
+        $videoSourceId = intval($data['episode_id'] ?? 0); // 前端传入的 episode_id，实际是 video_source_id
         $progress = intval($data['progress'] ?? 0); // 百分比 0-100
         $lastPosition = intval($data['last_position'] ?? 0); // 秒
         $duration = intval($data['duration'] ?? 0); // 视频总时长(秒)
@@ -79,12 +87,12 @@ class HistoryController extends BaseController
             return $this->error('视频不存在');
         }
 
-        // 如果传了episode_id，检查剧集是否存在
-        if ($episodeId > 0) {
-            $episode = \app\model\VideoSource::where('id', $episodeId)
+        // 如果传了 video_source_id，检查剧集是否存在
+        if ($videoSourceId > 0) {
+            $source = \app\model\VideoSource::where('id', $videoSourceId)
                 ->where('video_id', $videoId)
                 ->find();
-            if (!$episode) {
+            if (!$source) {
                 return $this->error('剧集不存在');
             }
         }
@@ -94,10 +102,10 @@ class HistoryController extends BaseController
             'user_id' => $userId,
             'video_id' => $videoId,
         ];
-        if ($episodeId > 0) {
-            $where['episode_id'] = $episodeId;
+        if ($videoSourceId > 0) {
+            $where['video_source_id'] = $videoSourceId;
         } else {
-            $where['episode_id'] = 0;
+            $where['video_source_id'] = 0;
         }
 
         $history = WatchHistory::where($where)->find();
@@ -106,7 +114,7 @@ class HistoryController extends BaseController
             $history = new WatchHistory();
             $history->user_id = $userId;
             $history->video_id = $videoId;
-            $history->episode_id = $episodeId ?: 0;
+            $history->video_source_id = $videoSourceId ?: null;
         }
 
         $history->progress = $progress;
@@ -177,7 +185,7 @@ class HistoryController extends BaseController
 
         foreach ($items as $item) {
             $videoId = intval($item['video_id'] ?? 0);
-            $episodeId = intval($item['episode_id'] ?? 0);
+            $videoSourceId = intval($item['episode_id'] ?? 0); // episode_id 前端传入，实际存 video_source_id
             $progress = intval($item['progress'] ?? 0);
             $lastPosition = intval($item['last_position'] ?? 0);
             $duration = intval($item['duration'] ?? 0);
@@ -190,10 +198,8 @@ class HistoryController extends BaseController
                 'user_id' => $userId,
                 'video_id' => $videoId,
             ];
-            if ($episodeId > 0) {
-                $where['episode_id'] = $episodeId;
-            } else {
-                $where['episode_id'] = 0;
+            if ($videoSourceId > 0) {
+                $where['video_source_id'] = $videoSourceId;
             }
 
             $history = WatchHistory::where($where)->find();
@@ -202,7 +208,7 @@ class HistoryController extends BaseController
                 $history = new WatchHistory();
                 $history->user_id = $userId;
                 $history->video_id = $videoId;
-                $history->episode_id = $episodeId ?: 0;
+                $history->video_source_id = $videoSourceId ?: null;
             }
 
             // 如果本地记录更新，则更新服务器数据
