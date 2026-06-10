@@ -141,11 +141,11 @@ const selectSource = (source) => {
     targetSource = episodes.value[episodes.value.length - 1]
   }
   
-  // 延迟5秒后再记录
+  // 延迟2秒后再记录
   if (detail.value.id && targetSource) {
     historyTimer = setTimeout(() => {
       addHistoryRecord(targetSource)
-    }, 5000)
+    }, 2000)
   }
 }
 
