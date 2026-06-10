@@ -19,7 +19,7 @@ class HistoryController extends BaseController
         $userId = $this->request->uid ?? 0;
         list($page, $limit) = $this->getPageParams();
 
-        $list = WatchHistory::with(['video', 'episode'])
+        $list = WatchHistory::with(['video'])
             ->where('user_id', $userId)
             ->order('watched_at', 'desc')
             ->page($page, $limit)
