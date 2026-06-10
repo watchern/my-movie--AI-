@@ -254,6 +254,33 @@ class UserController extends BaseController
     }
 
     /**
+     * 重置用户密码
+     */
+    public function resetPassword()
+    {
+        $data = $this->getData();
+        $userId = intval($data['user_id'] ?? 0);
+
+        if ($userId <= 0) {
+            return $this->error('参数错误');
+        }
+
+        $user = User::find($userId);
+        if (!$user) {
+            return $this->error('用户不存在');
+        }
+
+        $newPassword = '123456';
+        $user->password = $newPassword;
+        $user->save();
+
+        // 添加管理员操作日志
+        $this->addAdminLog($userId, AdminLog::TYPE_OTHER, "重置用户密码");
+
+        return $this->success(['password' => $newPassword], '密码已重置为: 123456');
+    }
+
+    /**
      * 卡密列表
      */
     public function cardList()

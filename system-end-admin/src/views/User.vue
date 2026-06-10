@@ -68,9 +68,10 @@
                         </el-tooltip>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" resizable>
+                <el-table-column label="操作" width="280" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editVip(row)">VIP设置</el-button>
+                        <el-button link type="warning" @click="resetPwd(row)">重置密码</el-button>
                     </template>
                 </el-table-column>
             </el-table>
@@ -131,7 +132,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const query = ref({ page: 1, limit: 20, keyword: '', vip_status: '' })
 const list = ref([])
@@ -166,8 +167,28 @@ const editVip = (row) => {
 
 const saveVip = async () => {
     await post('/user/updateVip', form.value)
+    ElMessage.success('VIP设置已更新')
     showDialog.value = false
     loadList()
+}
+
+const resetPwd = async (row) => {
+    try {
+        await ElMessageBox.confirm(
+            `确定要重置用户 "${row.email}" 的密码吗？<br>重置后密码将为: <strong>123456</strong>`,
+            '重置密码',
+            {
+                confirmButtonText: '确定',
+                cancelButtonText: '取消',
+                type: 'warning',
+                dangerouslyUseHTMLString: true
+            }
+        )
+        const res = await post('/user/resetPassword', { user_id: row.id })
+        ElMessage.success(res.msg || '密码已重置为 123456')
+    } catch (e) {
+        // 用户取消
+    }
 }
 
 onMounted(() => loadList())

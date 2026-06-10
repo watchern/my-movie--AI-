@@ -33,6 +33,7 @@ Route::group('admin/api', function () {
     Route::get('user/detail', [UserController::class, 'detail']);
     Route::post('user/addUser', [UserController::class, 'addUser']);
     Route::post('user/updateVip', [UserController::class, 'updateVip']);
+    Route::post('user/resetPassword', [UserController::class, 'resetPassword']);
 
     // 卡密管理
     Route::get('user/cardList', [UserController::class, 'cardList']);
