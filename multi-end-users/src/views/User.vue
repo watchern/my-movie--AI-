@@ -66,9 +66,7 @@ const goLogin = () => {
     if (!userStore.isLogin) router.push('/login')
 }
 
-const goHistory = () => {
-    if (checkLogin()) router.push('/history')
-}
+const goHistory = () => router.push('/history')
 
 const goFavorites = () => {
     if (checkLogin()) router.push('/favorites')
