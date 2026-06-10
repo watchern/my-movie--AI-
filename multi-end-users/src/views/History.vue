@@ -8,10 +8,12 @@
     <div v-else>
       <div v-if="validList.length" class="list">
         <div v-for="(item, index) in validList" :key="item.id || `local-${item.video_id}-${item.episode_id}`" class="item" @click="goPlay(item.episode_id)">
-          <img :src="item.cover_url" :alt="item.title" />
+          <div class="img-wrapper">
+            <img :src="item.cover_url" :alt="item.title" />
+            <div class="time-badge">{{ formatProgress(item) }}</div>
+          </div>
           <div class="info">
             <div class="title">{{ item.title }}</div>
-            <div class="progress">{{ formatProgress(item) }}</div>
           </div>
         </div>
       </div>
@@ -56,12 +58,10 @@ const formatTime = (time) => {
 }
 
 const formatProgress = (item) => {
-  if (item.last_position && item.last_position > 0) {
-    const mins = Math.floor(item.last_position / 60)
-    const secs = Math.floor(item.last_position % 60)
-    return `上次看到 ${mins}:${secs.toString().padStart(2, '0')}`
-  }
-  return '从未观看'
+  const lastPos = item.last_position || 0
+  const mins = Math.floor(lastPos / 60)
+  const secs = Math.floor(lastPos % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
 const loadHistory = async () => {
@@ -132,10 +132,25 @@ onMounted(() => loadHistory())
   overflow: hidden;
   cursor: pointer;
 
-  img {
-    width: 100%;
-    aspect-ratio: 2/3;
-    object-fit: cover;
+  .img-wrapper {
+    position: relative;
+    
+    img {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+    }
+    
+    .time-badge {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      background: rgba(0, 0, 0, 0.65);
+      color: white;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
   }
 
   .info {
@@ -147,12 +162,6 @@ onMounted(() => loadHistory())
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-
-    .progress {
-      margin-top: 4px;
-      font-size: 12px;
-      color: #999;
     }
   }
 }
