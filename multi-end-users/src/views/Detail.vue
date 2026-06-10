@@ -71,6 +71,9 @@
         </div>
       </div>
     </div>
+
+    <!-- 快捷登录弹窗 -->
+    <QuickLogin ref="quickLoginRef" @success="onLoginSuccess" />
   </div>
 </template>
 
@@ -81,13 +84,14 @@ import { get, post } from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
 import { useSafeBack } from '@/utils/router'
-import { showConfirmDialog } from 'vant'
+import QuickLogin from '@/components/QuickLogin.vue'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const historyStore = useHistoryStore()
 const { safeBack } = useSafeBack()
+const quickLoginRef = ref(null)
 
 const videoRef = ref(null)
 const detail = ref({})
@@ -178,20 +182,24 @@ const addHistoryRecord = (source) => {
 const toggleFav = async () => {
   if (!userStore.isLogin) {
     // 弹出快捷登录框
-    showConfirmDialog({
-      title: '提示',
-      message: '登录后可收藏影视，是否去登录？',
-      confirmButtonText: '去登录',
-      cancelButtonText: '取消'
-    }).then(() => {
-      router.push('/login')
-    }).catch(() => {})
+    quickLoginRef.value?.open()
     return
   }
   const res = await post(isFavorited.value ? '/favorite/delete' : '/favorite/add', {
     video_id: detail.value.id
   })
   isFavorited.value = !isFavorited.value
+}
+
+// 登录成功后刷新收藏状态
+const onLoginSuccess = async () => {
+  // 重新检查收藏状态
+  try {
+    const res = await get('/favorite/check', { video_id: route.params.id })
+    isFavorited.value = res.data?.is_favorited || false
+  } catch (e) {
+    console.error('检查收藏状态失败', e)
+  }
 }
 
 const onTimeUpdate = () => {
