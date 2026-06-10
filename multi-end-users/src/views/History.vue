@@ -11,7 +11,7 @@
           <img :src="item.cover_url" :alt="item.title" />
           <div class="info">
             <div class="title">{{ item.title }}</div>
-            <div class="time">{{ formatTime(item.watched_at) }}</div>
+            <div class="progress">{{ formatProgress(item) }}</div>
           </div>
         </div>
       </div>
@@ -55,7 +55,16 @@ const formatTime = (time) => {
   return date.toLocaleDateString()
 }
 
-const goPlay = (episodeId) => {
+const formatProgress = (item) => {
+  if (item.last_position && item.last_position > 0) {
+    const mins = Math.floor(item.last_position / 60)
+    const secs = Math.floor(item.last_position % 60)
+    return `上次看到 ${mins}:${secs.toString().padStart(2, '0')}`
+  }
+  return '从未观看'
+}
+
+const loadHistory = async () => {
   loading.value = true
   try {
     if (userStore.isLogin) {
@@ -96,7 +105,7 @@ const syncLocalToServer = async () => {
 const goPlay = (epId) => router.push({ name: 'Detail', params: { id: '0' }, query: { episode_id: epId } })
 const goBack = () => safeBack('/')
 
-onMounted(() => loadList())
+onMounted(() => loadHistory())
 </script>
 
 <style lang="scss" scoped>
@@ -110,37 +119,39 @@ onMounted(() => loadList())
 
 .list {
   padding: 12px 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
 }
 
 .item {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
   background: white;
-  padding: 12px;
   border-radius: 8px;
-  margin-bottom: 12px;
+  overflow: hidden;
+  cursor: pointer;
 
   img {
-    width: 100px;
-    height: 140px;
-    border-radius: 6px;
+    width: 100%;
+    aspect-ratio: 2/3;
     object-fit: cover;
   }
 
   .info {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
+    padding: 8px;
 
     .title {
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
-    .time {
-      margin-top: 8px;
-      font-size: 13px;
+    .progress {
+      margin-top: 4px;
+      font-size: 12px;
       color: #999;
     }
   }
