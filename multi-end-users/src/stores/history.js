@@ -3,10 +3,18 @@ import { ref, watch } from 'vue'
 import { post } from '@/utils/request'
 
 export const useHistoryStore = defineStore('history', () => {
-  // 清理 null 和无效数据
+  // 清理 null 和无效数据，并去重（同一视频只保留一条）
   const cleanList = (list) => {
     if (!Array.isArray(list)) return []
-    return list.filter(item => item && item.video_id).slice(0, 100)
+    const seen = new Set()
+    const result = []
+    for (const item of list) {
+      if (!item || !item.video_id) continue
+      if (seen.has(item.video_id)) continue // 跳过重复
+      seen.add(item.video_id)
+      result.push(item)
+    }
+    return result.slice(0, 100)
   }
   
   const historyList = ref(cleanList(JSON.parse(localStorage.getItem('historyList') || '[]')))
@@ -18,12 +26,18 @@ export const useHistoryStore = defineStore('history', () => {
   const addHistory = (item) => {
     if (!item || !item.video_id) return // 防御性检查
     
-    const index = historyList.value.findIndex(h => h && h.video_id === item.video_id && h.episode_id === item.episode_id)
+    // 只根据 video_id 判断是否重复（同一视频只保留一条记录）
+    const index = historyList.value.findIndex(h => h && h.video_id === item.video_id)
     if (index > -1) {
-      // 更新现有记录
+      // 更新现有记录（使用新的选集信息）
+      historyList.value[index].episode_id = item.episode_id
+      historyList.value[index].episode_name = item.episode_name || ''
       historyList.value[index].last_position = item.last_position
       historyList.value[index].progress = item.progress
       historyList.value[index].watched_at = new Date().toISOString()
+      // 如果需要更新封面或标题
+      if (item.cover_url) historyList.value[index].cover_url = item.cover_url
+      if (item.title) historyList.value[index].title = item.title
       // 将更新的记录移到最前面
       const updatedItem = historyList.value.splice(index, 1)[0]
       historyList.value.unshift(updatedItem)
