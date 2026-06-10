@@ -150,10 +150,23 @@ const addHistoryRecord = (source) => {
   // 确保 detail 有数据
   if (!detail.value.id) return
   
+  // 优先使用 source.name，如果没有则从 episodes 中查找同名
+  let episodeName = source.name || ''
+  if (!episodeName && source.id) {
+    const found = episodes.value.find(e => e.id === source.id)
+    if (found) {
+      episodeName = found.name || ''
+    }
+  }
+  // 再次回退：使用 source 的 sort_order 或 id 推断
+  if (!episodeName) {
+    episodeName = source.sort_order ? `第${source.sort_order}集` : ''
+  }
+  
   historyStore.addHistory({
     video_id: detail.value.id,
     episode_id: source.id,
-    episode_name: source.name || '',
+    episode_name: episodeName,
     title: detail.value.title,
     cover_url: detail.value.cover,
     last_position: 0,
