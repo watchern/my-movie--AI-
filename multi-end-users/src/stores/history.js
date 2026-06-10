@@ -31,7 +31,8 @@ export const useHistoryStore = defineStore('history', () => {
     if (index > -1) {
       // 更新现有记录（使用新的选集信息）
       historyList.value[index].episode_id = item.episode_id
-      historyList.value[index].episode_name = item.episode_name || ''
+      // 优先使用新的 episode_name，如果为空则尝试从 episode_id 推断
+      historyList.value[index].episode_name = item.episode_name || `第${item.episode_id}集` || ''
       historyList.value[index].last_position = item.last_position
       historyList.value[index].progress = item.progress
       historyList.value[index].watched_at = new Date().toISOString()
@@ -44,6 +45,7 @@ export const useHistoryStore = defineStore('history', () => {
     } else {
       historyList.value.unshift({
         ...item,
+        episode_name: item.episode_name || `第${item.episode_id}集` || '',
         watched_at: new Date().toISOString()
       })
     }
