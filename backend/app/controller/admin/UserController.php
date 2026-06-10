@@ -272,7 +272,19 @@ class UserController extends BaseController
 
         $newPassword = '123456';
         $user->password = $newPassword;
-        $user->force()->save();
+        
+        // 调试：打印设置前的密码值
+        error_log("UserController::resetPassword - Before save, password attr value: " . $user->password);
+        
+        $result = $user->force()->save();
+        
+        // 调试：打印保存后的密码值
+        error_log("UserController::resetPassword - After save, password attr value: " . $user->password);
+        error_log("UserController::resetPassword - Save result: " . ($result ? 'success' : 'failed'));
+        
+        // 重新从数据库读取验证
+        $user2 = User::find($userId);
+        error_log("UserController::resetPassword - Re-fetched password from DB: " . $user2->password);
 
         // 添加管理员操作日志
         $this->addAdminLog($userId, AdminLog::TYPE_OTHER, "重置用户密码");

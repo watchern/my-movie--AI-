@@ -89,6 +89,11 @@ class AuthController extends BaseController
             return $this->error('邮箱或密码错误');
         }
 
+        // 调试：打印数据库中的密码哈希
+        error_log("AuthController::login - DB password hash: " . $user->password);
+        error_log("AuthController::login - User input password: " . $password);
+        error_log("AuthController::login - password_verify result: " . (password_verify($password, $user->password) ? 'true' : 'false'));
+
         // 验证密码
         if (!password_verify($password, $user->password)) {
             return $this->error('邮箱或密码错误');
