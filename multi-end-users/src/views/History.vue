@@ -14,6 +14,7 @@
           </div>
           <div class="info">
             <div class="title">{{ item.title }}</div>
+            <div class="episode" v-if="item.episode_name">{{ item.episode_name }}</div>
           </div>
         </div>
       </div>
@@ -159,6 +160,15 @@ onMounted(() => loadHistory())
     .title {
       font-size: 14px;
       font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .episode {
+      margin-top: 2px;
+      font-size: 12px;
+      color: #999;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

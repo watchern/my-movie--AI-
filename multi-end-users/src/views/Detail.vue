@@ -95,6 +95,7 @@ const currentSource = ref(null)
 const isFavorited = ref(false)
 const loading = ref(true)
 let timer = null
+let historyTimer = null
 
 const loadDetail = async () => {
   loading.value = true
@@ -126,25 +127,41 @@ const loadDetail = async () => {
 }
 
 const selectSource = (source) => {
+  // 清除之前的延迟记录
+  if (historyTimer) {
+    clearTimeout(historyTimer)
+    historyTimer = null
+  }
+  
   currentSource.value = source
-  // 选择视频源后立即添加历史记录
-  if (detail.value.id && source) {
-    addHistoryRecord()
+  
+  // 电视剧类型：找到最后一个选集
+  let targetSource = source
+  if (detail.value.type === 2 && episodes.value.length > 0) { // type=2 是电视剧
+    targetSource = episodes.value[episodes.value.length - 1]
+  }
+  
+  // 延迟5秒后再记录
+  if (detail.value.id && targetSource) {
+    historyTimer = setTimeout(() => {
+      addHistoryRecord(targetSource)
+    }, 5000)
   }
 }
 
 // 添加历史记录
-const addHistoryRecord = () => {
-  if (!currentSource.value) return // 没有选中剧集时不添加
+const addHistoryRecord = (source) => {
+  if (!source) return // 没有选集时不添加
   
   // 确保 detail 有数据
   if (!detail.value.id) return
   
   historyStore.addHistory({
     video_id: detail.value.id,
-    episode_id: currentSource.value.id,
+    episode_id: source.id,
+    episode_name: source.name || '',
     title: detail.value.title,
-    cover_url: detail.value.cover,  // 使用正确的 ref 访问方式
+    cover_url: detail.value.cover,
     last_position: 0,
     progress: 0
   })
