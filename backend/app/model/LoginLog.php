@@ -31,4 +31,23 @@ class LoginLog extends Model
         ];
         return $deviceMap[$this->device] ?? '未知';
     }
+
+    // 检测设备类型
+    public static function detectDevice(string $userAgent = ''): string
+    {
+        if (empty($userAgent)) {
+            return 'other';
+        }
+
+        $userAgent = strtolower($userAgent);
+
+        if (strpos($userAgent, 'mobile') !== false || strpos($userAgent, 'android') !== false || strpos($userAgent, 'iphone') !== false) {
+            if (strpos($userAgent, 'ipad') !== false || strpos($userAgent, 'tablet') !== false) {
+                return 'tablet';
+            }
+            return 'mobile';
+        }
+
+        return 'desktop';
+    }
 }
