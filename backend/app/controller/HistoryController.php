@@ -43,7 +43,7 @@ class HistoryController extends BaseController
                     'video_id' => $item->video_id,
                     'episode_id' => $item->video_source_id, // video_source_id 作为 episode_id 返回
                     'title' => $item->video->title,
-                    'cover' => $item->video->cover_url,
+                    'cover' => $item->video->cover ?? '',
                     'type' => $item->video->type,
                     'type_name' => $item->video->type_name,
                     'progress' => $item->progress,
