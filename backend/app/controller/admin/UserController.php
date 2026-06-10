@@ -194,9 +194,9 @@ class UserController extends BaseController
 
         $user = new User();
         $user->email = $email;
-        $user->password = '123456';
+        $user->password = '123456'; // 会通过模型 mutator 自动哈希
         $user->vip_status = 0;
-        $user->save();
+        $user->force()->save();
 
         return $this->success(['id' => $user->id, 'default_password' => '123456'], '添加成功');
     }
@@ -272,7 +272,7 @@ class UserController extends BaseController
 
         $newPassword = '123456';
         $user->password = $newPassword;
-        $user->save();
+        $user->force()->save();
 
         // 添加管理员操作日志
         $this->addAdminLog($userId, AdminLog::TYPE_OTHER, "重置用户密码");
