@@ -22,15 +22,17 @@ class User extends Model
         'updated_at' => 'datetime',
     ];
 
-    // 获取器：密码隐藏
+    // 获取器：密码获取时返回原值（用于验证）
+    // 注意：返回原值会被 password_verify 正确处理
     public function getPasswordAttr($value)
     {
-        return '';
+        return $value;
     }
 
     // 设置器：密码加密
     public function setPasswordAttr($value)
     {
+        error_log("User::setPasswordAttr called with: " . $value);
         return password_hash($value, PASSWORD_DEFAULT);
     }
 
