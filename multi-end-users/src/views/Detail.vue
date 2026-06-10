@@ -135,16 +135,10 @@ const selectSource = (source) => {
   
   currentSource.value = source
   
-  // 电视剧类型：找到最后一个选集
-  let targetSource = source
-  if (detail.value.type === 2 && episodes.value.length > 0) { // type=2 是电视剧
-    targetSource = episodes.value[episodes.value.length - 1]
-  }
-  
-  // 延迟2秒后再记录
-  if (detail.value.id && targetSource) {
+  // 延迟2秒后再记录用户实际选择的选集
+  if (detail.value.id && source) {
     historyTimer = setTimeout(() => {
-      addHistoryRecord(targetSource)
+      addHistoryRecord(source)
     }, 2000)
   }
 }
