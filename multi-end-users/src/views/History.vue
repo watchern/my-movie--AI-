@@ -13,8 +13,10 @@
             <div class="time-badge">{{ formatProgress(item) }}</div>
           </div>
           <div class="info">
-            <div class="title">{{ item.title }}</div>
-            <div class="episode" v-if="item.episode_name">{{ item.episode_name }}</div>
+            <div class="title">
+              {{ item.title }}
+              <span v-if="item.episode_name" class="episode-tag">{{ item.episode_name }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -163,15 +165,12 @@ onMounted(() => loadHistory())
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
 
-    .episode {
-      margin-top: 2px;
-      font-size: 12px;
-      color: #999;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      .episode-tag {
+        font-weight: normal;
+        color: #999;
+        margin-left: 4px;
+      }
     }
   }
 }
