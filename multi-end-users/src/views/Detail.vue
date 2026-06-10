@@ -193,14 +193,13 @@ const onTimeUpdate = () => {
           ? videoRef.value.currentTime / videoRef.value.duration 
           : 0
         
-        historyStore.addHistory({
-          video_id: detail.value.id,
-          episode_id: currentSource.value.id,
-          title: detail.value.title,
-          cover_url: detail.value.cover,  // 使用正确的 ref 访问方式
-          last_position: videoRef.value.currentTime,
-          progress: progress
-        })
+        // 只更新播放进度，不使用 addHistory（避免覆盖 episode_name）
+        const existing = historyStore.getHistory(detail.value.id)
+        if (existing) {
+          existing.last_position = videoRef.value.currentTime
+          existing.progress = progress
+          existing.watched_at = new Date().toISOString()
+        }
         
         // 登录用户同步到服务器
         if (userStore.isLogin) {
@@ -214,7 +213,7 @@ const onTimeUpdate = () => {
         }
       }
       timer = null
-    }, 3000) // 改为3秒更新一次
+    }, 3000)
   }
 }
 
