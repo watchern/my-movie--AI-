@@ -5,8 +5,16 @@
         <div class="register">
             <div class="form">
                 <van-field v-model="form.email" label="邮箱" placeholder="请输入邮箱" clearable />
-                <van-field v-model="form.password" type="password" label="密码" placeholder="请输入密码" clearable />
-                <van-field v-model="form.password2" type="password" label="确认密码" placeholder="请再次输入密码" clearable />
+                <van-field v-model="form.password" :type="showPassword ? 'text' : 'password'" label="密码" placeholder="请输入密码" clearable>
+                    <template #button>
+                        <van-icon :name="showPassword ? 'closed-eye' : 'eye-o'" size="20" @click="showPassword = !showPassword" />
+                    </template>
+                </van-field>
+                <van-field v-model="form.password2" :type="showPassword2 ? 'text' : 'password'" label="确认密码" placeholder="请再次输入密码" clearable>
+                    <template #button>
+                        <van-icon :name="showPassword2 ? 'closed-eye' : 'eye-o'" size="20" @click="showPassword2 = !showPassword2" />
+                    </template>
+                </van-field>
                 <van-button type="primary" block :loading="loading" @click="onRegister">注册</van-button>
             </div>
             <div class="link">
@@ -29,6 +37,8 @@ const { safeBack } = useSafeBack()
 
 const form = ref({ email: '', password: '', password2: '' })
 const loading = ref(false)
+const showPassword = ref(false)
+const showPassword2 = ref(false)
 
 const onRegister = async () => {
     if (!form.value.email || !form.value.password || !form.value.password2) {
