@@ -109,10 +109,6 @@ const goPlay = (epId) => router.push({ name: 'Detail', params: { id: '0' }, quer
 const goBack = () => safeBack('/')
 
 onMounted(() => {
-  if (!userStore.isLogin) {
-    router.replace('/login')
-    return
-  }
   loadHistory()
 })
 </script>
