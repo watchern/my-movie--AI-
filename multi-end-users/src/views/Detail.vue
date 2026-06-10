@@ -135,29 +135,18 @@ const selectSource = (source) => {
 
 // 添加历史记录
 const addHistoryRecord = () => {
-  if (!videoRef.value || !currentSource.value) {
-    // 即使没有视频对象，也添加基本记录
-    historyStore.addHistory({
-      video_id: detail.value.id,
-      episode_id: currentSource.value?.id || 0,
-      title: detail.value.title,
-      cover_url: detail.cover,
-      last_position: 0,
-      progress: 0
-    })
-    return
-  }
+  if (!currentSource.value) return // 没有选中剧集时不添加
   
-  const progress = videoRef.value.duration > 0 
-    ? videoRef.value.currentTime / videoRef.value.duration 
-    : 0
+  // 确保 detail 有数据
+  if (!detail.value.id) return
+  
   historyStore.addHistory({
     video_id: detail.value.id,
     episode_id: currentSource.value.id,
     title: detail.value.title,
-    cover_url: detail.cover,
-    last_position: videoRef.value.currentTime,
-    progress: progress
+    cover_url: detail.value.cover,  // 使用正确的 ref 访问方式
+    last_position: 0,
+    progress: 0
   })
 }
 
@@ -184,7 +173,7 @@ const onTimeUpdate = () => {
           video_id: detail.value.id,
           episode_id: currentSource.value.id,
           title: detail.value.title,
-          cover_url: detail.cover,
+          cover_url: detail.value.cover,  // 使用正确的 ref 访问方式
           last_position: videoRef.value.currentTime,
           progress: progress
         })
