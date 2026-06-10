@@ -127,6 +127,38 @@ const loadDetail = async () => {
 
 const selectSource = (source) => {
   currentSource.value = source
+  // 选择视频源后立即添加历史记录
+  if (detail.value.id && source) {
+    addHistoryRecord()
+  }
+}
+
+// 添加历史记录
+const addHistoryRecord = () => {
+  if (!videoRef.value || !currentSource.value) {
+    // 即使没有视频对象，也添加基本记录
+    historyStore.addHistory({
+      video_id: detail.value.id,
+      episode_id: currentSource.value?.id || 0,
+      title: detail.value.title,
+      cover_url: detail.cover,
+      last_position: 0,
+      progress: 0
+    })
+    return
+  }
+  
+  const progress = videoRef.value.duration > 0 
+    ? videoRef.value.currentTime / videoRef.value.duration 
+    : 0
+  historyStore.addHistory({
+    video_id: detail.value.id,
+    episode_id: currentSource.value.id,
+    title: detail.value.title,
+    cover_url: detail.cover,
+    last_position: videoRef.value.currentTime,
+    progress: progress
+  })
 }
 
 const toggleFav = async () => {
@@ -143,8 +175,11 @@ const toggleFav = async () => {
 const onTimeUpdate = () => {
   if (!timer) {
     timer = setTimeout(() => {
-      if (videoRef.value && currentSource.value) {
-        const progress = videoRef.value.currentTime / videoRef.value.duration
+      if (videoRef.value && currentSource.value && detail.value.id) {
+        const progress = videoRef.value.duration > 0 
+          ? videoRef.value.currentTime / videoRef.value.duration 
+          : 0
+        
         historyStore.addHistory({
           video_id: detail.value.id,
           episode_id: currentSource.value.id,
@@ -153,16 +188,20 @@ const onTimeUpdate = () => {
           last_position: videoRef.value.currentTime,
           progress: progress
         })
+        
+        // 登录用户同步到服务器
         if (userStore.isLogin) {
-          post('/history/sync', {
+          post('/history/add', {
             video_id: detail.value.id,
             episode_id: currentSource.value.id,
-            last_position: videoRef.value.currentTime
-          })
+            progress: Math.round(progress * 100),
+            last_position: Math.round(videoRef.value.currentTime),
+            duration: Math.round(videoRef.value.duration)
+          }).catch(e => console.error('同步历史失败', e))
         }
       }
       timer = null
-    }, 5000)
+    }, 3000) // 改为3秒更新一次
   }
 }
 

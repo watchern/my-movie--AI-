@@ -12,11 +12,13 @@ export const useHistoryStore = defineStore('history', () => {
   const addHistory = (item) => {
     const index = historyList.value.findIndex(h => h.video_id === item.video_id && h.episode_id === item.episode_id)
     if (index > -1) {
+      // 更新现有记录
       historyList.value[index].last_position = item.last_position
       historyList.value[index].progress = item.progress
       historyList.value[index].watched_at = new Date().toISOString()
-      historyList.value.splice(index, 1)
-      historyList.value.unshift(historyList.value[index])
+      // 将更新的记录移到最前面
+      const updatedItem = historyList.value.splice(index, 1)[0]
+      historyList.value.unshift(updatedItem)
     } else {
       historyList.value.unshift({
         ...item,
