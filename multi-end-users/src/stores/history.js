@@ -3,14 +3,22 @@ import { ref, watch } from 'vue'
 import { post } from '@/utils/request'
 
 export const useHistoryStore = defineStore('history', () => {
-  const historyList = ref(JSON.parse(localStorage.getItem('historyList') || '[]'))
+  // 清理 null 和无效数据
+  const cleanList = (list) => {
+    if (!Array.isArray(list)) return []
+    return list.filter(item => item && item.video_id).slice(0, 100)
+  }
+  
+  const historyList = ref(cleanList(JSON.parse(localStorage.getItem('historyList') || '[]')))
 
   watch(historyList, (newVal) => {
     localStorage.setItem('historyList', JSON.stringify(newVal.slice(0, 100)))
   }, { deep: true })
 
   const addHistory = (item) => {
-    const index = historyList.value.findIndex(h => h.video_id === item.video_id && h.episode_id === item.episode_id)
+    if (!item || !item.video_id) return // 防御性检查
+    
+    const index = historyList.value.findIndex(h => h && h.video_id === item.video_id && h.episode_id === item.episode_id)
     if (index > -1) {
       // 更新现有记录
       historyList.value[index].last_position = item.last_position

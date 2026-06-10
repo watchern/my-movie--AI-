@@ -6,12 +6,12 @@
       <van-loading>加载中...</van-loading>
     </div>
     <div v-else>
-      <div v-if="list.length" class="list">
-        <div v-for="item in validList" :key="item.id" class="item" @click="goPlay(item.episode_id)">
+      <div v-if="validList.length" class="list">
+        <div v-for="(item, index) in validList" :key="item.id || `local-${item.video_id}-${item.episode_id}`" class="item" @click="goPlay(item.episode_id)">
           <img :src="item.cover_url" :alt="item.title" />
           <div class="info">
             <div class="title">{{ item.title }}</div>
-            <div class="time">{{ item.watched_at }}</div>
+            <div class="time">{{ formatTime(item.watched_at) }}</div>
           </div>
         </div>
       </div>
@@ -39,12 +39,23 @@ const list = ref([])
 const loading = ref(true)
 const syncing = ref(false)
 
-// 过滤有效数据
 const validList = computed(() => {
-  return list.value.filter(item => item && item.id)
+  return list.value.filter(item => item && item.video_id)
 })
 
-const loadList = async () => {
+const formatTime = (time) => {
+  if (!time) return ''
+  const date = new Date(time)
+  const now = new Date()
+  const diff = now - date
+  if (diff < 60000) return '刚刚'
+  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)} 天前`
+  return date.toLocaleDateString()
+}
+
+const goPlay = (episodeId) => {
   loading.value = true
   try {
     if (userStore.isLogin) {
