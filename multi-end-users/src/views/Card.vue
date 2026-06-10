@@ -21,9 +21,11 @@ import { useRouter } from 'vue-router'
 import { post } from '@/utils/request'
 import { showToast } from 'vant'
 import { useUserStore } from '@/stores/user'
+import { useSafeBack } from '@/utils/router'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { safeBack } = useSafeBack()
 
 const cardKey = ref('')
 const loading = ref(false)
@@ -48,7 +50,7 @@ const onAd = () => {
   showToast('广告功能开发中')
 }
 
-const goBack = () => router.back()
+const goBack = () => safeBack('/')
 </script>
 
 <style lang="scss" scoped>

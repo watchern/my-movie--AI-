@@ -28,10 +28,12 @@ import { useRouter } from 'vue-router'
 import { get } from '@/utils/request'
 import { useHistoryStore } from '@/stores/history'
 import { useUserStore } from '@/stores/user'
+import { useSafeBack } from '@/utils/router'
 
 const router = useRouter()
 const historyStore = useHistoryStore()
 const userStore = useUserStore()
+const { safeBack } = useSafeBack()
 const list = ref([])
 const loading = ref(true)
 
@@ -46,8 +48,8 @@ const loadList = async () => {
   loading.value = false
 }
 
-const goPlay = (epId) => router.push(`/play/${epId}`)
-const goBack = () => router.back()
+const goPlay = (epId) => router.push({ name: 'Detail', params: { id: '0' }, query: { episode_id: epId } })
+const goBack = () => safeBack('/')
 
 onMounted(() => loadList())
 </script>

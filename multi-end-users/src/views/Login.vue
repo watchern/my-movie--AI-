@@ -22,9 +22,11 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useSafeBack } from '@/utils/router'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { safeBack } = useSafeBack()
 
 const form = ref({ email: '', password: '' })
 const loading = ref(false)
@@ -43,7 +45,7 @@ const onLogin = async () => {
     }
 }
 
-const goBack = () => router.back()
+const goBack = () => safeBack('/')
 const goRegister = () => router.replace('/register')
 </script>
 

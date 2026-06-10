@@ -2,90 +2,131 @@
   <div class="page">
     <van-nav-bar :title="detail.title" left-arrow @click-left="goBack" :fixed="true" placeholder />
 
-    <div v-if="detail.id" class="detail">
-      <div class="detail-header">
-        <img :src="detail.cover" :alt="detail.title" />
-        <div class="info">
-          <div class="title">{{ detail.title }}</div>
-          <div class="sub">
+    <div v-if="loading" class="loading-wrapper">
+      <van-loading>加载中...</van-loading>
+    </div>
+    <div v-else-if="detail.id">
+      <!-- 视频播放器 -->
+      <div class="player-wrapper">
+        <video
+          v-if="currentSource"
+          ref="videoRef"
+          class="video-player"
+          controls
+          :src="currentSource.play_url"
+          :poster="detail.cover"
+          @timeupdate="onTimeUpdate"
+          @ended="onEnded"
+        >
+          <source :src="currentSource.play_url" type="video/mp4">
+        </video>
+      </div>
+
+      <!-- 视频信息和选集 -->
+      <div class="content">
+        <!-- 标题 -->
+        <div class="title-section">
+          <div class="title-row">
+            <van-icon 
+              :name="isFavorited ? 'star' : 'star-o'" 
+              size="20" 
+              :color="isFavorited ? '#ff976a' : '#999'" 
+              @click="toggleFav"
+              class="fav-icon"
+            />
+            <h2>{{ detail.title }} <span v-if="currentSource">- {{ currentSource.name }}</span></h2>
+          </div>
+        </div>
+
+        <!-- 选集列表 -->
+        <div class="episode-section" v-if="episodes.length">
+          <div class="section-title">选集</div>
+          <div class="episode-list">
+            <div
+              v-for="ep in episodes"
+              :key="ep.id"
+              class="episode-item"
+              :class="{ active: ep.id === currentSource.id }"
+              @click="selectSource(ep)"
+            >{{ ep.name }}</div>
+          </div>
+        </div>
+
+        <!-- 视频详情信息 -->
+        <div class="video-info">
+          <div class="sub-info">
             <span>{{ detail.release_year }}</span>
             <span>{{ detail.region }}</span>
+            <span>{{ detail.type_name }}</span>
             <span v-if="detail.is_vip" class="vip">VIP</span>
+          </div>
+          <div class="meta">
+            <span>播放 {{ formatCount(detail.play_count) }}</span>
+            <span>评分 {{ detail.rating }}</span>
           </div>
           <div class="tags">
             <van-tag type="primary" size="mini" v-for="t in (detail.tags || '').split(',')" :key="t">{{ t }}</van-tag>
           </div>
+          <div class="description">{{ detail.description || '暂无简介' }}</div>
         </div>
       </div>
-
-      <div class="section">
-        <div class="section-title">简介</div>
-        <div class="desc">{{ detail.description || '暂无简介' }}</div>
-      </div>
-
-      <div class="section" v-if="episodes.length">
-        <div class="section-title">选集</div>
-        <div class="episode-list">
-          <van-tag
-            v-for="ep in episodes"
-            :key="ep.id"
-            type="primary"
-            plain
-            @click="goPlay(ep.id)"
-          >{{ ep.title }}</van-tag>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">猜你喜欢</div>
-        <div class="video-grid">
-          <div v-for="item in related" :key="item.id" class="video-item" @click="goDetail(item.id)">
-            <div class="video-cover">
-              <img :src="item.cover_url" :alt="item.title" />
-            </div>
-            <div class="video-title">{{ item.title }}</div>
-          </div>
-        </div>
-      </div>
-
-      <van-goods-action>
-        <van-goods-action-icon icon="star-o" :badge="isFavorited ? '' : ''" @click="toggleFav">
-          {{ isFavorited ? '已收藏' : '收藏' }}
-        </van-goods-action-icon>
-        <van-goods-action-button type="primary" @click="playFirst">
-          立即播放
-        </van-goods-action-button>
-      </van-goods-action>
-    </div>
-
-    <div v-else class="loading-wrapper">
-      <van-loading>加载中...</van-loading>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { get, post } from '@/utils/request'
 import { useUserStore } from '@/stores/user'
+import { useHistoryStore } from '@/stores/history'
+import { useSafeBack } from '@/utils/router'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const historyStore = useHistoryStore()
+const { safeBack } = useSafeBack()
 
+const videoRef = ref(null)
 const detail = ref({})
 const episodes = ref([])
-const related = ref([])
+const currentSource = ref(null)
 const isFavorited = ref(false)
+const loading = ref(true)
+let timer = null
 
 const loadDetail = async () => {
-  const res = await get('/video/detail', { id: route.params.id })
-  detail.value = res.data || {}
-  episodes.value = res.data?.episodes || []
-  // 猜你喜欢暂时使用空数组，后端未提供该接口
-  related.value = []
-  isFavorited.value = res.data?.is_favorited || false
+  loading.value = true
+  try {
+    const params = { id: route.params.id }
+    // 如果路由参数是episode_id格式，就传episode_id
+    if (route.query.episode_id) {
+      params.episode_id = route.query.episode_id
+      params.id = null // 先不传id，让后端通过episode_id找
+    }
+    const res = await get('/video/detail', params)
+    detail.value = res.data || {}
+    episodes.value = res.data?.episodes || []
+    isFavorited.value = res.data?.is_favorited || false
+    
+    // 默认选中第一个源，或者根据返回的current_episode_id选中
+    if (episodes.value.length > 0) {
+      let targetSource = episodes.value[0]
+      if (res.data?.current_episode_id) {
+        targetSource = episodes.value.find(ep => ep.id === res.data.current_episode_id) || targetSource
+      }
+      selectSource(targetSource)
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+const selectSource = (source) => {
+  currentSource.value = source
 }
 
 const toggleFav = async () => {
@@ -99,20 +140,55 @@ const toggleFav = async () => {
   isFavorited.value = !isFavorited.value
 }
 
-const playFirst = () => {
-  if (episodes.value.length) {
-    goPlay(episodes.value[0].id)
+const onTimeUpdate = () => {
+  if (!timer) {
+    timer = setTimeout(() => {
+      if (videoRef.value && currentSource.value) {
+        const progress = videoRef.value.currentTime / videoRef.value.duration
+        historyStore.addHistory({
+          video_id: detail.value.id,
+          episode_id: currentSource.value.id,
+          title: detail.value.title,
+          cover_url: detail.cover,
+          last_position: videoRef.value.currentTime,
+          progress: progress
+        })
+        if (userStore.isLogin) {
+          post('/history/sync', {
+            video_id: detail.value.id,
+            episode_id: currentSource.value.id,
+            last_position: videoRef.value.currentTime
+          })
+        }
+      }
+      timer = null
+    }, 5000)
   }
 }
 
-const goPlay = (epId) => router.push(`/play/${epId}`)
-const goDetail = (id) => router.push(`/detail/${id}`)
-const goBack = () => router.back()
+const onEnded = () => {
+  const idx = episodes.value.findIndex(e => e.id === currentSource.value.id)
+  if (idx < episodes.value.length - 1) {
+    selectSource(episodes.value[idx + 1])
+  }
+}
+
+const formatCount = (count) => {
+  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
+  return count
+}
+
+const goBack = () => safeBack('/')
 
 onMounted(() => loadDetail())
 </script>
 
 <style lang="scss" scoped>
+.page {
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
 .loading-wrapper {
   display: flex;
   justify-content: center;
@@ -121,97 +197,122 @@ onMounted(() => loadDetail())
   padding-top: 20px;
 }
 
-.detail-header {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: white;
+.player-wrapper {
+  background: #000;
+  width: 100%;
+  aspect-ratio: 16/9;
+}
 
-  img {
-    width: 120px;
-    height: 160px;
+.video-player {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.content {
+  padding: 12px;
+
+  .title-section {
+    background: white;
+    padding: 16px;
     border-radius: 8px;
-    object-fit: cover;
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .fav-icon {
+        cursor: pointer;
+        flex-shrink: 0;
+      }
+
+      h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
   }
 
-  .info {
-    flex: 1;
+  .episode-section {
+    margin-top: 12px;
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
 
-    .title {
-      font-size: 18px;
+    .section-title {
+      font-size: 16px;
       font-weight: 600;
-      color: #333;
+      margin-bottom: 12px;
     }
 
-    .sub {
-      margin-top: 8px;
+    .episode-list {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+
+      .episode-item {
+        padding: 8px;
+        background: #f5f5f5;
+        border-radius: 6px;
+        text-align: center;
+        font-size: 13px;
+        color: #333;
+        cursor: pointer;
+
+        &.active {
+          background: #1989fa;
+          color: white;
+        }
+      }
+    }
+  }
+
+  .video-info {
+    margin-top: 12px;
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+
+    .sub-info {
+      display: flex;
+      gap: 12px;
       font-size: 13px;
       color: #666;
+      margin-bottom: 8px;
+
+      .vip {
+        color: #ff6a00;
+        font-weight: 500;
+      }
+    }
+
+    .meta {
+      font-size: 13px;
+      color: #999;
+      margin-bottom: 12px;
 
       span {
         margin-right: 12px;
-
-        &.vip {
-          color: #ff6a00;
-          font-weight: 500;
-        }
       }
     }
 
     .tags {
-      margin-top: 12px;
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
+      margin-bottom: 12px;
     }
-  }
-}
 
-.section {
-  margin-top: 12px;
-  padding: 16px;
-  background: white;
-
-  .section-title {
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 12px;
-  }
-
-  .desc {
-    color: #666;
-    font-size: 14px;
-    line-height: 1.8;
-  }
-
-  .episode-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-}
-
-.video-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-
-  .video-item {
-    .video-cover {
-      img {
-        width: 100%;
-        aspect-ratio: 3/4;
-        object-fit: cover;
-        border-radius: 6px;
-      }
-    }
-    .video-title {
-      margin-top: 6px;
+    .description {
       font-size: 14px;
-      color: #333;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      color: #666;
+      line-height: 1.8;
     }
   }
 }

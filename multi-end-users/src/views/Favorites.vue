@@ -23,8 +23,10 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { get } from '@/utils/request'
+import { useSafeBack } from '@/utils/router'
 
 const router = useRouter()
+const { safeBack } = useSafeBack()
 const list = ref([])
 const loading = ref(true)
 
@@ -36,7 +38,7 @@ const loadList = async () => {
 }
 
 const goDetail = (id) => router.push(`/detail/${id}`)
-const goBack = () => router.back()
+const goBack = () => safeBack('/')
 
 onMounted(() => loadList())
 </script>

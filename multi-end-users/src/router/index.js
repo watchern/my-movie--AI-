@@ -31,9 +31,9 @@ const routes = [
   },
   {
     path: '/play/:id',
-    name: 'Play',
-    component: () => import('@/views/Play.vue'),
-    meta: { title: '播放' }
+    redirect: (to) => {
+      return { name: 'Detail', params: { id: '0' }, query: { episode_id: to.params.id } }
+    }
   },
   {
     path: '/user',

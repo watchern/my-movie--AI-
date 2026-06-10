@@ -117,12 +117,24 @@ class VideoController extends BaseController
     public function detail()
     {
         $id = intval($this->request->param('id', 0));
+        $episodeId = intval($this->request->param('episode_id', 0));
 
-        if ($id <= 0) {
+        if ($id <= 0 && $episodeId <= 0) {
             return $this->error('参数错误');
         }
 
-        $video = Video::with(['category', 'episodes'])->find($id);
+        $video = null;
+        if ($episodeId > 0) {
+            // 通过剧集找视频
+            $source = VideoSource::find($episodeId);
+            if ($source) {
+                $video = Video::with(['category', 'episodes'])->find($source->video_id);
+            }
+        }
+        if (!$video && $id > 0) {
+            // 直接通过视频ID找
+            $video = Video::with(['category', 'episodes'])->find($id);
+        }
 
         if (!$video || $video->is_show != 1) {
             return $this->error('视频不存在');
@@ -166,6 +178,7 @@ class VideoController extends BaseController
                 'name' => $video->category->name,
             ] : null,
             'episodes' => $video->episodes ? $video->episodes->toArray() : [],
+            'current_episode_id' => $episodeId > 0 ? $episodeId : null,
             'created_at' => $video->created_at,
         ]);
     }
@@ -316,6 +329,88 @@ class VideoController extends BaseController
             'play_url' => $playUrl,
             'is_vip' => $video->is_vip,
             'is_vip_valid' => $isVip,
+        ]);
+    }
+
+    /**
+     * 播放页面数据
+     */
+    public function play()
+    {
+        $id = intval($this->request->param('id', 0));
+        
+        if ($id <= 0) {
+            return $this->error('参数错误');
+        }
+
+        // 首先尝试通过id查找video_source（剧集模式）
+        $videoSource = VideoSource::find($id);
+        $video = null;
+        
+        if ($videoSource) {
+            // 剧集模式：通过video_source找到video
+            $video = Video::with(['category', 'episodes'])->find($videoSource->video_id);
+        } else {
+            // 电影模式：通过id查找video，取第一个video_source
+            $video = Video::with(['category', 'episodes'])->find($id);
+            if ($video) {
+                $videoSource = VideoSource::where('video_id', $video->id)
+                    ->order('sort_order', 'asc')
+                    ->find();
+            }
+        }
+
+        if (!$video || $video->is_show != 1) {
+            return $this->error('视频不存在');
+        }
+
+        if (!$videoSource) {
+            return $this->error('播放源不存在');
+        }
+
+        // 增加播放次数
+        $video->play_count = $video->play_count + 1;
+        $video->save();
+
+        // 检查VIP权限
+        $userId = $this->request->uid ?? 0;
+        $isVip = false;
+        if ($video->is_vip == 1) {
+            if ($userId > 0) {
+                $user = User::find($userId);
+                $isVip = $user && $user->isVipValid();
+            }
+        }
+
+        return $this->success([
+            'detail' => [
+                'id' => $video->id,
+                'title' => $video->title,
+                'subtitle' => $video->subtitle,
+                'type' => $video->type,
+                'type_name' => $video->type_name,
+                'cover_url' => $video->cover_url,
+                'cover' => $video->cover_url,
+                'banner' => $video->banner,
+                'director' => $video->director,
+                'actors' => $video->actors_list,
+                'description' => $video->description,
+                'duration' => $video->duration,
+                'release_year' => $video->release_year,
+                'region' => $video->region,
+                'language' => $video->language,
+                'rating' => $video->rating,
+                'play_count' => $video->play_count,
+                'is_vip' => $video->is_vip,
+                'is_vip_valid' => $isVip,
+                'category' => $video->category ? [
+                    'id' => $video->category->id,
+                    'name' => $video->category->name,
+                ] : null,
+            ],
+            'episode' => $videoSource->toArray(),
+            'episodes' => $video->episodes ? $video->episodes->toArray() : [],
+            'play_url' => $videoSource->play_url,
         ]);
     }
 

@@ -60,6 +60,7 @@ Route::group('api', function () {
         Route::get('video/search', [VideoController::class, 'search']);
         Route::get('video/categories', [VideoController::class, 'categories']);
         Route::get('video/playUrl', [VideoController::class, 'playUrl']);
+        Route::get('video/play/:id', [VideoController::class, 'play']);
     });
 
     // 需要认证的接口

@@ -33,9 +33,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { get } from '@/utils/request'
+import { useSafeBack } from '@/utils/router'
 
 const router = useRouter()
 const route = useRoute()
+const { safeBack } = useSafeBack()
 
 const type = computed(() => +route.params.type)
 const pageTitle = computed(() => {
@@ -81,7 +83,7 @@ const onRefresh = async () => {
 }
 
 const goDetail = (id) => router.push(`/detail/${id}`)
-const goBack = () => router.back()
+const goBack = () => safeBack('/')
 
 onMounted(() => loadList())
 </script>
