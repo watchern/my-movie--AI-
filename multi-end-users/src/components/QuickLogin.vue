@@ -20,12 +20,16 @@
           />
           <van-field
             v-model="loginForm.password"
-            type="password"
+            :type="showLoginPassword ? 'text' : 'password'"
             name="password"
             label="密码"
             placeholder="请输入密码"
             :rules="[{ required: true, message: '请输入密码' }]"
-          />
+          >
+            <template #button>
+              <van-icon :name="showLoginPassword ? 'closed-eye' : 'eye-o'" size="20" @click="showLoginPassword = !showLoginPassword" />
+            </template>
+          </van-field>
         </van-cell-group>
         <div class="btn-wrapper">
           <van-button round block type="primary" native-type="submit" :loading="loading">
@@ -46,18 +50,26 @@
           />
           <van-field
             v-model="registerForm.password"
-            type="password"
+            :type="showRegisterPassword ? 'text' : 'password'"
             label="密码"
             placeholder="请输入密码"
             :rules="[{ required: true, message: '请输入密码' }]"
-          />
+          >
+            <template #button>
+              <van-icon :name="showRegisterPassword ? 'closed-eye' : 'eye-o'" size="20" @click="showRegisterPassword = !showRegisterPassword" />
+            </template>
+          </van-field>
           <van-field
             v-model="registerForm.repassword"
-            type="password"
+            :type="showRegisterRepassword ? 'text' : 'password'"
             label="确认密码"
             placeholder="请再次输入密码"
             :rules="[{ required: true, message: '请确认密码' }]"
-          />
+          >
+            <template #button>
+              <van-icon :name="showRegisterRepassword ? 'closed-eye' : 'eye-o'" size="20" @click="showRegisterRepassword = !showRegisterRepassword" />
+            </template>
+          </van-field>
         </van-cell-group>
         <div class="btn-wrapper">
           <van-button round block type="primary" native-type="submit" :loading="loading">
@@ -81,6 +93,9 @@ const userStore = useUserStore()
 const show = ref(false)
 const activeTab = ref('login')
 const loading = ref(false)
+const showLoginPassword = ref(false)
+const showRegisterPassword = ref(false)
+const showRegisterRepassword = ref(false)
 
 const loginForm = reactive({
   email: '',

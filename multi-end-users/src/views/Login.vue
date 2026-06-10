@@ -8,7 +8,11 @@
             </div>
             <div class="form">
                 <van-field v-model="form.email" label="邮箱" placeholder="请输入邮箱" clearable />
-                <van-field v-model="form.password" type="password" label="密码" placeholder="请输入密码" clearable />
+                <van-field v-model="form.password" :type="showPassword ? 'text' : 'password'" label="密码" placeholder="请输入密码" clearable>
+                    <template #button>
+                        <van-icon :name="showPassword ? 'closed-eye' : 'eye-o'" size="20" @click="showPassword = !showPassword" />
+                    </template>
+                </van-field>
                 <van-button type="primary" block :loading="loading" @click="onLogin">登录</van-button>
             </div>
             <div class="link">
@@ -30,6 +34,7 @@ const { safeBack } = useSafeBack()
 
 const form = ref({ email: '', password: '' })
 const loading = ref(false)
+const showPassword = ref(false)
 
 const onLogin = async () => {
     if (!form.value.email || !form.value.password) {
