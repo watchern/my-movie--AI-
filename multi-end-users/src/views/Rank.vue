@@ -137,7 +137,7 @@ onMounted(() => loadList())
   bottom: 0;
   width: 100px;
   background: white;
-  z-index: 99;
+  z-index: 999;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   
   @media (min-width: 500px) {
