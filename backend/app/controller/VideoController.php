@@ -300,15 +300,25 @@ class VideoController extends BaseController
             $where[] = ['type', '=', $type];
         }
 
-        // 模糊搜索标题
-        $where[] = ['title', 'like', "%{$keyword}%"];
+        // 多字段模糊搜索：标题、副标题、导演、演员、年份、简介、标签
+        $searchFields = ['title', 'subtitle', 'director', 'actors', 'release_year', 'description', 'tags'];
+        
+        // 构建OR条件组
+        $searchWhere = function ($query) use ($keyword, $searchFields) {
+            foreach ($searchFields as $field) {
+                $query->whereOr($field, 'like', "%{$keyword}%");
+            }
+        };
 
         $list = Video::where($where)
+            ->where($searchWhere)
             ->order('play_count', 'desc')
             ->page($page, $limit)
             ->select();
 
-        $total = Video::where($where)->count();
+        $total = Video::where($where)
+            ->where($searchWhere)
+            ->count();
 
         return $this->success([
             'list' => $this->formatVideoList($list),

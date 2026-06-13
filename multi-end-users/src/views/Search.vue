@@ -25,6 +25,18 @@
         
         <!-- 搜索结果 -->
         <div v-if="hasSearched" class="search-result">
+          <!-- 分类筛选 -->
+          <div class="filter-bar">
+            <van-tabs v-model:active="filterType" shrink @change="onFilterChange">
+              <van-tab title="全部" name="0" />
+              <van-tab title="电影" name="1" />
+              <van-tab title="电视剧" name="2" />
+              <van-tab title="动漫" name="3" />
+              <van-tab title="短视频" name="4" />
+              <van-tab title="纪录片" name="5" />
+            </van-tabs>
+          </div>
+          
           <div v-if="loading" class="loading-wrapper">
             <van-loading>加载中...</van-loading>
           </div>
@@ -94,6 +106,8 @@ const keyword = ref('')
 const list = ref([])
 const loading = ref(false)
 const hasSearched = ref(false)
+const filterType = ref('0')  // 筛选类型：0全部，1电影，2电视剧，3动漫，4短视频，5纪录片
+const currentKeyword = ref('')  // 保存当前搜索关键字
 
 // 搜索历史
 const historyKeywords = ref([])
@@ -111,8 +125,10 @@ const onSearch = () => {
   if (!kw) return
   
   hasSearched.value = true
+  currentKeyword.value = kw
+  filterType.value = '0'  // 搜索时重置筛选
   saveSearchHistory(kw)
-  loadSearchResult(kw)
+  loadSearchResult()
 }
 
 const searchWithKeyword = (kw) => {
@@ -120,11 +136,22 @@ const searchWithKeyword = (kw) => {
   onSearch()
 }
 
-const loadSearchResult = async (kw) => {
+const loadSearchResult = async () => {
   loading.value = true
-  const res = await get('/video/search', { keyword: kw, limit: 50 })
+  const params = { keyword: currentKeyword.value, limit: 50 }
+  if (filterType.value !== '0') {
+    params.type = filterType.value
+  }
+  const res = await get('/video/search', params)
   list.value = res.data.list || []
   loading.value = false
+}
+
+// 分类筛选变化
+const onFilterChange = () => {
+  if (currentKeyword.value) {
+    loadSearchResult()
+  }
 }
 
 const goBack = () => safeBack('/home')
@@ -220,6 +247,25 @@ onMounted(() => {
     color: #666;
     padding: 0 8px;
     white-space: nowrap;
+  }
+}
+
+.filter-bar {
+  background: white;
+  margin-bottom: 8px;
+  
+  :deep(.van-tabs) {
+    --van-tabs-line-height: 40px;
+  }
+  
+  :deep(.van-tabs__nav) {
+    height: 40px;
+  }
+  
+  :deep(.van-tab) {
+    height: 40px;
+    line-height: 40px;
+    font-size: 13px;
   }
 }
 
