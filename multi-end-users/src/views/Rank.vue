@@ -110,6 +110,10 @@ onMounted(() => loadList())
   min-height: 100vh;
   overflow-x: hidden;
   width: 100%;
+  
+  @media (min-width: 500px) {
+    gap: 8px;
+  }
 }
 
 // 右侧内容区域
@@ -165,6 +169,15 @@ onMounted(() => loadList())
   align-items: center;
   min-height: 60vh;
   padding-top: 20px;
+}
+
+// 调整van-tabs的tab高度与左侧菜单一致
+:deep(.van-tabs) {
+  --van-tabs-line-height: 46px !important;
+}
+
+:deep(.van-tabs--line .van-tabs__wrap) {
+  height: var(--van-tabs-line-height);
 }
 
 .rank-list {

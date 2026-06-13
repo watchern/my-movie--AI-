@@ -119,6 +119,10 @@ const logout = () => {
     min-height: 100vh;
     overflow-x: hidden;
     width: 100%;
+    
+    @media (min-width: 500px) {
+        gap: 8px;
+    }
 }
 
 // 右侧内容区域
@@ -133,7 +137,7 @@ const logout = () => {
     display: flex;
     gap: 16px;
     align-items: center;
-    padding: 20px 16px;
+    padding: 10px 16px;
     background: white;
 
     .avatar {
