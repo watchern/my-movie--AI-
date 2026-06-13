@@ -72,6 +72,7 @@ class VideoController extends BaseController
                 
                 if ($bannerList && count($bannerList) > 0) {
                     $result = [];
+                    $now = date('Y-m-d H:i:s');
                     foreach ($bannerList as $banner) {
                         if ($banner->type == 1 && $banner->video) {
                             // 视频类型
@@ -83,7 +84,10 @@ class VideoController extends BaseController
                                 'link_url' => null
                             ];
                         } else if ($banner->type == 2) {
-                            // 广告类型
+                            // 广告类型 - 检查是否过期
+                            if ($banner->expire_at && $banner->expire_at < $now) {
+                                continue; // 已过期，跳过
+                            }
                             $result[] = [
                                 'id' => $banner->id,
                                 'title' => $banner->title,

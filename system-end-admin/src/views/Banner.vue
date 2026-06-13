@@ -65,6 +65,16 @@
                         >{{ row.status ? '启用' : '禁用' }}</el-tag>
                     </template>
                 </el-table-column>
+                <el-table-column label="到期时间" width="120" resizable>
+                    <template #default="{ row }">
+                        <span v-if="row.type === 2">
+                            <el-tag v-if="!row.expire_at" type="info">永不过期</el-tag>
+                            <el-tag v-else-if="new Date(row.expire_at) < new Date()" type="danger">已过期</el-tag>
+                            <span v-else>{{ row.expire_at.substring(0, 10) }}</span>
+                        </span>
+                        <span v-else style="color: #999;">-</span>
+                    </template>
+                </el-table-column>
                 <el-table-column label="操作" width="200" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="moveUp(row)">上移</el-button>
@@ -123,6 +133,21 @@
                         <el-input v-model="form.link_url" placeholder="点击后跳转的地址" />
                         <span style="color: #999; font-size: 12px;">留空则不跳转</span>
                     </el-form-item>
+                    <el-form-item label="到期时间">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <el-checkbox v-model="form.never_expire">永不过期</el-checkbox>
+                            <el-date-picker
+                                v-if="!form.never_expire"
+                                v-model="form.expire_at"
+                                type="date"
+                                placeholder="选择到期日期"
+                                format="YYYY-MM-DD"
+                                value-format="YYYY-MM-DD 23:59:59"
+                                :disabled="form.never_expire"
+                            />
+                        </div>
+                        <span style="color: #999; font-size: 12px;">到期时间自动设置为当天的23:59:59</span>
+                    </el-form-item>
                 </template>
 
                 <el-form-item label="排序">
@@ -167,7 +192,9 @@ const form = ref({
     image_url: '',
     link_url: '',
     sort_order: 100,
-    status: 1
+    status: 1,
+    expire_at: '',
+    never_expire: true
 })
 
 const loadList = async () => {
@@ -190,7 +217,9 @@ const initForm = () => {
         image_url: '',
         link_url: '',
         sort_order: 100,
-        status: 1
+        status: 1,
+        expire_at: '',
+        never_expire: true
     }
 }
 
@@ -212,7 +241,10 @@ const handleAdd = () => {
 
 const edit = (row) => {
     isEdit.value = true
-    form.value = { ...row }
+    form.value = { 
+        ...row,
+        never_expire: !row.expire_at // 如果没有到期时间，则永不过期
+    }
     showAddDialog.value = true
 }
 

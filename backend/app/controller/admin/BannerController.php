@@ -68,6 +68,23 @@ class BannerController extends BaseController
             $sortOrder = isset($data['sort_order']) ? intval($data['sort_order']) : ($id > 0 ? $banner->sort_order : 100);
             $status = isset($data['status']) ? intval($data['status']) : ($id > 0 ? $banner->status : Banner::STATUS_ENABLED);
             
+            // 处理到期时间（广告类型）
+            $expireAt = null;
+            if ($type == Banner::TYPE_AD) {
+                if (isset($data['never_expire']) && $data['never_expire']) {
+                    $expireAt = null; // 永不过期
+                } else if (isset($data['expire_at']) && !empty($data['expire_at'])) {
+                    // 设置到期时间（自动设置为当天的23:59:59）
+                    $expireAt = $data['expire_at'];
+                    if (!str_contains($expireAt, '23:59:59')) {
+                        // 如果只传了日期，自动补充时间
+                        $expireAt = substr($expireAt, 0, 10) . ' 23:59:59';
+                    }
+                } else if ($id > 0) {
+                    $expireAt = $banner->expire_at; // 编辑时保留原值
+                }
+            }
+            
             // 新建时验证必填字段
             if ($id <= 0) {
                 if ($type == Banner::TYPE_VIDEO && $videoId <= 0) {
@@ -86,6 +103,7 @@ class BannerController extends BaseController
             $banner->link_url = $linkUrl;
             $banner->sort_order = $sortOrder;
             $banner->status = $status;
+            $banner->expire_at = $expireAt;
             $banner->save();
             
             $this->limitCount();
