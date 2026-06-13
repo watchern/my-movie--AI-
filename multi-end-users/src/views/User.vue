@@ -1,54 +1,57 @@
 <template>
     <div class="page">
-        <van-nav-bar title="我的" :fixed="true" placeholder />
+        <!-- 左侧导航（大屏幕 >= 500px） -->
+        <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
+            <van-sidebar-item title="首页" />
+            <van-sidebar-item title="排行榜" />
+            <van-sidebar-item title="我的" />
+        </van-sidebar>
 
-        <div class="user-header" @click="goLogin">
-            <div class="avatar">
-                <van-icon name="user-o" size="48" />
+        <!-- 右侧内容区域 -->
+        <div class="content-wrapper">
+            <van-nav-bar title="我的" placeholder />
+
+            <div class="user-header" @click="goLogin">
+                <div class="avatar">
+                    <van-icon name="user-o" size="48" />
+                </div>
+                <div class="info">
+                    <div class="name">{{ userStore.isLogin ? userStore.userInfo.email : '点击登录' }}</div>
+                    <div v-if="userStore.isVip" class="vip">VIP会员</div>
+                </div>
             </div>
-            <div class="info">
-                <div class="name">{{ userStore.isLogin ? userStore.userInfo.email : '点击登录' }}</div>
-                <div v-if="userStore.isVip" class="vip">VIP会员</div>
+
+            <div class="menu-list">
+                <div class="menu-item" @click="goHistory">
+                    <van-icon name="play-circle-o" />
+                    <span>观看历史</span>
+                    <van-icon name="arrow" />
+                </div>
+                <div class="menu-item" @click="goFavorites">
+                    <van-icon name="star-o" />
+                    <span>我的收藏</span>
+                    <van-icon name="arrow" />
+                </div>
+                <div class="menu-item" @click="goCard">
+                    <van-icon name="coupon-o" />
+                    <span>卡密兑换</span>
+                    <van-icon name="arrow" />
+                </div>
+                <div v-if="userStore.isLogin" class="menu-item" @click="logout">
+                    <van-icon name="log-out" />
+                    <span>退出登录</span>
+                    <van-icon name="arrow" />
+                </div>
             </div>
         </div>
 
-        <div class="menu-list">
-            <div class="menu-item" @click="goHistory">
-                <van-icon name="play-circle-o" />
-                <span>观看历史</span>
-                <van-icon name="arrow" />
-            </div>
-            <div class="menu-item" @click="goFavorites">
-                <van-icon name="star-o" />
-                <span>我的收藏</span>
-                <van-icon name="arrow" />
-            </div>
-            <div class="menu-item" @click="goCard">
-                <van-icon name="coupon-o" />
-                <span>卡密兑换</span>
-                <van-icon name="arrow" />
-            </div>
-            <div v-if="userStore.isLogin" class="menu-item" @click="logout">
-                <van-icon name="log-out" />
-                <span>退出登录</span>
-                <van-icon name="arrow" />
-            </div>
-        </div>
-
-    <!-- 左侧导航（大屏幕 >= 500px） -->
-    <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
-      <van-sidebar-item title="首页" />
-      <van-sidebar-item title="排行榜" />
-      <van-sidebar-item title="我的" />
-    </van-sidebar>
-
-    <!-- 底部导航（小屏幕 < 500px） -->
-    <van-tabbar v-model="activeTab" class="bottom-tabbar" @change="onTabChange">
-      <van-tabbar-item name="home" icon="home-o">首页</van-tabbar-item>
-      <van-tabbar-item name="rank" icon="chart-trending-o">排行榜</van-tabbar-item>
-      <van-tabbar-item name="user" icon="user-o">我的</van-tabbar-item>
-    </van-tabbar>
-  </div>
+        <!-- 底部导航（小屏幕 < 500px） -->
+        <van-tabbar v-model="activeTab" class="bottom-tabbar" @change="onTabChange">
+            <van-tabbar-item name="home" icon="home-o">首页</van-tabbar-item>
+            <van-tabbar-item name="rank" icon="chart-trending-o">排行榜</van-tabbar-item>
+            <van-tabbar-item name="user" icon="user-o">我的</van-tabbar-item>
+        </van-tabbar>
+    </div>
 </template>
 
 <script setup>
@@ -112,7 +115,15 @@ const logout = () => {
 
 <style lang="scss" scoped>
 .page {
-  position: relative;
+    display: flex;
+    min-height: 100vh;
+}
+
+// 右侧内容区域
+.content-wrapper {
+    flex: 1;
+    min-height: 100vh;
+    background: #f5f5f5;
 }
 
 .user-header {
@@ -121,11 +132,6 @@ const logout = () => {
     align-items: center;
     padding: 20px 16px;
     background: white;
-    
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        padding-left: 116px;
-    }
 
     .avatar {
         width: 72px;
@@ -156,11 +162,6 @@ const logout = () => {
     background: white;
     padding: 0 16px;
 
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        padding-left: 116px;
-    }
-
     .menu-item {
         display: flex;
         align-items: center;
@@ -187,37 +188,38 @@ const logout = () => {
 
 // 底部导航（小屏幕 < 500px）
 .bottom-tabbar {
-  display: none;
-  
-  @media (max-width: 499px) {
-    display: flex;
-  }
+    display: none;
+    
+    @media (max-width: 499px) {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+    }
 }
 
 // 左侧导航（大屏幕 >= 500px）
 .sidebar-nav {
-  display: none;
-  position: fixed;
-  left: 0;
-  top: 46px;
-  bottom: 0;
-  width: 100px;
-  background: white;
-  z-index: 9999;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
-  
-  @media (min-width: 500px) {
-    display: block;
-  }
-  
-  :deep(.van-sidebar-item) {
-    padding: 20px 12px;
-    font-size: 14px;
+    display: none;
+    width: 100px;
+    background: white;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
     
-    &.van-sidebar-item--select {
-      color: #1989fa;
-      font-weight: 500;
+    @media (min-width: 500px) {
+        display: block;
     }
-  }
+    
+    :deep(.van-sidebar-item) {
+        padding: 20px 12px;
+        font-size: 14px;
+        
+        &.van-sidebar-item--select {
+            color: #1989fa;
+            font-weight: 500;
+        }
+    }
 }
 </style>

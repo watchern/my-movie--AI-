@@ -1,52 +1,55 @@
 <template>
   <div class="page">
-    <van-nav-bar title="排行榜" :fixed="true" placeholder />
-
-    <div v-if="loading" class="loading-wrapper">
-      <van-loading>加载中...</van-loading>
-    </div>
-
-    <div v-else>
-      <van-tabs v-model:active="tabActive" sticky>
-        <van-tab title="热播榜">
-          <div class="rank-list">
-            <div v-for="(item, index) in list" :key="item.id" class="rank-item" @click="goDetail(item.id)">
-              <div class="rank-num" :class="'rank-' + Math.min(index, 3)">{{ index + 1 }}</div>
-              <img :src="item.cover_url" :alt="item.title" />
-              <div class="info">
-                <div class="title">{{ item.title }}</div>
-                <div class="counts">
-                  <span>播放 {{ formatCount(item.play_count) }}</span>
-                </div>
-                <div class="desc">{{ item.desc || '暂无简介' }}</div>
-              </div>
-            </div>
-          </div>
-        </van-tab>
-        <van-tab title="新上线">
-          <div class="rank-list">
-            <div v-for="(item, index) in newList" :key="item.id" class="rank-item" @click="goDetail(item.id)">
-              <div class="rank-num" :class="'rank-' + Math.min(index, 3)">{{ index + 1 }}</div>
-              <img :src="item.cover_url" :alt="item.title" />
-              <div class="info">
-                <div class="title">{{ item.title }}</div>
-                <div class="counts">
-                  <span>播放 {{ formatCount(item.play_count) }}</span>
-                </div>
-                <div class="desc">{{ item.desc || '暂无简介' }}</div>
-              </div>
-            </div>
-          </div>
-        </van-tab>
-      </van-tabs>
-    </div>
-
     <!-- 左侧导航（大屏幕 >= 500px） -->
     <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
       <van-sidebar-item title="首页" />
       <van-sidebar-item title="排行榜" />
       <van-sidebar-item title="我的" />
     </van-sidebar>
+
+    <!-- 右侧内容区域 -->
+    <div class="content-wrapper">
+      <van-nav-bar title="排行榜" placeholder />
+
+      <div v-if="loading" class="loading-wrapper">
+        <van-loading>加载中...</van-loading>
+      </div>
+
+      <div v-else>
+        <van-tabs v-model:active="tabActive" sticky>
+          <van-tab title="热播榜">
+            <div class="rank-list">
+              <div v-for="(item, index) in list" :key="item.id" class="rank-item" @click="goDetail(item.id)">
+                <div class="rank-num" :class="'rank-' + Math.min(index, 3)">{{ index + 1 }}</div>
+                <img :src="item.cover_url" :alt="item.title" />
+                <div class="info">
+                  <div class="title">{{ item.title }}</div>
+                  <div class="counts">
+                    <span>播放 {{ formatCount(item.play_count) }}</span>
+                  </div>
+                  <div class="desc">{{ item.desc || '暂无简介' }}</div>
+                </div>
+              </div>
+            </div>
+          </van-tab>
+          <van-tab title="新上线">
+            <div class="rank-list">
+              <div v-for="(item, index) in newList" :key="item.id" class="rank-item" @click="goDetail(item.id)">
+                <div class="rank-num" :class="'rank-' + Math.min(index, 3)">{{ index + 1 }}</div>
+                <img :src="item.cover_url" :alt="item.title" />
+                <div class="info">
+                  <div class="title">{{ item.title }}</div>
+                  <div class="counts">
+                    <span>播放 {{ formatCount(item.play_count) }}</span>
+                  </div>
+                  <div class="desc">{{ item.desc || '暂无简介' }}</div>
+                </div>
+              </div>
+            </div>
+          </van-tab>
+        </van-tabs>
+      </div>
+    </div>
 
     <!-- 底部导航（小屏幕 < 500px） -->
     <van-tabbar v-model="activeTab" class="bottom-tabbar" @change="onTabChange">
@@ -103,42 +106,24 @@ onMounted(() => loadList())
 
 <style lang="scss" scoped>
 .page {
-  position: relative;
-}
-
-.loading-wrapper {
   display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 60vh;
-  padding-top: 20px;
-  
-  // 大屏幕时考虑左侧导航
-  @media (min-width: 500px) {
-    padding-left: 100px;
-  }
+  min-height: 100vh;
 }
 
-// 底部导航（小屏幕 < 500px）
-.bottom-tabbar {
-  display: none;
-  
-  @media (max-width: 499px) {
-    display: flex;
-  }
+// 右侧内容区域
+.content-wrapper {
+  flex: 1;
+  min-height: 100vh;
+  background: #f5f5f5;
 }
 
 // 左侧导航（大屏幕 >= 500px）
 .sidebar-nav {
   display: none;
-  position: fixed;
-  left: 0;
-  top: 46px;
-  bottom: 0;
   width: 100px;
   background: white;
-  z-index: 999;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
   
   @media (min-width: 500px) {
     display: block;
@@ -155,13 +140,30 @@ onMounted(() => loadList())
   }
 }
 
+// 底部导航（小屏幕 < 500px）
+.bottom-tabbar {
+  display: none;
+  
+  @media (max-width: 499px) {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
+  }
+}
+
+.loading-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60vh;
+  padding-top: 20px;
+}
+
 .rank-list {
   padding: 12px 16px;
-  
-  // 大屏幕时考虑左侧导航
-  @media (min-width: 500px) {
-    padding-left: 116px;
-  }
 }
 
 .rank-item {

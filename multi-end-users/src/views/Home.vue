@@ -1,117 +1,120 @@
 <template>
     <div class="page">
-        <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-            <van-nav-bar title="影视系统" :fixed="true" placeholder>
-                <template #right>
-                    <van-icon name="search" size="20" @click="goSearch" />
-                </template>
-            </van-nav-bar>
-
-            <div v-if="loading" class="loading-wrapper">
-                <van-loading>加载中...</van-loading>
-            </div>
-
-            <div v-else>
-                <div class="category-nav">
-                    <div class="nav-item" @click="goCategory(1)">
-                        <van-icon name="video" size="32" color="#1989fa" />
-                        <span>电影</span>
-                    </div>
-                    <div class="nav-item" @click="goCategory(2)">
-                        <van-icon name="tv-o" size="32" color="#ff976a" />
-                        <span>电视剧</span>
-                    </div>
-                    <div class="nav-item" @click="goCategory(3)">
-                        <van-icon name="fire" size="32" color="#ee0a24" />
-                        <span>动漫</span>
-                    </div>
-                    <div class="nav-item" @click="goCategory(4)">
-                        <van-icon name="play-circle-o" size="32" color="#07c160" />
-                        <span>短视频</span>
-                    </div>
-                    <div class="nav-item" @click="goCategory(5)">
-                        <van-icon name="location-o" size="32" color="#1989fa" />
-                        <span>纪录片</span>
-                    </div>
-                </div>
-
-                <div class="banner-section">
-                    <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
-                        <van-swipe-item v-for="item in banners" :key="item.id" @click="handleBannerClick(item)">
-                            <img :src="item.cover_url" :alt="item.title" />
-                        </van-swipe-item>
-                    </van-swipe>
-                </div>
-
-                <div v-if="hotMovies.length" class="section">
-                    <div class="section-title">
-                        <span>热门电影</span>
-                        <span class="more" @click="goCategory(1)">更多 ></span>
-                    </div>
-                    <div class="video-grid">
-                        <div v-for="item in hotMovies" :key="item.id" class="video-item" @click="goDetail(item.id)">
-                            <div class="video-cover">
-                                <img :src="item.cover_url" :alt="item.title" />
-                                <span v-if="item.is_vip" class="vip-tag">VIP</span>
-                                <span class="play-count">{{ formatCount(item.play_count) }}</span>
-                            </div>
-                            <div class="video-title">{{ item.title }}</div>
-                            <div class="video-info">
-                                <span>{{ item.release_year }}</span>
-                                <span>{{ item.region }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="hotTvs.length" class="section">
-                    <div class="section-title">
-                        <span>热门电视剧</span>
-                        <span class="more" @click="goCategory(2)">更多 ></span>
-                    </div>
-                    <div class="video-grid">
-                        <div v-for="item in hotTvs" :key="item.id" class="video-item" @click="goDetail(item.id)">
-                            <div class="video-cover">
-                                <img :src="item.cover_url" :alt="item.title" />
-                                <span v-if="item.is_vip" class="vip-tag">VIP</span>
-                            </div>
-                            <div class="video-title">{{ item.title }}</div>
-                            <div class="video-info">
-                                <span>{{ item.release_year }}</span>
-                                <span>{{ item.region }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div v-if="hotAnimes.length" class="section">
-                    <div class="section-title">
-                        <span>热门动漫</span>
-                        <span class="more" @click="goCategory(3)">更多 ></span>
-                    </div>
-                    <div class="video-grid">
-                        <div v-for="item in hotAnimes" :key="item.id" class="video-item" @click="goDetail(item.id)">
-                            <div class="video-cover">
-                                <img :src="item.cover_url" :alt="item.title" />
-                                <span v-if="item.is_vip" class="vip-tag">VIP</span>
-                            </div>
-                            <div class="video-title">{{ item.title }}</div>
-                            <div class="video-info">
-                                <span>{{ item.release_year }}</span>
-                                <span>{{ item.region }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </van-pull-refresh>
-
         <!-- 左侧导航（大屏幕 >= 500px） -->
         <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
             <van-sidebar-item title="首页" />
             <van-sidebar-item title="排行榜" />
             <van-sidebar-item title="我的" />
         </van-sidebar>
+
+        <!-- 右侧内容区域 -->
+        <div class="content-wrapper">
+            <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
+                <van-nav-bar title="影视系统" placeholder>
+                    <template #right>
+                        <van-icon name="search" size="20" @click="goSearch" />
+                    </template>
+                </van-nav-bar>
+
+                <div v-if="loading" class="loading-wrapper">
+                    <van-loading>加载中...</van-loading>
+                </div>
+
+                <div v-else>
+                    <div class="category-nav">
+                        <div class="nav-item" @click="goCategory(1)">
+                            <van-icon name="video" size="32" color="#1989fa" />
+                            <span>电影</span>
+                        </div>
+                        <div class="nav-item" @click="goCategory(2)">
+                            <van-icon name="tv-o" size="32" color="#ff976a" />
+                            <span>电视剧</span>
+                        </div>
+                        <div class="nav-item" @click="goCategory(3)">
+                            <van-icon name="fire" size="32" color="#ee0a24" />
+                            <span>动漫</span>
+                        </div>
+                        <div class="nav-item" @click="goCategory(4)">
+                            <van-icon name="play-circle-o" size="32" color="#07c160" />
+                            <span>短视频</span>
+                        </div>
+                        <div class="nav-item" @click="goCategory(5)">
+                            <van-icon name="location-o" size="32" color="#1989fa" />
+                            <span>纪录片</span>
+                        </div>
+                    </div>
+
+                    <div class="banner-section">
+                        <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
+                            <van-swipe-item v-for="item in banners" :key="item.id" @click="handleBannerClick(item)">
+                                <img :src="item.cover_url" :alt="item.title" />
+                            </van-swipe-item>
+                        </van-swipe>
+                    </div>
+
+                    <div v-if="hotMovies.length" class="section">
+                        <div class="section-title">
+                            <span>热门电影</span>
+                            <span class="more" @click="goCategory(1)">更多 ></span>
+                        </div>
+                        <div class="video-grid">
+                            <div v-for="item in hotMovies" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                                <div class="video-cover">
+                                    <img :src="item.cover_url" :alt="item.title" />
+                                    <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                                    <span class="play-count">{{ formatCount(item.play_count) }}</span>
+                                </div>
+                                <div class="video-title">{{ item.title }}</div>
+                                <div class="video-info">
+                                    <span>{{ item.release_year }}</span>
+                                    <span>{{ item.region }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="hotTvs.length" class="section">
+                        <div class="section-title">
+                            <span>热门电视剧</span>
+                            <span class="more" @click="goCategory(2)">更多 ></span>
+                        </div>
+                        <div class="video-grid">
+                            <div v-for="item in hotTvs" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                                <div class="video-cover">
+                                    <img :src="item.cover_url" :alt="item.title" />
+                                    <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                                </div>
+                                <div class="video-title">{{ item.title }}</div>
+                                <div class="video-info">
+                                    <span>{{ item.release_year }}</span>
+                                    <span>{{ item.region }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div v-if="hotAnimes.length" class="section">
+                        <div class="section-title">
+                            <span>热门动漫</span>
+                            <span class="more" @click="goCategory(3)">更多 ></span>
+                        </div>
+                        <div class="video-grid">
+                            <div v-for="item in hotAnimes" :key="item.id" class="video-item" @click="goDetail(item.id)">
+                                <div class="video-cover">
+                                    <img :src="item.cover_url" :alt="item.title" />
+                                    <span v-if="item.is_vip" class="vip-tag">VIP</span>
+                                </div>
+                                <div class="video-title">{{ item.title }}</div>
+                                <div class="video-info">
+                                    <span>{{ item.release_year }}</span>
+                                    <span>{{ item.region }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </van-pull-refresh>
+        </div>
 
         <!-- 底部导航（小屏幕 < 500px） -->
         <van-tabbar v-model="activeTab" class="bottom-tabbar" @change="onTabChange">
@@ -191,30 +194,24 @@ onMounted(() => loadData())
 
 <style lang="scss" scoped>
 .page {
-    position: relative;
-    // padding-top: 46px;
+    display: flex;
+    min-height: 100vh;
 }
 
-// 底部导航（小屏幕 < 500px）
-.bottom-tabbar {
-    display: none;
-    
-    @media (max-width: 499px) {
-        display: flex;
-    }
+// 右侧内容区域
+.content-wrapper {
+    flex: 1;
+    min-height: 100vh;
+    background: #f5f5f5;
 }
 
 // 左侧导航（大屏幕 >= 500px）
 .sidebar-nav {
     display: none;
-    position: fixed;
-    left: 0;
-    top: 46px;  // 导航栏高度
-    bottom: 0;
     width: 100px;
     background: white;
-    z-index: 999;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
     
     @media (min-width: 500px) {
         display: block;
@@ -231,28 +228,32 @@ onMounted(() => loadData())
     }
 }
 
+// 底部导航（小屏幕 < 500px）
+.bottom-tabbar {
+    display: none;
+    
+    @media (max-width: 499px) {
+        display: flex;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 999;
+    }
+}
+
 .loading-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
     min-height: 60vh;
     padding-top: 20px;
-    
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        padding-left: 100px;
-    }
 }
 
 .banner-section {
     margin: 12px 16px;
     border-radius: 8px;
     overflow: hidden;
-    
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        margin-left: 116px;
-    }
 
     :deep(.van-swipe) {
         height: 180px;
@@ -293,11 +294,62 @@ onMounted(() => loadData())
     margin: 0 16px;
     border-radius: 8px;
     margin-top: 16px;
-    
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        margin-left: 116px;
+
+    .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+
+        span {
+            font-size: 13px;
+            color: #333;
+        }
     }
+}
+
+.section-title {
+    overflow: hidden;
+
+    :deep(.van-swipe) {
+        height: 180px;
+    }
+
+    :deep(.van-swipe-item) {
+        display: block;
+        height: 180px;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    }
+
+    :deep(.van-swipe__indicators) {
+        bottom: 10px;
+    }
+
+    :deep(.van-swipe__indicator) {
+        width: 6px;
+        height: 6px;
+        opacity: 0.5;
+
+        &.van-swipe__indicator--active {
+            width: 16px;
+            opacity: 1;
+        }
+    }
+}
+
+.category-nav {
+    display: flex;
+    justify-content: space-around;
+    padding: 20px 0;
+    background: white;
+    margin: 0 16px;
+    border-radius: 8px;
+    margin-top: 16px;
 
     .nav-item {
         display: flex;
@@ -320,11 +372,6 @@ onMounted(() => loadData())
     font-size: 16px;
     font-weight: 600;
     color: #333;
-    
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        padding-left: 116px;
-    }
 
     .more {
         font-size: 12px;
@@ -333,23 +380,11 @@ onMounted(() => loadData())
     }
 }
 
-.section {
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        padding-left: 0;
-    }
-}
-
 .video-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     padding: 0 16px;
-    
-    // 大屏幕时考虑左侧导航
-    @media (min-width: 500px) {
-        padding-left: 116px;
-    }
 
     @media (min-width: 768px) {
         grid-template-columns: repeat(6, 1fr);
