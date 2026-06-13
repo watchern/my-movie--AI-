@@ -5,7 +5,7 @@
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span>轮播图管理</span>
                     <div>
-                        <el-button type="success" @click="showAddDialog = true">添加轮播图</el-button>
+                        <el-button type="success" @click="handleAdd">添加轮播图</el-button>
                         <el-button type="info" @click="loadList" style="margin-left: 8px;">刷新</el-button>
                     </div>
                 </div>
@@ -198,6 +198,12 @@ const handleTypeChange = () => {
     }
 }
 
+const handleAdd = () => {
+    isEdit.value = false
+    form.value = initForm()
+    showAddDialog.value = true
+}
+
 const edit = (row) => {
     isEdit.value = true
     form.value = { ...row }
@@ -217,6 +223,7 @@ const save = async () => {
     await post('/banner/save', form.value)
     ElMessage.success('保存成功')
     showAddDialog.value = false
+    form.value = initForm()
     loadList()
 }
 
