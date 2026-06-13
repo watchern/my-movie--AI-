@@ -28,7 +28,7 @@ return [
         ],
         'sqlite' => [
             'type' => 'sqlite',
-            'database' => Env::get('database.sqlite_path', dirname(__DIR__, 2) . '/database/movie.db'),
+            'database' => Env::get('database.sqlite_path', dirname(__DIR__, 2) . '/database/database.sqlite'),
             'prefix' => Env::get('database_prefix', ''),
             'charset' => 'utf8',
         ],
