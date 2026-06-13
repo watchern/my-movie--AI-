@@ -49,21 +49,6 @@ class BannerController extends BaseController
             $data = $this->getData();
             
             $id = intval($data['id'] ?? 0);
-            $type = intval($data['type'] ?? Banner::TYPE_VIDEO);
-            $videoId = intval($data['video_id'] ?? 0);
-            $title = trim($data['title'] ?? '');
-            $imageUrl = trim($data['image_url'] ?? '');
-            $linkUrl = trim($data['link_url'] ?? '');
-            $sortOrder = intval($data['sort_order'] ?? 100);
-            $status = intval($data['status'] ?? Banner::STATUS_ENABLED);
-            
-            if ($type == Banner::TYPE_VIDEO && $videoId <= 0) {
-                return $this->error('请选择视频');
-            }
-            
-            if ($type == Banner::TYPE_AD && (empty($title) || empty($imageUrl))) {
-                return $this->error('广告标题和图片不能为空');
-            }
             
             if ($id > 0) {
                 $banner = Banner::find($id);
@@ -72,6 +57,26 @@ class BannerController extends BaseController
                 }
             } else {
                 $banner = new Banner();
+            }
+            
+            // 编辑时，未传递的字段保留原值
+            $type = isset($data['type']) ? intval($data['type']) : ($id > 0 ? $banner->type : Banner::TYPE_VIDEO);
+            $videoId = isset($data['video_id']) ? intval($data['video_id']) : ($id > 0 ? $banner->video_id : 0);
+            $title = isset($data['title']) ? trim($data['title']) : ($id > 0 ? $banner->title : '');
+            $imageUrl = isset($data['image_url']) ? trim($data['image_url']) : ($id > 0 ? $banner->image_url : '');
+            $linkUrl = isset($data['link_url']) ? trim($data['link_url']) : ($id > 0 ? $banner->link_url : '');
+            $sortOrder = isset($data['sort_order']) ? intval($data['sort_order']) : ($id > 0 ? $banner->sort_order : 100);
+            $status = isset($data['status']) ? intval($data['status']) : ($id > 0 ? $banner->status : Banner::STATUS_ENABLED);
+            
+            // 新建时验证必填字段
+            if ($id <= 0) {
+                if ($type == Banner::TYPE_VIDEO && $videoId <= 0) {
+                    return $this->error('请选择视频');
+                }
+                
+                if ($type == Banner::TYPE_AD && (empty($title) || empty($imageUrl))) {
+                    return $this->error('广告标题和图片不能为空');
+                }
             }
             
             $banner->type = $type;
