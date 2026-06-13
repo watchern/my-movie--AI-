@@ -11,7 +11,7 @@
         <div class="content-wrapper">
             <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
                 <van-nav-bar title="影视系统"
-                 style="margin-right: 12px;"
+                class="nav-bar"
                  placeholder>
                     <template #right>
                         <van-icon name="search" size="20" @click="goSearch" />
@@ -178,7 +178,7 @@ const onSidebarChange = (index) => {
 const goDetail = (id) => router.push(`/detail/${id}`)
 const goCategory = (type) => router.push(`/category/${type}`)
 const goSearch = () => {
-    console.log('search')
+    router.push('/search')
 }
 
 const handleBannerClick = (item) => {
@@ -215,6 +215,9 @@ onMounted(() => loadData())
     min-height: 100vh;
     background: #f5f5f5;
     overflow-x: hidden;
+}
+.nav-bar {
+    margin-right: 16px;
 }
 
 // 左侧导航（大屏幕 >= 500px）
@@ -270,7 +273,7 @@ onMounted(() => loadData())
     overflow: hidden;
     @media (min-width: 500px) {
         margin: 12px 0;
-                margin-right: 12px;
+        margin-right: 16px;
     }
 
     :deep(.van-swipe) {
@@ -315,7 +318,7 @@ onMounted(() => loadData())
     @media (min-width: 500px) {
         margin: 0 0;
         margin-top: 8px;
-        margin-right: 12px;        
+        margin-right: 16px;        
     }
 
     .nav-item {

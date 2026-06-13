@@ -70,6 +70,12 @@ const routes = [
     name: 'Card',
     component: () => import('@/views/Card.vue'),
     meta: { title: '卡密兑换' }
+  },
+  {
+    path: '/search',
+    name: 'Search',
+    component: () => import('@/views/Search.vue'),
+    meta: { title: '搜索' }
   }
 ]
 
