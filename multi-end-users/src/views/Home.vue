@@ -10,7 +10,9 @@
         <!-- 右侧内容区域 -->
         <div class="content-wrapper">
             <van-pull-refresh v-model="refreshing" @refresh="onRefresh">
-                <van-nav-bar title="影视系统" placeholder>
+                <van-nav-bar title="影视系统"
+                 style="margin-right: 12px;"
+                 placeholder>
                     <template #right>
                         <van-icon name="search" size="20" @click="goSearch" />
                     </template>
@@ -20,7 +22,7 @@
                     <van-loading>加载中...</van-loading>
                 </div>
 
-                <div v-else>
+                <div style="overflow: auto; height: calc(100vh - 46px);" v-else>
                     <div class="category-nav">
                         <div class="nav-item" @click="goCategory(1)">
                             <van-icon name="video" size="32" color="#1989fa" />
@@ -112,6 +114,10 @@
                             </div>
                         </div>
                     </div>
+
+                    <div class="section"
+                     style="padding-top: 16px;">
+                    </div>
                 </div>
             </van-pull-refresh>
         </div>
@@ -136,7 +142,6 @@ const active = ref('home')
 const activeSidebar = ref(0)  // 左侧导航当前选中索引
 const activeTab = ref('home')  // 底部导航当前选中
 const loading = ref(true)
-
 const banners = ref([])
 const hotMovies = ref([])
 const hotTvs = ref([])
@@ -263,6 +268,10 @@ onMounted(() => loadData())
     margin: 12px 16px;
     border-radius: 8px;
     overflow: hidden;
+    @media (min-width: 500px) {
+        margin: 12px 0;
+                margin-right: 12px;
+    }
 
     :deep(.van-swipe) {
         height: 180px;
@@ -303,6 +312,11 @@ onMounted(() => loadData())
     margin: 0 16px;
     border-radius: 8px;
     margin-top: 16px;
+    @media (min-width: 500px) {
+        margin: 0 0;
+        margin-top: 8px;
+        margin-right: 12px;        
+    }
 
     .nav-item {
         display: flex;
@@ -319,6 +333,13 @@ onMounted(() => loadData())
 
 .section-title {
     overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0 10px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #333;
 
     :deep(.van-swipe) {
         height: 180px;
@@ -349,39 +370,6 @@ onMounted(() => loadData())
             opacity: 1;
         }
     }
-}
-
-.category-nav {
-    display: flex;
-    justify-content: space-around;
-    padding: 20px 0;
-    background: white;
-    margin: 0 16px;
-    border-radius: 8px;
-    margin-top: 16px;
-
-    .nav-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 6px;
-
-        span {
-            font-size: 13px;
-            color: #333;
-        }
-    }
-}
-
-.section-title {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 16px 10px;
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-
     .more {
         font-size: 12px;
         font-weight: normal;
@@ -389,11 +377,12 @@ onMounted(() => loadData())
     }
 }
 
+
 .video-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    padding: 0 16px;
+    padding: 0 0;
 
     @media (min-width: 768px) {
         grid-template-columns: repeat(6, 1fr);

@@ -24,6 +24,10 @@ img {
 .page {
   min-height: 100vh;
   padding-bottom: 60px;
+  
+    @media (min-width: 500px) {
+      padding-bottom: 0;
+    }
 }
 
 .van-tabbar {
@@ -38,20 +42,9 @@ img {
 }
 
 .section {
-  padding: 16px;
-}
-
-.section-title {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.section-title .more {
-  color: #666;
-  font-size: 14px;
-  font-weight: normal;
+  padding: 16px; 
+    @media (min-width: 500px) {
+      padding: 0;
+      margin-right: 12px;
+    }
 }
