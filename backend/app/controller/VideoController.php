@@ -300,19 +300,25 @@ class VideoController extends BaseController
             $where[] = ['type', '=', $type];
         }
 
-        // 多字段模糊搜索：使用instr函数拼接字段后搜索，效率比多个LIKE OR更高
-        // 将需要搜索的字段拼接，使用coalesce函数处理null值，然后使用instr查找关键字
-        $searchExpr = "coalesce(title, '') || coalesce(subtitle, '') || coalesce(director, '') || coalesce(actors, '') || coalesce(release_year, '') || coalesce(description, '') || coalesce(tags, '')";
-        
-        // 使用raw查询构建instr条件
-        $list = Video::where($where)
-            ->whereRaw("instr({$searchExpr}, ?) > 0", [$keyword])
+        // 多字段模糊搜索：构建OR条件组
+        $searchFields = ['title', 'subtitle', 'director', 'actors', 'description', 'tags'];
+        $list = Video::where(function ($query) use ($keyword, $searchFields) {
+            foreach ($searchFields as $field) {
+                $query->whereOr($field, 'like', "%{$keyword}%");
+            }
+            // 年份精确匹配
+            $query->whereOr('release_year', $keyword);
+        })->where($where)
             ->order('play_count', 'desc')
             ->page($page, $limit)
             ->select();
 
-        $total = Video::where($where)
-            ->whereRaw("instr({$searchExpr}, ?) > 0", [$keyword])
+        $total = Video::where(function ($query) use ($keyword, $searchFields) {
+            foreach ($searchFields as $field) {
+                $query->whereOr($field, 'like', "%{$keyword}%");
+            }
+            $query->whereOr('release_year', $keyword);
+        })->where($where)
             ->count();
 
         return $this->success([
