@@ -248,14 +248,31 @@ INSERT OR IGNORE INTO `admins` (`username`, `password`, `nickname`, `status`) VA
 ('admin', '$2y$10$tbW9zP3Tc3ts9rAvNzwlh.kG9WRxUD4IW3rXDarUDLGJ3scNS0rW6', '管理员', 1);
 
 -- -----------------------------------------
--- 13. 软删除支持(为已删除的表添加deleted_at字段)
+-- 13. 管理员操作日志表
+-- -----------------------------------------
+CREATE TABLE IF NOT EXISTS `admin_logs` (
+    `id` INTEGER PRIMARY KEY AUTOINCREMENT,
+    `admin_id` INTEGER NOT NULL COMMENT '管理员ID',
+    `type` VARCHAR(50) DEFAULT NULL COMMENT '操作类型',
+    `detail` TEXT DEFAULT NULL COMMENT '操作详情',
+    `ip` VARCHAR(50) DEFAULT NULL COMMENT '操作IP',
+    `device_info` TEXT DEFAULT NULL COMMENT '设备信息(UA)',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS `idx_admin_logs_admin` ON `admin_logs`(`admin_id`);
+CREATE INDEX IF NOT EXISTS `idx_admin_logs_type` ON `admin_logs`(`type`);
+CREATE INDEX IF NOT EXISTS `idx_admin_logs_time` ON `admin_logs`(`created_at`);
+
+-- -----------------------------------------
+-- 14. 软删除支持(为已删除的表添加deleted_at字段)
 -- -----------------------------------------
 -- MySQL版本需要单独执行以下SQL添加软删除字段:
 -- ALTER TABLE `users` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL;
 -- ALTER TABLE `admins` ADD COLUMN `deleted_at` DATETIME DEFAULT NULL;
 
 -- -----------------------------------------
--- 14. 轮播图表
+-- 15. 轮播图表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `banners` (
     `id` INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -266,6 +283,7 @@ CREATE TABLE IF NOT EXISTS `banners` (
     `link_url` VARCHAR(500) DEFAULT NULL COMMENT '跳转链接(广告时使用)',
     `sort_order` INTEGER DEFAULT 100 COMMENT '排序',
     `status` TINYINT(1) DEFAULT 1 COMMENT '状态: 0禁用 1启用',
+    `expire_at` DATETIME DEFAULT NULL COMMENT '到期时间(广告时使用，NULL表示永不过期)',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP
 );
