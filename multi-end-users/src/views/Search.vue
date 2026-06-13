@@ -9,16 +9,19 @@
 
     <!-- 右侧内容区域 -->
     <div class="content-wrapper">
-      <van-nav-bar title="搜索" left-arrow @click-left="goBack" placeholder />
-
-      <div class="search-wrapper">
+      <div class="search-header">
+        <van-icon name="arrow-left" class="back-icon" @click="goBack" />
         <van-search
           v-model="keyword"
           placeholder="请输入关键词搜索"
-          show-action
+          :show-action="false"
           @search="onSearch"
-          @cancel="onCancel"
+          autofocus
         />
+        <span class="cancel-btn" @click="goBack">取消</span>
+      </div>
+
+      <div class="search-wrapper">
         
         <!-- 搜索结果 -->
         <div v-if="hasSearched" class="search-result">
@@ -124,10 +127,6 @@ const loadSearchResult = async (kw) => {
   loading.value = false
 }
 
-const onCancel = () => {
-  goBack()
-}
-
 const goBack = () => safeBack('/home')
 
 const goDetail = (id) => router.push(`/detail/${id}`)
@@ -195,6 +194,31 @@ onMounted(() => {
   min-height: 100vh;
   background: #f5f5f5;
   overflow-x: hidden;
+}
+
+.search-header {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 8px 0;
+  
+  .back-icon {
+    font-size: 20px;
+    padding: 0 12px;
+    color: #333;
+  }
+  
+  .van-search {
+    flex: 1;
+    padding: 0;
+  }
+  
+  .cancel-btn {
+    font-size: 14px;
+    color: #666;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
 }
 
 .sidebar-nav {
