@@ -156,6 +156,11 @@ const logout = () => {
     background: white;
     padding: 0 16px;
 
+    // 大屏幕时考虑左侧导航
+    @media (min-width: 500px) {
+        padding-left: 116px;
+    }
+
     .menu-item {
         display: flex;
         align-items: center;
@@ -198,7 +203,7 @@ const logout = () => {
   bottom: 0;
   width: 100px;
   background: white;
-  z-index: 999;
+  z-index: 9999;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   
   @media (min-width: 500px) {
