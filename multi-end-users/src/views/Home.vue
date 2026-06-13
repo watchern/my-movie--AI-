@@ -218,6 +218,10 @@ onMounted(() => loadData())
 }
 .nav-bar {
     margin-right: 16px;
+    
+    :deep(.van-nav-bar) {
+        height: 46px;
+    }
 }
 
 // 左侧导航（大屏幕 >= 500px）

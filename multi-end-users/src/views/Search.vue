@@ -200,11 +200,13 @@ onMounted(() => {
   display: flex;
   align-items: center;
   background: white;
-  padding: 8px 0;
+  height: 46px;
+  padding: 0 8px;
+  box-sizing: border-box;
   
   .back-icon {
     font-size: 20px;
-    padding: 0 12px;
+    padding: 0 8px;
     color: #333;
   }
   
@@ -216,7 +218,7 @@ onMounted(() => {
   .cancel-btn {
     font-size: 14px;
     color: #666;
-    padding: 0 12px;
+    padding: 0 8px;
     white-space: nowrap;
   }
 }
