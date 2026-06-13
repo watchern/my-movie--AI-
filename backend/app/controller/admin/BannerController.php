@@ -9,71 +9,86 @@ class BannerController extends BaseController
 {
     public function list()
     {
-        $page = $this->request->param('page', 1);
-        $limit = $this->request->param('limit', 20);
-        
-        $list = Banner::order('sort_order', 'asc')
-            ->order('created_at', 'desc')
-            ->page($page, $limit)
-            ->select();
-        
-        $total = Banner::count();
-        
-        foreach ($list as $item) {
-            if ($item->type == Banner::TYPE_VIDEO && $item->video) {
-                $item->video_title = $item->video->title;
-                $item->cover_url = $item->video->cover_url;
+        try {
+            $page = $this->request->param('page', 1);
+            $limit = $this->request->param('limit', 20);
+            
+            $list = Banner::order('sort_order', 'asc')
+                ->order('created_at', 'desc')
+                ->page($page, $limit)
+                ->select();
+            
+            $total = Banner::count();
+            
+            foreach ($list as $item) {
+                if ($item->type == Banner::TYPE_VIDEO && $item->video_id > 0) {
+                    $video = Video::find($item->video_id);
+                    if ($video) {
+                        $item->video_title = $video->title;
+                        $item->cover_url = $video->cover_url;
+                    }
+                }
             }
+            
+            return $this->success([
+                'list' => $list,
+                'total' => $total
+            ]);
+        } catch (\Exception $e) {
+            // 表不存在时返回空列表
+            return $this->success([
+                'list' => [],
+                'total' => 0
+            ]);
         }
-        
-        return $this->success([
-            'list' => $list,
-            'total' => $total
-        ]);
     }
 
     public function save()
     {
-        $data = $this->getData();
-        
-        $id = intval($data['id'] ?? 0);
-        $type = intval($data['type'] ?? Banner::TYPE_VIDEO);
-        $videoId = intval($data['video_id'] ?? 0);
-        $title = trim($data['title'] ?? '');
-        $imageUrl = trim($data['image_url'] ?? '');
-        $linkUrl = trim($data['link_url'] ?? '');
-        $sortOrder = intval($data['sort_order'] ?? 100);
-        $status = intval($data['status'] ?? Banner::STATUS_ENABLED);
-        
-        if ($type == Banner::TYPE_VIDEO && $videoId <= 0) {
-            return $this->error('请选择视频');
-        }
-        
-        if ($type == Banner::TYPE_AD && (empty($title) || empty($imageUrl))) {
-            return $this->error('广告标题和图片不能为空');
-        }
-        
-        if ($id > 0) {
-            $banner = Banner::find($id);
-            if (!$banner) {
-                return $this->error('轮播图不存在');
+        try {
+            $data = $this->getData();
+            
+            $id = intval($data['id'] ?? 0);
+            $type = intval($data['type'] ?? Banner::TYPE_VIDEO);
+            $videoId = intval($data['video_id'] ?? 0);
+            $title = trim($data['title'] ?? '');
+            $imageUrl = trim($data['image_url'] ?? '');
+            $linkUrl = trim($data['link_url'] ?? '');
+            $sortOrder = intval($data['sort_order'] ?? 100);
+            $status = intval($data['status'] ?? Banner::STATUS_ENABLED);
+            
+            if ($type == Banner::TYPE_VIDEO && $videoId <= 0) {
+                return $this->error('请选择视频');
             }
-        } else {
-            $banner = new Banner();
+            
+            if ($type == Banner::TYPE_AD && (empty($title) || empty($imageUrl))) {
+                return $this->error('广告标题和图片不能为空');
+            }
+            
+            if ($id > 0) {
+                $banner = Banner::find($id);
+                if (!$banner) {
+                    return $this->error('轮播图不存在');
+                }
+            } else {
+                $banner = new Banner();
+            }
+            
+            $banner->type = $type;
+            $banner->video_id = $videoId;
+            $banner->title = $title;
+            $banner->image_url = $imageUrl;
+            $banner->link_url = $linkUrl;
+            $banner->sort_order = $sortOrder;
+            $banner->status = $status;
+            $banner->save();
+            
+            $this->limitCount();
+            
+            return $this->success('保存成功');
+        } catch (\Exception $e) {
+            return $this->error('保存失败：' . $e->getMessage());
         }
-        
-        $banner->type = $type;
-        $banner->video_id = $videoId;
-        $banner->title = $title;
-        $banner->image_url = $imageUrl;
-        $banner->link_url = $linkUrl;
-        $banner->sort_order = $sortOrder;
-        $banner->status = $status;
-        $banner->save();
-        
-        $this->limitCount();
-        
-        return $this->success('保存成功');
     }
 
     public function delete()

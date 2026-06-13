@@ -50,9 +50,10 @@
                                 >{{ row.is_show ? '显示' : '隐藏' }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="200" resizable>
+                        <el-table-column label="操作" width="240" resizable>
                             <template #default="{ row }">
                                 <el-button link type="primary" @click="edit(row)">编辑</el-button>
+                                <el-button link type="success" @click="addToBanner(row)">添加轮播</el-button>
                                 <el-button link type="danger" @click="del(row.id)">删除</el-button>
                             </template>
                         </el-table-column>
@@ -420,6 +421,25 @@ const add = () => {
     isEdit.value = false
     form.value = initForm()
     showDialog.value = true
+}
+
+const addToBanner = async (row) => {
+    try {
+        await ElMessageBox.confirm(
+            `确定将"${row.title}"添加到轮播图吗？`,
+            '添加轮播图',
+            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'info' }
+        )
+        await post('/banner/save', {
+            type: 1,
+            video_id: row.id,
+            sort_order: 100,
+            status: 1
+        })
+        ElMessage.success('已添加到轮播图')
+    } catch (e) {
+        // 用户取消
+    }
 }
 
 onMounted(() => {
