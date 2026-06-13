@@ -130,7 +130,13 @@
                 </el-form-item>
 
                 <el-form-item label="状态">
-                    <el-switch v-model="form.status" />
+                    <el-switch 
+                        v-model="form.status" 
+                        :active-value="1" 
+                        :inactive-value="0"
+                        active-text="启用"
+                        inactive-text="禁用"
+                    />
                 </el-form-item>
             </el-form>
             <template #footer>
