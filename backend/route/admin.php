@@ -5,7 +5,7 @@ use app\controller\admin\DashboardController;
 use app\controller\admin\UserController;
 use app\controller\admin\VideoController;
 use app\controller\admin\ConfigController;
-use app\controller\admin\AdminController;
+use app\controller\admin\BannerController;
 
 // 管理端API路由
 Route::group('admin/api', function () {
@@ -64,5 +64,14 @@ Route::group('admin/api', function () {
 
     // 仪表盘统计
     Route::get('dashboard/stats', [DashboardController::class, 'stats']);
+
+    // 轮播图管理
+    Route::get('banner/list', [BannerController::class, 'list']);
+    Route::post('banner/save', [BannerController::class, 'save']);
+    Route::post('banner/delete', [BannerController::class, 'delete']);
+    Route::post('banner/updateStatus', [BannerController::class, 'updateStatus']);
+    Route::get('banner/up/:id', [BannerController::class, 'up']);
+    Route::get('banner/down/:id', [BannerController::class, 'down']);
+    Route::get('banner/videoOptions', [BannerController::class, 'getVideoOptions']);
 
 })->allowCrossDomain();

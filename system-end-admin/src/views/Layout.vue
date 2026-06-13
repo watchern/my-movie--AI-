@@ -8,6 +8,7 @@
         <el-sub-menu index="content">
           <template #title><el-icon><VideoCamera /></el-icon>内容管理</template>
           <el-menu-item index="/video">视频管理</el-menu-item>
+          <el-menu-item index="/banner">轮播图管理</el-menu-item>
           <el-menu-item index="/collect">资源采集</el-menu-item>
         </el-sub-menu>
 

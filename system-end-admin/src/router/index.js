@@ -57,6 +57,10 @@ const routes = [
       {
         path: 'adminManager',
         component: () => import('@/views/AdminManager.vue')
+      },
+      {
+        path: 'banner',
+        component: () => import('@/views/Banner.vue')
       }
     ]
   }

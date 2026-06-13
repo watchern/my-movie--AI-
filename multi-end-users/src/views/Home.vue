@@ -37,7 +37,7 @@
 
                 <div class="banner-section">
                     <van-swipe :autoplay="3000" indicator-color="white" :height="180" loop>
-                        <van-swipe-item v-for="item in banners" :key="item.id" @click="goDetail(item.id)">
+                        <van-swipe-item v-for="item in banners" :key="item.id" @click="handleBannerClick(item)">
                             <img :src="item.cover_url" :alt="item.title" />
                         </van-swipe-item>
                     </van-swipe>
@@ -153,6 +153,14 @@ const goDetail = (id) => router.push(`/detail/${id}`)
 const goCategory = (type) => router.push(`/category/${type}`)
 const goSearch = () => {
     console.log('search')
+}
+
+const handleBannerClick = (item) => {
+    if (item.type === 'ad' && item.link_url) {
+        window.open(item.link_url, '_blank')
+    } else {
+        goDetail(item.id)
+    }
 }
 
 const formatCount = (count) => {

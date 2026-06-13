@@ -17,12 +17,8 @@ class VideoController extends BaseController
      */
     public function home()
     {
-        // 轮播图（最新最热影视）
-        $banners = Video::where('is_show', 1)
-            ->order('play_count', 'desc')
-            ->order('created_at', 'desc')
-            ->limit(5)
-            ->select();
+        // 轮播图（从banners表获取）
+        $banners = $this->getBanners();
 
         // 热门电影
         $hotMovies = Video::where('is_show', 1)
@@ -53,12 +49,75 @@ class VideoController extends BaseController
             ->select();
 
         return $this->success([
-            'banners' => $this->formatVideoList($banners),
+            'banners' => $banners,
             'hot_movies' => $this->formatVideoList($hotMovies),
             'hot_tvs' => $this->formatVideoList($hotTvs),
             'hot_animes' => $this->formatVideoList($hotAnimes),
             'hot_shorts' => $this->formatVideoList($hotShorts),
         ]);
+    }
+
+    /**
+     * 获取轮播图数据
+     */
+    private function getBanners()
+    {
+        // 首先尝试从banners表获取
+        if (class_exists('app\model\Banner')) {
+            try {
+                $bannerList = \app\model\Banner::where('status', 1)
+                    ->order('sort_order', 'asc')
+                    ->limit(5)
+                    ->select();
+                
+                if ($bannerList && count($bannerList) > 0) {
+                    $result = [];
+                    foreach ($bannerList as $banner) {
+                        if ($banner->type == 1 && $banner->video) {
+                            // 视频类型
+                            $result[] = [
+                                'id' => $banner->video->id,
+                                'title' => $banner->video->title,
+                                'cover_url' => $banner->video->cover_url,
+                                'type' => 'video',
+                                'link_url' => null
+                            ];
+                        } else if ($banner->type == 2) {
+                            // 广告类型
+                            $result[] = [
+                                'id' => $banner->id,
+                                'title' => $banner->title,
+                                'cover_url' => $banner->image_url,
+                                'type' => 'ad',
+                                'link_url' => $banner->link_url
+                            ];
+                        }
+                    }
+                    return $result;
+                }
+            } catch (\Exception $e) {
+                // 表不存在时回退到旧逻辑
+            }
+        }
+
+        // 回退：从视频表获取最新最热的5个视频
+        $banners = Video::where('is_show', 1)
+            ->order('play_count', 'desc')
+            ->order('created_at', 'desc')
+            ->limit(5)
+            ->select();
+        
+        $result = [];
+        foreach ($banners as $banner) {
+            $result[] = [
+                'id' => $banner->id,
+                'title' => $banner->title,
+                'cover_url' => $banner->cover_url,
+                'type' => 'video',
+                'link_url' => null
+            ];
+        }
+        return $result;
     }
 
     /**
