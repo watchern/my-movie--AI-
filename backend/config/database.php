@@ -4,7 +4,7 @@ use think\facade\Env;
 // 数据库配置
 return [
     // 默认数据库连接
-    'default' => Env::get('DATABASE_TYPE', 'mysql'),
+    'default' => Env::get('database.type', 'sqlite'),
 
     // 数据库连接信息
     'connections' => [
@@ -28,7 +28,7 @@ return [
         ],
         'sqlite' => [
             'type' => 'sqlite',
-            'database' => Env::get('DATABASE_SQLITE_PATH', dirname(__DIR__) . '/database/database.sqlite'),
+            'database' => Env::get('database.sqlite_path', dirname(__DIR__, 2) . '/database/movie.db'),
             'prefix' => Env::get('database_prefix', ''),
             'charset' => 'utf8',
         ],
