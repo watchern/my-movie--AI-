@@ -300,24 +300,19 @@ class VideoController extends BaseController
             $where[] = ['type', '=', $type];
         }
 
-        // 多字段模糊搜索：标题、副标题、导演、演员、年份、简介、标签
-        $searchFields = ['title', 'subtitle', 'director', 'actors', 'release_year', 'description', 'tags'];
+        // 多字段模糊搜索：使用instr函数拼接字段后搜索，效率比多个LIKE OR更高
+        // 将需要搜索的字段拼接，使用coalesce函数处理null值，然后使用instr查找关键字
+        $searchExpr = "coalesce(title, '') || coalesce(subtitle, '') || coalesce(director, '') || coalesce(actors, '') || coalesce(release_year, '') || coalesce(description, '') || coalesce(tags, '')";
         
-        // 构建OR条件组
-        $searchWhere = function ($query) use ($keyword, $searchFields) {
-            foreach ($searchFields as $field) {
-                $query->whereOr($field, 'like', "%{$keyword}%");
-            }
-        };
-
+        // 使用raw查询构建instr条件
         $list = Video::where($where)
-            ->where($searchWhere)
+            ->whereRaw("instr({$searchExpr}, ?) > 0", [$keyword])
             ->order('play_count', 'desc')
             ->page($page, $limit)
             ->select();
 
         $total = Video::where($where)
-            ->where($searchWhere)
+            ->whereRaw("instr({$searchExpr}, ?) > 0", [$keyword])
             ->count();
 
         return $this->success([
