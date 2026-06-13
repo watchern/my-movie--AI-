@@ -47,14 +47,12 @@
                         <span v-else style="color: #999;">暂无图片</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="排序" width="80" resizable>
+                <el-table-column label="排序" width="100" resizable>
                     <template #default="{ row }">
-                        <el-input-number 
+                        <el-input 
                             v-model="row.sort_order" 
-                            :min="0" 
-                            :max="999"
+                            placeholder="排序"
                             @change="handleSortChange(row)"
-                            style="width: 80px;"
                         />
                     </template>
                 </el-table-column>
@@ -242,7 +240,8 @@ const toggleStatus = (row) => {
 }
 
 const handleSortChange = async (row) => {
-    await post('/banner/save', { id: row.id, sort_order: row.sort_order })
+    const sortOrder = parseInt(row.sort_order) || 0
+    await post('/banner/save', { id: row.id, sort_order: sortOrder })
     ElMessage.success('排序已更新')
     loadList()
 }
