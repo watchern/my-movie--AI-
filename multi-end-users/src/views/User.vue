@@ -35,12 +35,20 @@
             </div>
         </div>
 
-        <van-tabbar v-model="active" @change="onTabChange">
-            <van-tabbar-item name="home" icon="home-o">首页</van-tabbar-item>
-            <van-tabbar-item name="rank" icon="chart-trending-o">排行榜</van-tabbar-item>
-            <van-tabbar-item name="user" icon="user-o">我的</van-tabbar-item>
-        </van-tabbar>
-    </div>
+    <!-- 左侧导航（大屏幕 >= 500px） -->
+    <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
+      <van-sidebar-item title="首页" />
+      <van-sidebar-item title="排行榜" />
+      <van-sidebar-item title="我的" />
+    </van-sidebar>
+
+    <!-- 底部导航（小屏幕 < 500px） -->
+    <van-tabbar v-model="activeTab" class="bottom-tabbar" @change="onTabChange">
+      <van-tabbar-item name="home" icon="home-o">首页</van-tabbar-item>
+      <van-tabbar-item name="rank" icon="chart-trending-o">排行榜</van-tabbar-item>
+      <van-tabbar-item name="user" icon="user-o">我的</van-tabbar-item>
+    </van-tabbar>
+  </div>
 </template>
 
 <script setup>
@@ -52,6 +60,8 @@ import { showConfirmDialog, showToast } from 'vant'
 const router = useRouter()
 const userStore = useUserStore()
 const active = ref('user')
+const activeSidebar = ref(2)  // 左侧导航当前选中索引（我的=2）
+const activeTab = ref('user')  // 底部导航当前选中
 
 // 检查登录状态，未登录则弹出提示
 const checkLogin = () => {
@@ -77,8 +87,16 @@ const goCard = () => {
 }
 
 const onTabChange = (name) => {
+    activeSidebar.value = name === 'home' ? 0 : name === 'rank' ? 1 : 2
     if (name === 'home') router.push('/home')
     else if (name === 'rank') router.push('/rank')
+}
+
+// 左侧导航切换
+const onSidebarChange = (index) => {
+    activeTab.value = index === 0 ? 'home' : index === 1 ? 'rank' : 'user'
+    if (index === 0) router.push('/home')
+    else if (index === 1) router.push('/rank')
 }
 
 const logout = () => {
@@ -93,12 +111,21 @@ const logout = () => {
 </script>
 
 <style lang="scss" scoped>
+.page {
+  position: relative;
+}
+
 .user-header {
     display: flex;
     gap: 16px;
     align-items: center;
     padding: 20px 16px;
     background: white;
+    
+    // 大屏幕时考虑左侧导航
+    @media (min-width: 500px) {
+        padding-left: 116px;
+    }
 
     .avatar {
         width: 72px;
@@ -151,5 +178,41 @@ const logout = () => {
             margin-right: 0;
         }
     }
+}
+
+// 底部导航（小屏幕 < 500px）
+.bottom-tabbar {
+  display: none;
+  
+  @media (max-width: 499px) {
+    display: flex;
+  }
+}
+
+// 左侧导航（大屏幕 >= 500px）
+.sidebar-nav {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 46px;
+  bottom: 0;
+  width: 100px;
+  background: white;
+  z-index: 99;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  
+  @media (min-width: 500px) {
+    display: block;
+  }
+  
+  :deep(.van-sidebar-item) {
+    padding: 20px 12px;
+    font-size: 14px;
+    
+    &.van-sidebar-item--select {
+      color: #1989fa;
+      font-weight: 500;
+    }
+  }
 }
 </style>
