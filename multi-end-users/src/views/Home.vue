@@ -196,6 +196,8 @@ onMounted(() => loadData())
 .page {
     display: flex;
     min-height: 100vh;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 // 右侧内容区域
@@ -203,6 +205,7 @@ onMounted(() => loadData())
     flex: 1;
     min-height: 100vh;
     background: #f5f5f5;
+    overflow-x: hidden;
 }
 
 // 左侧导航（大屏幕 >= 500px）

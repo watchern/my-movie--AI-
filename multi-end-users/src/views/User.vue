@@ -117,6 +117,8 @@ const logout = () => {
 .page {
     display: flex;
     min-height: 100vh;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 // 右侧内容区域
@@ -124,6 +126,7 @@ const logout = () => {
     flex: 1;
     min-height: 100vh;
     background: #f5f5f5;
+    overflow-x: hidden;
 }
 
 .user-header {
