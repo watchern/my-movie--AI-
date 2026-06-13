@@ -68,7 +68,7 @@
                         </el-tooltip>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="280" resizable>
+                <el-table-column label="操作" width="160" resizable>
                     <template #default="{ row }">
                         <el-button link type="primary" @click="editVip(row)">VIP设置</el-button>
                         <el-button link type="warning" @click="resetPwd(row)">重置密码</el-button>
