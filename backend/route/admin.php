@@ -1,5 +1,6 @@
 <?php
 use think\facade\Route;
+use app\controller\admin\AdminController;
 use app\controller\admin\LoginController;
 use app\controller\admin\DashboardController;
 use app\controller\admin\UserController;

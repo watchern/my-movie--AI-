@@ -5,14 +5,13 @@ install.lock
 .env
 .env.local
 .env.*.local
+database/*.db
 database/*.sqlite
 database/*.sqlite3
 backend/runtime
 backend/public/test*.php
 backend/public/test_*.php
 *.lock
-*.sqlite
-*.sqlite3
 pnpm-lock.yaml
 yarn.lock
 package-lock.json
