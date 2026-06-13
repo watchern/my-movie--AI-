@@ -221,7 +221,9 @@ onMounted(() => loadData())
     }
     
     :deep(.van-sidebar-item) {
-        padding: 20px 12px;
+        height: 46px;
+        line-height: 46px;
+        padding: 0 12px;
         font-size: 14px;
         
         &.van-sidebar-item--select {
