@@ -301,7 +301,7 @@ class VideoController extends BaseController
         }
 
         // 多字段模糊搜索：构建OR条件组
-        $searchFields = ['title', 'subtitle', 'director', 'actors', 'description', 'tags'];
+        $searchFields = ['title', 'director', 'description'];
         $list = Video::where(function ($query) use ($keyword, $searchFields) {
             foreach ($searchFields as $field) {
                 $query->whereOr($field, 'like', "%{$keyword}%");
@@ -313,10 +313,10 @@ class VideoController extends BaseController
             ->page($page, $limit)
             ->select();
 
-        $total = Video::where(function ($query) use ($keyword, $searchFields) {
-            foreach ($searchFields as $field) {
-                $query->whereOr($field, 'like', "%{$keyword}%");
-            }
+        $total = Video::where(function ($query) use ($keyword) {
+            $query->whereOr('title', 'like', "%{$keyword}%");
+            $query->whereOr('director', 'like', "%{$keyword}%");
+            $query->whereOr('description', 'like', "%{$keyword}%");
             $query->whereOr('release_year', $keyword);
         })->where($where)
             ->count();
