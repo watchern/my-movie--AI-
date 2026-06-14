@@ -75,12 +75,20 @@
                         <span v-else style="color: #999;">-</span>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="200" resizable>
+                <el-table-column label="操作" width="150" resizable>
                     <template #default="{ row }">
-                        <el-button link type="primary" @click="moveUp(row)">上移</el-button>
-                        <el-button link type="primary" @click="moveDown(row)">下移</el-button>
-                        <el-button link type="warning" @click="edit(row)">编辑</el-button>
-                        <el-button link type="danger" @click="del(row.id)">删除</el-button>
+                        <el-tooltip content="上移" placement="top">
+                            <el-button link type="primary" @click="moveUp(row)"><el-icon><Top /></el-icon></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="下移" placement="top">
+                            <el-button link type="primary" @click="moveDown(row)"><el-icon><Bottom /></el-icon></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="编辑" placement="top">
+                            <el-button link type="warning" @click="edit(row)"><el-icon><Edit /></el-icon></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                            <el-button link type="danger" @click="del(row.id)"><el-icon><Delete /></el-icon></el-button>
+                        </el-tooltip>
                     </template>
                 </el-table-column>
             </el-table>
@@ -176,6 +184,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { Top, Bottom, Edit, Delete } from '@element-plus/icons-vue'
 
 const query = ref({ page: 1, limit: 20 })
 const list = ref([])

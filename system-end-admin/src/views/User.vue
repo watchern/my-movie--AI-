@@ -68,10 +68,14 @@
                         </el-tooltip>
                     </template>
                 </el-table-column>
-                <el-table-column label="操作" width="160" resizable>
+                <el-table-column label="操作" width="100" resizable>
                     <template #default="{ row }">
-                        <el-button link type="primary" @click="editVip(row)">VIP设置</el-button>
-                        <el-button link type="warning" @click="resetPwd(row)">重置密码</el-button>
+                        <el-tooltip content="VIP设置" placement="top">
+                            <el-button link type="primary" @click="editVip(row)"><el-icon><Star /></el-icon></el-button>
+                        </el-tooltip>
+                        <el-tooltip content="重置密码" placement="top">
+                            <el-button link type="warning" @click="resetPwd(row)"><el-icon><Key /></el-icon></el-button>
+                        </el-tooltip>
                     </template>
                 </el-table-column>
             </el-table>
@@ -133,6 +137,7 @@
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Star, Key } from '@element-plus/icons-vue'
 
 const query = ref({ page: 1, limit: 20, keyword: '', vip_status: '' })
 const list = ref([])

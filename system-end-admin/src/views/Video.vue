@@ -50,11 +50,17 @@
                                 >{{ row.is_show ? '显示' : '隐藏' }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="240" resizable>
+                        <el-table-column label="操作" width="150" resizable>
                             <template #default="{ row }">
-                                <el-button link type="primary" @click="edit(row)">编辑</el-button>
-                                <el-button link type="success" @click="addToBanner(row)">添加轮播</el-button>
-                                <el-button link type="danger" @click="del(row.id)">删除</el-button>
+                                <el-tooltip content="编辑" placement="top">
+                                    <el-button link type="primary" @click="edit(row)"><el-icon><Edit /></el-icon></el-button>
+                                </el-tooltip>
+                                <el-tooltip content="添加轮播" placement="top">
+                                    <el-button link type="success" @click="addToBanner(row)"><el-icon><Picture /></el-icon></el-button>
+                                </el-tooltip>
+                                <el-tooltip content="删除" placement="top">
+                                    <el-button link type="danger" @click="del(row.id)"><el-icon><Delete /></el-icon></el-button>
+                                </el-tooltip>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -92,10 +98,14 @@
                             </template>
                         </el-table-column>
                         <el-table-column prop="sort_order" label="排序" width="80" resizable />
-                        <el-table-column label="操作" width="150" resizable>
+                        <el-table-column label="操作" width="100" resizable>
                             <template #default="{ row }">
-                                <el-button link type="primary" @click="editCategory(row)">编辑</el-button>
-                                <el-button link type="danger" @click="deleteCategory(row)">删除</el-button>
+                                <el-tooltip content="编辑" placement="top">
+                                    <el-button link type="primary" @click="editCategory(row)"><el-icon><Edit /></el-icon></el-button>
+                                </el-tooltip>
+                                <el-tooltip content="删除" placement="top">
+                                    <el-button link type="danger" @click="deleteCategory(row)"><el-icon><Delete /></el-icon></el-button>
+                                </el-tooltip>
                             </template>
                         </el-table-column>
                     </el-table>
@@ -257,6 +267,7 @@
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { Edit, Delete, Picture } from '@element-plus/icons-vue'
 
 const activeTab = ref('video')
 
