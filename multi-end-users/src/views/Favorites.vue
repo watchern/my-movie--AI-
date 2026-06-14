@@ -6,10 +6,12 @@
       <van-loading>加载中...</van-loading>
     </div>
     <div v-else>
-      <div v-if="list.length" class="grid">
+      <div v-if="list.length" class="list">
         <div v-for="item in list" :key="item.id" class="item" @click="goDetail(item.video_id)">
           <img :src="item.cover" :alt="item.title" />
-          <div class="title">{{ item.title }}</div>
+          <div class="info">
+            <div class="title">{{ item.title }}</div>
+          </div>
         </div>
       </div>
       <div v-else class="empty">
@@ -66,28 +68,37 @@ onMounted(() => {
   padding-top: 20px;
 }
 
-.grid {
+.list {
   padding: 12px 16px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
 }
 
 .item {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+
   img {
     width: 100%;
-    aspect-ratio: 3/4;
+    aspect-ratio: 2/3;
     object-fit: cover;
-    border-radius: 6px;
   }
 
-  .title {
-    margin-top: 6px;
-    font-size: 14px;
-    color: #333;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .info {
+    padding: 8px;
+
+    .title {
+      font-size: 14px;
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 }
 
