@@ -38,6 +38,20 @@
           </div>
         </div>
 
+        <!-- 资源站切换 -->
+        <div class="source-site-section" v-if="sourceSites.length > 1">
+          <div class="section-title">资源站</div>
+          <div class="source-site-list">
+            <div
+              v-for="site in sourceSites"
+              :key="site.id"
+              class="source-site-item"
+              :class="{ active: site.id === currentSourceSite?.id }"
+              @click="switchSourceSite(site)"
+            >{{ site.name }} ({{ site.episode_count }})</div>
+          </div>
+        </div>
+
         <!-- 选集列表 -->
         <div class="episode-section" v-if="episodes.length">
           <div class="section-title">选集</div>
@@ -95,6 +109,8 @@ const quickLoginRef = ref(null)
 
 const videoRef = ref(null)
 const detail = ref({})
+const sourceSites = ref([])
+const currentSourceSite = ref(null)
 const episodes = ref([])
 const currentSource = ref(null)
 const isFavorited = ref(false)
@@ -113,6 +129,8 @@ const loadDetail = async () => {
     }
     const res = await get('/video/detail', params)
     detail.value = res.data || {}
+    sourceSites.value = res.data?.source_sites || []
+    currentSourceSite.value = res.data?.current_source_site || null
     episodes.value = res.data?.episodes || []
     isFavorited.value = res.data?.is_favorited || false
     
@@ -128,6 +146,28 @@ const loadDetail = async () => {
     console.error(e)
   } finally {
     loading.value = false
+  }
+}
+
+// 切换资源站
+const switchSourceSite = async (site) => {
+  if (site.id === currentSourceSite.value?.id) return
+  
+  currentSourceSite.value = site
+  currentSource.value = null
+  
+  // 加载该资源站的剧集
+  try {
+    const res = await get('/video/detail', {
+      id: detail.value.id,
+      source_site_id: site.id
+    })
+    episodes.value = res.data?.episodes || []
+    if (episodes.value.length > 0) {
+      selectSource(episodes.value[0])
+    }
+  } catch (e) {
+    console.error('切换资源站失败', e)
   }
 }
 
@@ -330,6 +370,39 @@ onMounted(() => loadDetail())
         border-radius: 6px;
         text-align: center;
         font-size: 13px;
+        color: #333;
+        cursor: pointer;
+
+        &.active {
+          background: #1989fa;
+          color: white;
+        }
+      }
+    }
+  }
+
+  .source-site-section {
+    margin-top: 12px;
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .source-site-list {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+
+      .source-site-item {
+        padding: 8px 16px;
+        background: #f5f5f5;
+        border-radius: 6px;
+        font-size: 14px;
         color: #333;
         cursor: pointer;
 

@@ -181,6 +181,7 @@ class VideoController extends BaseController
     {
         $id = intval($this->request->param('id', 0));
         $episodeId = intval($this->request->param('episode_id', 0));
+        $sourceSiteId = intval($this->request->param('source_site_id', 0));
 
         if ($id <= 0 && $episodeId <= 0) {
             return $this->error('参数错误');
@@ -191,12 +192,13 @@ class VideoController extends BaseController
             // 通过剧集找视频
             $source = VideoSource::find($episodeId);
             if ($source) {
-                $video = Video::with(['category', 'episodes'])->find($source->video_id);
+                $video = Video::with(['category'])->find($source->video_id);
+                $sourceSiteId = $source->source_site_id; // 记住该剧集所属的资源站
             }
         }
         if (!$video && $id > 0) {
             // 直接通过视频ID找
-            $video = Video::with(['category', 'episodes'])->find($id);
+            $video = Video::with(['category'])->find($id);
         }
 
         if (!$video || $video->is_show != 1) {
@@ -215,6 +217,28 @@ class VideoController extends BaseController
                 $user = User::find($userId);
                 $isVip = $user && $user->isVipValid();
             }
+        }
+
+        // 获取该视频有剧集的资源站列表
+        $sourceSites = $this->getVideoSourceSites($video->id);
+
+        // 获取当前资源站的剧集（如果没有指定，取第一个有剧集的资源站）
+        $currentSourceSite = null;
+        $episodes = [];
+        
+        if (count($sourceSites) > 0) {
+            if ($sourceSiteId > 0) {
+                $currentSourceSite = collect($sourceSites)->firstWhere('id', $sourceSiteId);
+            }
+            if (!$currentSourceSite) {
+                $currentSourceSite = $sourceSites[0];
+            }
+            $episodes = VideoSource::where('video_id', $video->id)
+                ->where('source_site_id', $currentSourceSite['id'])
+                ->where('status', 1)
+                ->order('sort_order', 'asc')
+                ->select()
+                ->toArray();
         }
 
         return $this->success([
@@ -240,10 +264,49 @@ class VideoController extends BaseController
                 'id' => $video->category->id,
                 'name' => $video->category->name,
             ] : null,
-            'episodes' => $video->episodes ? $video->episodes->toArray() : [],
+            'source_sites' => $sourceSites,
+            'current_source_site' => $currentSourceSite,
+            'episodes' => $episodes,
             'current_episode_id' => $episodeId > 0 ? $episodeId : null,
             'created_at' => $video->created_at,
         ]);
+    }
+
+    /**
+     * 获取视频有剧集的资源站列表
+     */
+    private function getVideoSourceSites($videoId)
+    {
+        // 查询该视频有剧集的资源站
+        $siteIds = VideoSource::where('video_id', $videoId)
+            ->where('status', 1)
+            ->column('source_site_id');
+        
+        if (empty($siteIds)) {
+            return [];
+        }
+
+        // 获取资源站信息
+        $sites = \app\model\SourceSite::whereIn('id', $siteIds)
+            ->where('status', 1)
+            ->select();
+        
+        $result = [];
+        foreach ($sites as $site) {
+            $episodeCount = VideoSource::where('video_id', $videoId)
+                ->where('source_site_id', $site->id)
+                ->where('status', 1)
+                ->count();
+            if ($episodeCount > 0) {
+                $result[] = [
+                    'id' => $site->id,
+                    'name' => $site->name,
+                    'episode_count' => $episodeCount,
+                ];
+            }
+        }
+        
+        return $result;
     }
 
     /**
