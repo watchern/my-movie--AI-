@@ -291,6 +291,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->exec("USE `{$database}`");
             }
 
+            // 确保 database 目录存在
+            if (!is_dir(DATABASE_PATH)) {
+                mkdir(DATABASE_PATH, 0755, true);
+            }
+
             // 读取并处理 SQL 文件
             $sql_file = DATABASE_PATH . 'init.sql';
             if (!file_exists($sql_file)) {

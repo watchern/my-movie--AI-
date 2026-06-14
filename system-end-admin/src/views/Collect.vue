@@ -2,68 +2,292 @@
   <div>
     <el-card>
       <template #header>
-        资源采集配置
+        <div class="header">
+          <span>资源站点管理</span>
+          <el-button type="primary" @click="showAddDialog = true">添加站点</el-button>
+        </div>
       </template>
-      <el-form :model="form" label-width="120px">
-        <el-form-item label="苹果CMS接口">
-          <el-input v-model="form.api_url" style="width: 500px" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="test">测试连接</el-button>
-        </el-form-item>
-      </el-form>
+      
+      <el-table :data="list" border stripe>
+        <el-table-column prop="id" label="ID" width="80" resizable />
+        <el-table-column prop="name" label="站点名称" min-width="120" resizable />
+        <el-table-column prop="api_url" label="接口地址" min-width="250" resizable show-overflow-tooltip />
+        <el-table-column prop="site_type" label="类型" width="100" resizable>
+          <template #default="{ row }">
+            {{ siteTypeOptions[row.site_type] || '苹果CMS' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="状态" width="80" resizable>
+          <template #default="{ row }">
+            <el-tag :type="row.status ? 'success' : 'info'" size="small">
+              {{ row.status ? '启用' : '禁用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" resizable>
+          <template #default="{ row }">
+            <el-tooltip content="编辑" placement="top">
+              <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
+            </el-tooltip>
+            <el-tooltip content="测试连接" placement="top">
+              <el-button link type="success" @click="testConnection(row)"><el-icon><Connection /></el-icon></el-button>
+            </el-tooltip>
+            <el-tooltip :content="row.status ? '禁用' : '启用'" placement="top">
+              <el-button link type="warning" @click="toggleStatus(row)"><el-icon><Switch /></el-icon></el-button>
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <el-button link type="danger" @click="handleDelete(row)"><el-icon><Delete /></el-icon></el-button>
+            </el-tooltip>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-card>
 
     <el-card style="margin-top: 20px">
       <template #header>
         <div class="header">
-          采集任务
-          <el-button type="primary" @click="startCollect">开始采集</el-button>
+          <span>采集任务</span>
+          <el-button type="primary" @click="startCollectAll">采集全部</el-button>
         </div>
       </template>
-      <el-table :data="list" border>
-        <el-table-column prop="title" label="资源站名称" resizable />
-        <el-table-column prop="status" label="状态" resizable>
+      
+      <el-alert
+        title="勾选要采集的站点，然后点击"采集全部"开始采集"
+        type="info"
+        :closable="false"
+        style="margin-bottom: 15px;"
+      />
+
+      <el-table :data="list.filter(item => item.status)" border stripe>
+        <el-table-column width="50" resizable>
           <template #default="{ row }">
-            <el-tag :type="row.status === 'running' ? 'warning' : 'success'">
-              {{ row.status === 'running' ? '采集中' : '完成' }}
+            <el-checkbox v-model="row.selected" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="站点名称" min-width="120" resizable />
+        <el-table-column prop="status" label="状态" width="80" resizable>
+          <template #default="{ row }">
+            <el-tag :type="row.collect_status === 'running' ? 'warning' : 'success'" size="small">
+              {{ row.collect_status === 'running' ? '采集中' : '就绪' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column prop="total" label="总数" width="80" resizable />
-        <el-table-column prop="progress" label="进度" width="120" resizable>
+        <el-table-column prop="progress" label="进度" width="150" resizable>
           <template #default="{ row }">
             <el-progress :percentage="row.percent || 0" :stroke-width="8" />
           </template>
         </el-table-column>
+        <el-table-column label="操作" width="100" resizable>
+          <template #default="{ row }">
+            <el-button 
+              type="primary" 
+              size="small" 
+              :loading="row.collect_status === 'running'"
+              @click="startCollect(row)"
+            >
+              {{ row.collect_status === 'running' ? '采集中' : '开始采集' }}
+            </el-button>
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
+
+    <!-- 添加/编辑对话框 -->
+    <el-dialog 
+      v-model="showAddDialog" 
+      :title="isEdit ? '编辑站点' : '添加站点'" 
+      width="500px"
+    >
+      <el-form :model="form" label-width="100px">
+        <el-form-item label="站点名称" required>
+          <el-input v-model="form.name" placeholder="如：资源站A" />
+        </el-form-item>
+        <el-form-item label="接口地址" required>
+          <el-input v-model="form.api_url" placeholder="如：http://xxx.com/api.php" />
+        </el-form-item>
+        <el-form-item label="站点类型">
+          <el-select v-model="form.site_type" style="width: 100%">
+            <el-option :value="1" label="苹果CMS" />
+            <el-option :value="2" label="其他类型" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="状态">
+          <el-switch v-model="form.status" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showAddDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveSite">保存</el-button>
+        <el-button type="success" @click="testConnection(form)">测试连接</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Edit, Delete, Connection, Switch } from '@element-plus/icons-vue'
 
-const form = ref({ api_url: '' })
 const list = ref([])
+const showAddDialog = ref(false)
+const isEdit = ref(false)
+const form = ref({
+  id: 0,
+  name: '',
+  api_url: '',
+  site_type: 1,
+  status: true,
+  selected: false,
+  collect_status: '',
+  total: 0,
+  percent: 0,
+})
 
-const test = async () => {
-  try {
-    await post('/collect/test', { api_url: form.value.api_url })
-    ElMessage.success('连接成功')
-  } catch (e) {}
-}
-
-const startCollect = async () => {
-  ElMessage.success('已开始采集，请稍后刷新查看')
-  await post('/collect/start', { api_url: form.value.api_url })
-  loadList()
+const siteTypeOptions = {
+  1: '苹果CMS',
+  2: '其他类型',
 }
 
 const loadList = async () => {
-  list.value = []
+  const res = await get('/collectSource/list')
+  list.value = (res.data.list || []).map(item => ({
+    ...item,
+    status: Boolean(item.status),
+    selected: false,
+    collect_status: '',
+    total: 0,
+    percent: 0,
+  }))
+}
+
+const handleEdit = (row) => {
+  isEdit.value = true
+  form.value = { 
+    id: row.id,
+    name: row.name,
+    api_url: row.api_url,
+    site_type: row.site_type,
+    status: Boolean(row.status),
+  }
+  showAddDialog.value = true
+}
+
+const saveSite = async () => {
+  if (!form.value.name.trim()) {
+    ElMessage.warning('请输入站点名称')
+    return
+  }
+  if (!form.value.api_url.trim()) {
+    ElMessage.warning('请输入接口地址')
+    return
+  }
+  
+  try {
+    if (isEdit.value) {
+      await post('/collectSource/edit', {
+        id: form.value.id,
+        name: form.value.name,
+        api_url: form.value.api_url,
+        site_type: form.value.site_type,
+        status: form.value.status ? 1 : 0,
+      })
+      ElMessage.success('编辑成功')
+    } else {
+      await post('/collectSource/add', {
+        name: form.value.name,
+        api_url: form.value.api_url,
+        site_type: form.value.site_type,
+        status: form.value.status ? 1 : 0,
+      })
+      ElMessage.success('添加成功')
+    }
+    showAddDialog.value = false
+    loadList()
+  } catch (e) {
+    // 错误已在请求拦截器处理
+  }
+}
+
+const handleDelete = (row) => {
+  ElMessageBox.confirm(`确定删除站点"${row.name}"吗？`, '提示').then(async () => {
+    await post('/collectSource/delete', { id: row.id })
+    ElMessage.success('删除成功')
+    loadList()
+  }).catch(() => {})
+}
+
+const testConnection = async (row) => {
+  const url = row.api_url || form.value.api_url
+  if (!url) {
+    ElMessage.warning('请先填写接口地址')
+    return
+  }
+  
+  try {
+    await post('/collectSource/test', { api_url: url })
+    ElMessage.success('连接成功')
+  } catch (e) {
+    ElMessage.error(e.message || '连接失败')
+  }
+}
+
+const toggleStatus = async (row) => {
+  await post('/collectSource/toggleStatus', { id: row.id })
+  ElMessage.success(row.status ? '已禁用' : '已启用')
+  loadList()
+}
+
+const startCollect = async (row) => {
+  row.collect_status = 'running'
+  row.total = 0
+  row.percent = 0
+  
+  try {
+    await post('/video/collect', { 
+      source_id: row.id,
+      api_url: row.api_url 
+    })
+    ElMessage.success('采集任务已启动')
+    // 模拟进度更新
+    simulateProgress(row)
+  } catch (e) {
+    row.collect_status = ''
+    ElMessage.error(e.message || '采集失败')
+  }
+}
+
+const startCollectAll = async () => {
+  const selectedList = list.value.filter(item => item.selected && item.status)
+  if (selectedList.length === 0) {
+    ElMessage.warning('请先选择要采集的站点')
+    return
+  }
+  
+  ElMessage.success(`已启动 ${selectedList.length} 个站点的采集任务`)
+  
+  for (const row of selectedList) {
+    startCollect(row)
+  }
+}
+
+// 模拟采集进度（实际项目中应由WebSocket或轮询获取）
+const simulateProgress = (row) => {
+  let percent = 0
+  const timer = setInterval(() => {
+    percent += Math.random() * 10
+    if (percent >= 100) {
+      percent = 100
+      row.percent = 100
+      row.collect_status = ''
+      row.total = Math.floor(Math.random() * 100) + 10
+      clearInterval(timer)
+    } else {
+      row.percent = Math.floor(percent)
+    }
+  }, 500)
 }
 
 onMounted(() => loadList())

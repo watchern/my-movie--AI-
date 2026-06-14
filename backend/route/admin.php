@@ -7,6 +7,7 @@ use app\controller\admin\UserController;
 use app\controller\admin\VideoController;
 use app\controller\admin\ConfigController;
 use app\controller\admin\BannerController;
+use app\controller\admin\CollectSourceController;
 
 // 管理端API路由
 Route::group('admin/api', function () {
@@ -74,5 +75,13 @@ Route::group('admin/api', function () {
     Route::get('banner/up/:id', [BannerController::class, 'up']);
     Route::get('banner/down/:id', [BannerController::class, 'down']);
     Route::get('banner/videoOptions', [BannerController::class, 'getVideoOptions']);
+
+    // 资源采集站点管理
+    Route::get('collectSource/list', [CollectSourceController::class, 'list']);
+    Route::post('collectSource/add', [CollectSourceController::class, 'add']);
+    Route::post('collectSource/edit', [CollectSourceController::class, 'edit']);
+    Route::post('collectSource/delete', [CollectSourceController::class, 'delete']);
+    Route::post('collectSource/test', [CollectSourceController::class, 'test']);
+    Route::post('collectSource/toggleStatus', [CollectSourceController::class, 'toggleStatus']);
 
 })->allowCrossDomain();
