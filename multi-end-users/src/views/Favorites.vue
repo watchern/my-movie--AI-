@@ -8,7 +8,7 @@
     <div v-else>
       <div v-if="list.length" class="grid">
         <div v-for="item in list" :key="item.id" class="item" @click="goDetail(item.video_id)">
-          <img :src="item.cover_url" :alt="item.title" />
+          <img :src="item.cover" :alt="item.title" />
           <div class="title">{{ item.title }}</div>
         </div>
       </div>

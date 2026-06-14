@@ -52,7 +52,7 @@
       </template>
       
       <el-alert
-        title="勾选要采集的站点，然后点击"采集全部"开始采集"
+        title="勾选要采集的站点，然后点击「采集全部」开始采集"
         type="info"
         :closable="false"
         style="margin-bottom: 15px;"
