@@ -36,7 +36,7 @@ const loadList = async () => {
   loading.value = true
   try {
     const res = await get('/favorite/list')
-    list.value = res.data || []
+    list.value = res.data?.list || []
   } catch (e) {
     console.error('加载收藏失败', e)
     list.value = []
