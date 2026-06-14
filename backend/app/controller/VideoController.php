@@ -228,7 +228,13 @@ class VideoController extends BaseController
         
         if (count($sourceSites) > 0) {
             if ($sourceSiteId > 0) {
-                $currentSourceSite = collect($sourceSites)->firstWhere('id', $sourceSiteId);
+                // 使用原生PHP数组查找
+                foreach ($sourceSites as $site) {
+                    if ($site['id'] == $sourceSiteId) {
+                        $currentSourceSite = $site;
+                        break;
+                    }
+                }
             }
             if (!$currentSourceSite) {
                 $currentSourceSite = $sourceSites[0];
