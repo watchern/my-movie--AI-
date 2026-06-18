@@ -229,7 +229,8 @@ CREATE TABLE IF NOT EXISTS `collect_sources` (
 -- 资源站点表(视频来源)
 CREATE TABLE IF NOT EXISTS `source_sites` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '站点名称',
+  `name` VARCHAR(100) NOT NULL DEFAULT '' COMMENT '站点名称(前台展示)',
+  `description` TEXT COMMENT '资源描述',
   `url` VARCHAR(500) NOT NULL DEFAULT '' COMMENT '站点URL',
   `api_key` VARCHAR(100) DEFAULT '' COMMENT 'API密钥',
   `sort_order` INT NOT NULL DEFAULT 0 COMMENT '排序',

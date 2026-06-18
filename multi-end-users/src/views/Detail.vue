@@ -24,13 +24,10 @@
             ref="videoRef"
             class="video-player"
             controls
-            :src="currentSource.play_url"
             :poster="detail.cover"
             @timeupdate="onTimeUpdate"
             @ended="onEnded"
-          >
-            <source :src="currentSource.play_url" type="video/mp4">
-          </video>
+          />
         </div>
 
         <!-- 视频信息和选集 -->
@@ -106,11 +103,10 @@
     <QuickLogin ref="quickLoginRef" @success="onLoginSuccess" />
 
     <!-- 播放源选择弹窗 -->
-    <van-popup v-model:show="showSourcePicker" position="bottom" round>
+    <van-popup v-model:show="showSourcePicker" position="center" round closeable>
       <div class="source-picker">
         <div class="picker-header">
           <span>选择播放源</span>
-          <van-icon name="cross" size="20" @click="showSourcePicker = false" />
         </div>
         <div class="source-list">
           <div
@@ -131,13 +127,14 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { get, post } from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
 import { useSafeBack } from '@/utils/router'
 import QuickLogin from '@/components/QuickLogin.vue'
+import Hls from 'hls.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -149,6 +146,7 @@ const activeSidebar = ref(3) // 默认选中"影视详情"
 const activeTab = ref(0) // 默认选中首页
 
 const videoRef = ref(null)
+const hlsInstance = ref(null)
 const detail = ref({})
 const sourceSites = ref([])
 const currentSourceSite = ref(null)
@@ -237,33 +235,21 @@ const selectSourceSite = (site) => {
 
 // 分享功能
 const handleShare = async () => {
-  const shareData = {
-    title: detail.value.title,
-    desc: detail.value.description || '推荐观看',
-    link: window.location.href,
-    imgUrl: detail.value.cover
-  }
+  const shareText = `${detail.value.title}\n${window.location.href}`
   
-  // 尝试使用微信分享（如果可用）
-  if (navigator.share) {
-    try {
-      await navigator.share(shareData)
-    } catch (e) {
-      if (e.name !== 'AbortError') {
-        // 用户取消分享时不提示
-        console.log('分享失败', e)
-      }
-    }
-  } else {
-    // 复制链接到剪贴板
-    try {
-      await navigator.clipboard.writeText(window.location.href)
-      // 这里可以使用 Vant 的 Toast 提示
-      const { showToast } = await import('vant')
-      showToast('链接已复制到剪贴板')
-    } catch (e) {
-      console.error('复制失败', e)
-    }
+  try {
+    await navigator.clipboard.writeText(shareText)
+    const { showDialog } = await import('vant')
+    showDialog({
+      title: '分享提示',
+      message: '分享内容与复制，快去发送给好友吧！',
+      confirmButtonText: '知道了',
+      confirmButtonColor: '#1989fa',
+    })
+  } catch (e) {
+    console.error('复制失败', e)
+    const { showToast } = await import('vant')
+    showToast('复制失败，请手动复制')
   }
 }
 
@@ -281,6 +267,56 @@ const selectSource = (source) => {
     historyTimer = setTimeout(() => {
       addHistoryRecord(source)
     }, 2000)
+  }
+  
+  // 初始化视频播放（支持M3U8）
+  initVideoPlayer(source)
+}
+
+// 初始化视频播放器（支持M3U8格式）
+const initVideoPlayer = (source) => {
+  if (!videoRef.value || !source?.play_url) return
+  
+  // 先销毁之前的Hls实例
+  destroyHls()
+  
+  const video = videoRef.value
+  const url = source.play_url
+  
+  // 判断是否为M3U8格式
+  if (url.includes('.m3u8')) {
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+      })
+      hls.loadSource(url)
+      hls.attachMedia(video)
+      hlsInstance.value = hls
+      
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error('HLS加载错误:', data)
+          showToast('视频加载失败')
+        }
+      })
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari原生支持HLS
+      video.src = url
+    } else {
+      showToast('您的浏览器不支持M3U8格式播放')
+    }
+  } else {
+    // 普通视频格式直接设置src
+    video.src = url
+  }
+}
+
+// 销毁Hls实例
+const destroyHls = () => {
+  if (hlsInstance.value) {
+    hlsInstance.value.destroy()
+    hlsInstance.value = null
   }
 }
 
@@ -321,10 +357,16 @@ const toggleFav = async () => {
     quickLoginRef.value?.open()
     return
   }
-  const res = await post(isFavorited.value ? '/favorite/delete' : '/favorite/add', {
-    video_id: detail.value.id
-  })
-  isFavorited.value = !isFavorited.value
+  try {
+    const res = await post(isFavorited.value ? '/favorite/remove' : '/favorite/add', {
+      video_id: detail.value.id
+    })
+    isFavorited.value = !isFavorited.value
+    const { showToast } = await import('vant')
+    showToast(isFavorited.value ? '收藏成功' : '已取消收藏')
+  } catch (e) {
+    console.error('收藏操作失败', e)
+  }
 }
 
 // 登录成功后刷新收藏状态
@@ -385,6 +427,11 @@ const formatCount = (count) => {
 const goBack = () => safeBack('/')
 
 onMounted(() => loadDetail())
+
+// 组件卸载时清理Hls实例
+onBeforeUnmount(() => {
+  destroyHls()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -593,11 +640,16 @@ onMounted(() => loadDetail())
 
 // 播放源选择弹窗
 .source-picker {
+  width: 33vw;
+  min-width: 280px;
+  max-width: 360px;
+  max-height: 33vh;
+  min-height: 200px;
   padding: 16px;
 
   .picker-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 16px;
     padding-bottom: 12px;
@@ -610,7 +662,7 @@ onMounted(() => loadDetail())
   }
 
   .source-list {
-    max-height: 300px;
+    max-height: calc(33vh - 80px);
     overflow-y: auto;
   }
 

@@ -1,24 +1,20 @@
 <template>
     <div>
         <el-card>
-            <el-form :inline="true" :model="query">
-                <el-form-item label="用户邮箱">
-                    <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable style="width: 200px" />
-                </el-form-item>
-                <el-form-item label="变动类型">
-                    <el-select v-model="query.type" placeholder="全部" clearable style="width: 140px">
-                        <el-option label="兑换码兑换" value="card" />
-                        <el-option label="广告" value="ad" />
-                        <el-option label="管理员调整" value="admin" />
-                        <el-option label="兑换码生成" value="card_generate" />
-                        <el-option label="兑换码失效" value="card_disable" />
-                        <el-option label="兑换码删除" value="card_delete" />
-                        <el-option label="其他" value="other" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="loadList">搜索</el-button>
-                </el-form-item>
+            <el-form :inline="true" :model="query" class="search-form">
+                <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable style="width: 200px">
+                    <template #prefix><el-icon><Message /></el-icon></template>
+                </el-input>
+                <el-select v-model="query.type" placeholder="变动类型" clearable style="width: 140px">
+                    <el-option label="兑换码兑换" value="card" />
+                    <el-option label="广告" value="ad" />
+                    <el-option label="管理员调整" value="admin" />
+                    <el-option label="兑换码生成" value="card_generate" />
+                    <el-option label="兑换码失效" value="card_disable" />
+                    <el-option label="兑换码删除" value="card_delete" />
+                    <el-option label="其他" value="other" />
+                </el-select>
+                <el-button type="primary" @click="loadList">搜索</el-button>
             </el-form>
 
             <el-table :data="list" stripe border>
@@ -84,4 +80,10 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 </style>

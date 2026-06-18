@@ -1,14 +1,12 @@
 <template>
     <div>
         <el-card>
-            <el-form :inline="true" :model="query">
-                <el-form-item label="用户邮箱">
-                    <el-input v-model="query.keyword" placeholder="搜索用户邮箱" clearable style="width: 200px" />
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="loadList">搜索</el-button>
-                </el-form-item>
-            </el-form>
+            <el-form :inline="true" :model="query" class="search-form">
+            <el-input v-model="query.keyword" placeholder="搜索用户邮箱" clearable style="width: 200px">
+                <template #prefix><el-icon><Message /></el-icon></template>
+            </el-input>
+            <el-button type="primary" @click="loadList">搜索</el-button>
+        </el-form>
 
             <el-table :data="list" stripe border>
                 <el-table-column prop="id" label="ID" width="80" resizable />
@@ -49,4 +47,10 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 </style>

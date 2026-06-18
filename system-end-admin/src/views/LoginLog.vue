@@ -1,21 +1,17 @@
 <template>
     <div>
         <el-card>
-            <el-form :inline="true" :model="query">
-                <el-form-item label="用户邮箱">
-                    <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable style="width: 200px" />
-                </el-form-item>
-                <el-form-item label="设备">
-                    <el-select v-model="query.device" placeholder="全部" clearable style="width: 120px">
-                        <el-option label="手机" value="mobile" />
-                        <el-option label="平板" value="tablet" />
-                        <el-option label="电脑" value="desktop" />
-                        <el-option label="其他" value="other" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="loadList">搜索</el-button>
-                </el-form-item>
+            <el-form :inline="true" :model="query" class="search-form">
+                <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable style="width: 200px">
+                    <template #prefix><el-icon><Message /></el-icon></template>
+                </el-input>
+                <el-select v-model="query.device" placeholder="设备" clearable style="width: 120px">
+                    <el-option label="手机" value="mobile" />
+                    <el-option label="平板" value="tablet" />
+                    <el-option label="电脑" value="desktop" />
+                    <el-option label="其他" value="other" />
+                </el-select>
+                <el-button type="primary" @click="loadList">搜索</el-button>
             </el-form>
 
             <el-table :data="list" stripe border>
@@ -66,4 +62,10 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 </style>

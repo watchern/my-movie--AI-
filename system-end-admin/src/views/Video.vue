@@ -4,23 +4,25 @@
             <!-- 视频管理 -->
             <el-tab-pane label="视频管理" name="video">
                 <el-card>
-                    <el-form :inline="true" :model="query">
-                        <el-form-item label="类型">
-                            <el-select v-model="query.type" placeholder="全部" clearable style="width: 120px">
-                                <el-option label="电影" :value="1" />
-                                <el-option label="电视剧" :value="2" />
-                                <el-option label="动漫" :value="3" />
-                                <el-option label="短视频" :value="4" />
-                                <el-option label="纪录片" :value="5" />
-                            </el-select>
-                        </el-form-item>
-                        <el-form-item label="关键词">
-                            <el-input v-model="query.keyword" placeholder="标题" clearable style="width: 200px" />
-                        </el-form-item>
-                        <el-form-item>
-                            <el-button type="primary" @click="loadList">搜索</el-button>
-                            <el-button type="success" @click="add">添加</el-button>
-                        </el-form-item>
+                    <el-form :inline="true" :model="query" class="search-form">
+                        <el-select v-model="query.type" placeholder="类型" clearable style="width: 120px">
+                            <el-option label="电影" :value="1" />
+                            <el-option label="电视剧" :value="2" />
+                            <el-option label="动漫" :value="3" />
+                            <el-option label="短视频" :value="4" />
+                            <el-option label="纪录片" :value="5" />
+                        </el-select>
+                        <el-select v-model="query.is_show" placeholder="状态" clearable style="width: 100px">
+                            <el-option label="显示" :value="1" />
+                            <el-option label="隐藏" :value="0" />
+                        </el-select>
+                        <el-input v-model="query.keyword" placeholder="搜索标题..." clearable style="width: 200px">
+                            <template #prefix>
+                                <el-icon><Search /></el-icon>
+                            </template>
+                        </el-input>
+                        <el-button type="primary" @click="loadList">搜索</el-button>
+                        <el-button type="success" @click="add">添加</el-button>
                     </el-form>
 
                     <el-table :data="list" stripe border>
@@ -271,7 +273,7 @@ import { Edit, Delete, Picture } from '@element-plus/icons-vue'
 
 const activeTab = ref('video')
 
-const query = ref({ page: 1, limit: 20, type: '', keyword: '' })
+const query = ref({ page: 1, limit: 20, type: '', is_show: '', keyword: '' })
 const list = ref([])
 const total = ref(0)
 const showDialog = ref(false)
@@ -461,4 +463,10 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 </style>

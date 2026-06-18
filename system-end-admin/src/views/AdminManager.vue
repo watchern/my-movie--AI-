@@ -8,13 +8,11 @@
                 </div>
             </template>
 
-            <el-form :inline="true" :model="query">
-                <el-form-item label="用户名">
-                    <el-input v-model="query.keyword" placeholder="搜索用户名" clearable style="width: 200px" />
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="loadList">搜索</el-button>
-                </el-form-item>
+            <el-form :inline="true" :model="query" class="search-form">
+                <el-input v-model="query.keyword" placeholder="搜索用户名" clearable style="width: 200px">
+                    <template #prefix><el-icon><User /></el-icon></template>
+                </el-input>
+                <el-button type="primary" @click="loadList">搜索</el-button>
             </el-form>
 
             <!-- 桌面端表格 -->
@@ -254,6 +252,12 @@ const toggleStatus = (row) => {
 </script>
 
 <style lang="scss" scoped>
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 .mobile-list {
     .mobile-card {
         margin-bottom: 12px;

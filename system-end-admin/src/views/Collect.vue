@@ -8,9 +8,14 @@
         </div>
       </template>
       
-      <el-table :data="list" border stripe>
+        <el-table :data="list" border stripe>
         <el-table-column prop="id" label="ID" width="80" resizable />
         <el-table-column prop="name" label="站点名称" min-width="120" resizable />
+        <el-table-column prop="description" label="资源描述" min-width="200" resizable>
+          <template #default="{ row }">
+            {{ row.description || '-' }}
+          </template>
+        </el-table-column>
         <el-table-column prop="api_url" label="接口地址" min-width="250" resizable show-overflow-tooltip />
         <el-table-column prop="site_type" label="类型" width="100" resizable>
           <template #default="{ row }">
@@ -101,7 +106,17 @@
     >
       <el-form :model="form" label-width="100px">
         <el-form-item label="站点名称" required>
-          <el-input v-model="form.name" placeholder="如：资源站A" />
+          <el-input v-model="form.name" placeholder="前台展示的名称，如：资源站A" />
+        </el-form-item>
+        <el-form-item label="资源描述">
+          <el-input 
+            v-model="form.description" 
+            type="textarea" 
+            :rows="3" 
+            :maxlength="2000"
+            show-word-limit
+            placeholder="资源站点描述" 
+          />
         </el-form-item>
         <el-form-item label="接口地址" required>
           <el-input v-model="form.api_url" placeholder="如：http://xxx.com/api.php" />
@@ -137,6 +152,7 @@ const isEdit = ref(false)
 const form = ref({
   id: 0,
   name: '',
+  description: '',
   api_url: '',
   site_type: 1,
   status: true,
@@ -168,6 +184,7 @@ const handleEdit = (row) => {
   form.value = { 
     id: row.id,
     name: row.name,
+    description: row.description || '',
     api_url: row.api_url,
     site_type: row.site_type,
     status: Boolean(row.status),
@@ -190,6 +207,7 @@ const saveSite = async () => {
       await post('/collectSource/edit', {
         id: form.value.id,
         name: form.value.name,
+        description: form.value.description,
         api_url: form.value.api_url,
         site_type: form.value.site_type,
         status: form.value.status ? 1 : 0,
@@ -198,6 +216,7 @@ const saveSite = async () => {
     } else {
       await post('/collectSource/add', {
         name: form.value.name,
+        description: form.value.description,
         api_url: form.value.api_url,
         site_type: form.value.site_type,
         status: form.value.status ? 1 : 0,

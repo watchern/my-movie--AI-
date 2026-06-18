@@ -7,32 +7,24 @@
         <el-button type="danger" @click="handleDelete" :disabled="selectedIds.length === 0">删除</el-button>
       </template>
 
-      <el-form :inline="true" :model="query">
-        <el-form-item label="兑换码">
-          <el-input v-model="query.code" placeholder="兑换码" clearable />
-        </el-form-item>
-        <el-form-item label="状态">
-          <el-select v-model="query.status" placeholder="全部" clearable style="width: 100px">
-            <el-option label="未使用" :value="0" />
-            <el-option label="已使用" :value="1" />
-            <el-option label="已失效" :value="2" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="类型">
-          <el-select v-model="query.type" placeholder="全部" clearable style="width: 100px">
-            <el-option label="天卡" :value="1" />
-            <el-option label="周卡" :value="7" />
-            <el-option label="月卡" :value="30" />
-            <el-option label="季卡" :value="90" />
-            <el-option label="年卡" :value="365" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="使用人">
-          <el-input v-model="query.used_user_id" placeholder="使用人ID" clearable />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="loadList">搜索</el-button>
-        </el-form-item>
+      <el-form :inline="true" :model="query" class="search-form">
+        <el-input v-model="query.code" placeholder="兑换码" clearable style="width: 160px">
+          <template #prefix><el-icon><Key /></el-icon></template>
+        </el-input>
+        <el-select v-model="query.status" placeholder="状态" clearable style="width: 100px">
+          <el-option label="未使用" :value="0" />
+          <el-option label="已使用" :value="1" />
+          <el-option label="已失效" :value="2" />
+        </el-select>
+        <el-select v-model="query.type" placeholder="类型" clearable style="width: 100px">
+          <el-option label="天卡" :value="1" />
+          <el-option label="周卡" :value="7" />
+          <el-option label="月卡" :value="30" />
+          <el-option label="季卡" :value="90" />
+          <el-option label="年卡" :value="365" />
+        </el-select>
+        <el-input v-model="query.used_user_id" placeholder="使用人ID" clearable style="width: 120px" />
+        <el-button type="primary" @click="loadList">搜索</el-button>
       </el-form>
 
       <el-table :data="list" stripe border @selection-change="handleSelectionChange">
@@ -152,4 +144,10 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 </style>

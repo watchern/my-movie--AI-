@@ -5,34 +5,28 @@
                 <el-button type="primary" @click="showAddDialog = true">新增用户</el-button>
             </template>
 
-            <el-form :inline="true" :model="query">
-                <el-form-item label="邮箱">
-                    <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable />
-                </el-form-item>
-                <el-form-item label="VIP状态">
-                    <el-select v-model="query.vip_status" placeholder="全部" clearable style="width: 100px">
-                        <el-option label="普通用户" :value="0" />
-                        <el-option label="VIP用户" :value="1" />
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="VIP剩余天数">
-                    <el-select v-model="query.vip_days_operator" placeholder="选择" clearable style="width: 80px">
-                        <el-option label="大于" :value="'>'" />
-                        <el-option label="等于" :value="'='" />
-                        <el-option label="小于" :value="'<'" />
-                    </el-select>
-                    <el-input 
-                        v-model.number="query.vip_days_value" 
-                        placeholder="天数" 
-                        clearable 
-                        type="number" 
-                        min="0"
-                        style="width: 100px; margin-left: 5px;"
-                    />
-                </el-form-item>
-                <el-form-item>
-                    <el-button type="primary" @click="loadList">搜索</el-button>
-                </el-form-item>
+            <el-form :inline="true" :model="query" class="search-form">
+                <el-input v-model="query.keyword" placeholder="搜索邮箱" clearable style="width: 180px">
+                    <template #prefix><el-icon><Message /></el-icon></template>
+                </el-input>
+                <el-select v-model="query.vip_status" placeholder="VIP状态" clearable style="width: 100px">
+                    <el-option label="普通用户" :value="0" />
+                    <el-option label="VIP用户" :value="1" />
+                </el-select>
+                <el-select v-model="query.vip_days_operator" placeholder="条件" clearable style="width: 80px">
+                    <el-option label="大于" :value="'>'" />
+                    <el-option label="等于" :value="'='" />
+                    <el-option label="小于" :value="'<'" />
+                </el-select>
+                <el-input 
+                    v-model.number="query.vip_days_value" 
+                    placeholder="天数" 
+                    clearable 
+                    type="number" 
+                    min="0"
+                    style="width: 100px;"
+                />
+                <el-button type="primary" @click="loadList">搜索</el-button>
             </el-form>
 
             <el-table :data="list" stripe border>
@@ -200,4 +194,10 @@ onMounted(() => loadList())
 </script>
 
 <style lang="scss" scoped>
+.search-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
 </style>

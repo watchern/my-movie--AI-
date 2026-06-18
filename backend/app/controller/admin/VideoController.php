@@ -23,6 +23,7 @@ class VideoController extends BaseController
         $keyword = trim($data['keyword'] ?? '');
         $type = intval($data['type'] ?? 0);
         $isVip = isset($data['is_vip']) ? intval($data['is_vip']) : -1;
+        $isShow = $data['is_show'] ?? '';
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(100, intval($data['limit'] ?? 20)));
 
@@ -35,6 +36,9 @@ class VideoController extends BaseController
         }
         if ($isVip >= 0) {
             $where[] = ['is_vip', '=', $isVip];
+        }
+        if ($isShow !== '' && in_array($isShow, [0, 1])) {
+            $where[] = ['is_show', '=', $isShow];
         }
 
         $list = Video::with(['category'])
@@ -192,6 +196,19 @@ class VideoController extends BaseController
             return $this->error('分类名称不能为空');
         }
 
+        $name = trim($data['name']);
+        $type = intval($data['type'] ?? 1);
+
+        // 检查分类名称是否重复（同类型下）
+        $existingCategory = Category::where('name', $name)
+            ->where('type', $type)
+            ->where('id', '<>', $id)
+            ->find();
+
+        if ($existingCategory) {
+            return $this->error('该类型下已存在同名分类');
+        }
+
         if ($id > 0) {
             $category = Category::find($id);
             if (!$category) {
@@ -201,9 +218,9 @@ class VideoController extends BaseController
             $category = new Category();
         }
 
-        $category->name = trim($data['name']);
+        $category->name = $name;
         $category->slug = trim($data['slug'] ?? pinyin($data['name']));
-        $category->type = intval($data['type'] ?? 1);
+        $category->type = $type;
         $category->parent_id = intval($data['parent_id'] ?? 0);
         $category->sort_order = intval($data['sort_order'] ?? 100);
 
@@ -269,6 +286,7 @@ class VideoController extends BaseController
         }
 
         $site->name = trim($data['name']);
+        $site->description = trim($data['description'] ?? '');
         $site->code = trim($data['code'] ?? pinyin($data['name']));
         $site->api_url = trim($data['api_url']);
         $site->api_key = trim($data['api_key'] ?? '');
