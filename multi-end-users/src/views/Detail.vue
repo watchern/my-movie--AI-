@@ -3,6 +3,7 @@
     <!-- 左侧导航（大屏幕 >= 500px） -->
     <van-sidebar v-model="activeSidebar" class="sidebar-nav">
       <van-sidebar-item title="首页" @click="goHome" />
+      <van-sidebar-item title="搜索" @click="goSearch" />
       <van-sidebar-item title="排行榜" @click="goRank" />
       <van-sidebar-item title="我的" @click="goUser" />
     </van-sidebar>
@@ -131,6 +132,7 @@ let historyTimer = null
 
 // 导航方法
 const goHome = () => router.push('/')
+const goSearch = () => router.push('/search')
 const goRank = () => router.push('/rank')
 const goUser = () => router.push('/user')
 
