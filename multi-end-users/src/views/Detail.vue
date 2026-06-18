@@ -1,11 +1,11 @@
 <template>
   <div class="page">
     <!-- 左侧导航（大屏幕 >= 500px） -->
-    <van-sidebar v-model="activeSidebar" class="sidebar-nav">
-      <van-sidebar-item title="首页" @click="goHome" />
-      <van-sidebar-item title="搜索" @click="goSearch" />
-      <van-sidebar-item title="排行榜" @click="goRank" />
-      <van-sidebar-item title="我的" @click="goUser" />
+    <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
+      <van-sidebar-item title="首页" />
+      <van-sidebar-item title="搜索" />
+      <van-sidebar-item title="排行榜" />
+      <van-sidebar-item title="我的" />
     </van-sidebar>
 
     <!-- 右侧内容区域 -->
@@ -130,11 +130,13 @@ const loading = ref(true)
 let timer = null
 let historyTimer = null
 
-// 导航方法
-const goHome = () => router.push('/')
-const goSearch = () => router.push('/search')
-const goRank = () => router.push('/rank')
-const goUser = () => router.push('/user')
+// 左侧导航切换
+const onSidebarChange = (index) => {
+  if (index === 0) router.push('/')
+  else if (index === 1) router.push('/search')
+  else if (index === 2) router.push('/rank')
+  else if (index === 3) router.push('/user')
+}
 
 const loadDetail = async () => {
   loading.value = true
