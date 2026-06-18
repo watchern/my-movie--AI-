@@ -154,7 +154,7 @@ const onFilterChange = () => {
   }
 }
 
-const goBack = () => safeBack('/home')
+const goBack = () => safeBack('/')
 
 const goDetail = (id) => router.push(`/detail/${id}`)
 
