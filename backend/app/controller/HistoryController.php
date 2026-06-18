@@ -13,22 +13,42 @@ class HistoryController extends BaseController
 {
     /**
      * 获取历史记录列表
+     * 同一视频只保留最后一次观看的记录
      */
     public function list()
     {
         $userId = $this->request->uid ?? 0;
         list($page, $limit) = $this->getPageParams();
 
-        $list = WatchHistory::with(['video'])
+        // 先获取用户所有历史记录，按时间倒序
+        $allHistory = WatchHistory::with(['video'])
             ->where('user_id', $userId)
             ->order('watched_at', 'desc')
-            ->page($page, $limit)
             ->select();
 
-        $total = WatchHistory::where('user_id', $userId)->count();
+        // 按 video_id 分组合并，同一视频只保留最新的一条
+        $mergedList = [];
+        foreach ($allHistory as $item) {
+            if ($item->video) {
+                $videoId = $item->video_id;
+                // 如果该视频还没有记录，或者这条记录比已有的更新
+                if (!isset($mergedList[$videoId]) || 
+                    strtotime($item->watched_at) > strtotime($mergedList[$videoId]->watched_at)) {
+                    $mergedList[$videoId] = $item;
+                }
+            }
+        }
+
+        // 计算去重后的总数
+        $total = count($mergedList);
+
+        // 分页处理
+        $mergedList = array_values($mergedList); // 转为数字索引
+        $offset = ($page - 1) * $limit;
+        $pagedList = array_slice($mergedList, $offset, $limit);
 
         $result = [];
-        foreach ($list as $item) {
+        foreach ($pagedList as $item) {
             if ($item->video) {
                 // 获取剧集名称
                 $episodeName = '';

@@ -24,7 +24,7 @@
             <div class="info">
               <div class="title">
                 {{ item.title }}
-                <span v-if="item.episode_name" class="episode-tag">{{ item.episode_name }}</span>
+                <span v-if="item.episode_title" class="episode-tag">{{ item.episode_title }}</span>
               </div>
             </div>
           </div>

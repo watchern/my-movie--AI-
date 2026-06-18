@@ -20,14 +20,11 @@
         <!-- 视频播放器 -->
         <div class="player-wrapper">
           <video
-            v-if="currentSource"
             ref="videoRef"
-            class="video-player"
-            controls
-            :poster="detail.cover"
-            @timeupdate="onTimeUpdate"
-            @ended="onEnded"
-          />
+            class="video-js vjs-big-play-centered vjs-fluid"
+          >
+            <p class="vjs-no-js">请启用JavaScript以观看此视频</p>
+          </video>
         </div>
 
         <!-- 视频信息和选集 -->
@@ -123,6 +120,27 @@
         </div>
       </div>
     </van-popup>
+
+    <!-- 选集选择弹窗 -->
+    <van-popup v-model:show="showEpisodePicker" position="center" round closeable>
+      <div class="source-picker">
+        <div class="picker-header">
+          <span>选择剧集</span>
+        </div>
+        <div class="source-list episode-grid">
+          <div
+            v-for="ep in episodes"
+            :key="ep.id"
+            class="source-item"
+            :class="{ active: ep.id === currentSource?.id }"
+            @click="selectSource(ep)"
+          >
+            <div class="source-name">{{ ep.name }}</div>
+            <van-icon v-if="ep.id === currentSource?.id" name="success" size="18" color="#1989fa" />
+          </div>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -133,8 +151,9 @@ import { get, post } from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
 import { useSafeBack } from '@/utils/router'
+import videojs from 'video.js'
+import 'video.js/dist/video-js.css'
 import QuickLogin from '@/components/QuickLogin.vue'
-import Hls from 'hls.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -146,6 +165,7 @@ const activeSidebar = ref(3) // 默认选中"影视详情"
 const activeTab = ref(0) // 默认选中首页
 
 const videoRef = ref(null)
+const player = ref(null)
 const hlsInstance = ref(null)
 const detail = ref({})
 const sourceSites = ref([])
@@ -155,6 +175,7 @@ const currentSource = ref(null)
 const isFavorited = ref(false)
 const loading = ref(true)
 const showSourcePicker = ref(false)
+const showEpisodePicker = ref(false)
 let timer = null
 let historyTimer = null
 
@@ -273,43 +294,110 @@ const selectSource = (source) => {
   initVideoPlayer(source)
 }
 
-// 初始化视频播放器（支持M3U8格式）
+// 初始化视频播放器（使用video.js）
 const initVideoPlayer = (source) => {
   if (!videoRef.value || !source?.play_url) return
   
-  // 先销毁之前的Hls实例
-  destroyHls()
-  
-  const video = videoRef.value
   const url = source.play_url
+  const isM3U8 = url.includes('.m3u8')
   
-  // 判断是否为M3U8格式
-  if (url.includes('.m3u8')) {
-    if (Hls.isSupported()) {
-      const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-      })
-      hls.loadSource(url)
-      hls.attachMedia(video)
-      hlsInstance.value = hls
+  // 如果播放器已存在，直接切换源
+  if (player.value) {
+    player.value.src({
+      src: url,
+      type: isM3U8 ? 'application/x-mpegURL' : 'video/mp4'
+    })
+    player.value.play().catch(() => {})
+    return
+  }
+  
+  // video.js 配置
+  const options = {
+    controls: true,
+    fluid: true,
+    preload: 'auto',
+    autoplay: true, // 添加 autoplay 配置
+    poster: detail.value.cover,
+    sources: [{
+      src: url,
+      type: isM3U8 ? 'application/x-mpegURL' : 'video/mp4'
+    }]
+  }
+  
+  // 使用 setTimeout 确保元素已在 DOM 中并渲染完成
+  setTimeout(() => {
+    if (!videoRef.value || player.value) return
+    
+    // 创建 video.js 播放器
+    const p = videojs(videoRef.value, options, function() {
+      // 播放就绪后的回调
+      this.on('ended', onEnded)
+      this.on('timeupdate', onTimeUpdate)
       
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.error('HLS加载错误:', data)
-          showToast('视频加载失败')
+      // 播放器就绪后延迟播放
+      setTimeout(() => {
+        const playPromise = this.play()
+        if (playPromise !== undefined) {
+          playPromise.catch(() => {})
+        }
+      }, 300)
+      
+      // 添加自定义控制按钮
+      addCustomButtons(this)
+    })
+    
+    player.value = p
+  }, 300)
+}
+
+// 添加自定义控制按钮到播放器
+const addCustomButtons = (playerInstance) => {
+  const Component = videojs.getComponent('Component')
+  const dom = videojs.dom || videojs
+  
+  // 换源按钮组件
+  class SourceButton extends Component {
+    constructor(player, options) {
+      super(player, options)
+    }
+    createEl() {
+      const el = dom.createEl('div', {
+        className: 'vjs-control vjs-button source-btn',
+        innerHTML: '<span class="vjs-icon-placeholder"></span><span class="btn-text">换源</span>'
+      })
+      el.addEventListener('click', () => {
+        showSourcePicker.value = true
+      })
+      return el
+    }
+  }
+  SourceButton.prototype.controlText = '换源'
+  videojs.registerComponent('SourceButton', SourceButton)
+  
+  // 选集按钮组件
+  class EpisodeButton extends Component {
+    constructor(player, options) {
+      super(player, options)
+    }
+    createEl() {
+      const el = dom.createEl('div', {
+        className: 'vjs-control vjs-button episode-btn',
+        innerHTML: '<span class="vjs-icon-placeholder"></span><span class="btn-text">选集</span>'
+      })
+      el.addEventListener('click', () => {
+        if (episodes.value.length > 0) {
+          showEpisodePicker.value = true
         }
       })
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Safari原生支持HLS
-      video.src = url
-    } else {
-      showToast('您的浏览器不支持M3U8格式播放')
+      return el
     }
-  } else {
-    // 普通视频格式直接设置src
-    video.src = url
   }
+  EpisodeButton.prototype.controlText = '选集'
+  videojs.registerComponent('EpisodeButton', EpisodeButton)
+  
+  // 将按钮添加到控制栏
+  playerInstance.addChild('SourceButton')
+  playerInstance.addChild('EpisodeButton')
 }
 
 // 销毁Hls实例
@@ -318,6 +406,20 @@ const destroyHls = () => {
     hlsInstance.value.destroy()
     hlsInstance.value = null
   }
+}
+
+// 销毁 video.js 播放器
+const destroyPlayer = () => {
+  if (player.value) {
+    try {
+      player.value.dispose()
+    } catch (e) {
+      console.error('销毁播放器失败', e)
+    }
+    player.value = null
+  }
+  // 同时清理 Hls
+  destroyHls()
 }
 
 // 添加历史记录
@@ -430,7 +532,7 @@ onMounted(() => loadDetail())
 
 // 组件卸载时清理Hls实例
 onBeforeUnmount(() => {
-  destroyHls()
+  destroyPlayer()
 })
 </script>
 
@@ -508,14 +610,6 @@ onBeforeUnmount(() => {
 .player-wrapper {
   background: #000;
   width: 100%;
-  aspect-ratio: 16/9;
-}
-
-.video-player {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: contain;
 }
 
 .content {
@@ -638,6 +732,28 @@ onBeforeUnmount(() => {
   }
 }
 
+// video.js 自定义按钮样式
+:deep(.vjs-control-bar) {
+  .source-btn,
+  .episode-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px !important;
+    padding: 0 8px;
+    
+    .btn-text {
+      font-size: 12px;
+      color: #fff;
+      margin-left: 2px;
+    }
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
 // 播放源选择弹窗
 .source-picker {
   width: 33vw;
@@ -690,6 +806,18 @@ onBeforeUnmount(() => {
       font-size: 13px;
       color: #999;
       margin-right: 8px;
+    }
+  }
+  
+  // 选集网格布局
+  .episode-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    
+    .source-item {
+      padding: 8px;
+      justify-content: center;
     }
   }
 }

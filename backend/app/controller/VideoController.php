@@ -7,6 +7,7 @@ use app\model\Category;
 use app\model\User;
 use app\model\VideoSource;
 use app\model\Favorite;
+use app\model\WatchHistory;
 
 /**
  * 视频控制器
@@ -255,11 +256,21 @@ class VideoController extends BaseController
 
         // 检查用户是否已收藏该视频
         $isFavorited = false;
+        $lastWatchedEpisodeId = null; // 用户最后观看的剧集ID
         if ($userId > 0) {
             $favorite = Favorite::where('user_id', $userId)
                 ->where('video_id', $video->id)
                 ->find();
             $isFavorited = $favorite ? true : false;
+            
+            // 查询用户最后观看的剧集
+            $lastHistory = WatchHistory::where('user_id', $userId)
+                ->where('video_id', $video->id)
+                ->order('id', 'desc')
+                ->find();
+            if ($lastHistory) {
+                $lastWatchedEpisodeId = $lastHistory->video_source_id;
+            }
         }
 
         // 获取当前资源站的剧集（如果没有指定，取第一个有剧集的资源站）
@@ -314,7 +325,7 @@ class VideoController extends BaseController
             'source_sites' => $sourceSites,
             'current_source_site' => $currentSourceSite,
             'episodes' => $episodes,
-            'current_episode_id' => $episodeId > 0 ? $episodeId : null,
+            'current_episode_id' => $episodeId > 0 ? $episodeId : ($lastWatchedEpisodeId ?: null),
             'created_at' => $video->created_at,
         ]);
     }
