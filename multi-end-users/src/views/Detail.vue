@@ -38,9 +38,9 @@
           </div>
         </div>
 
-        <!-- 资源站切换 -->
-        <div class="source-site-section" v-if="sourceSites.length > 1">
-          <div class="section-title">资源站</div>
+        <!-- 资源站信息 -->
+        <div class="source-site-section" v-if="sourceSites.length > 0">
+          <div class="section-title">播放源</div>
           <div class="source-site-list">
             <div
               v-for="site in sourceSites"
@@ -48,7 +48,7 @@
               class="source-site-item"
               :class="{ active: site.id === currentSourceSite?.id }"
               @click="switchSourceSite(site)"
-            >{{ site.name }} ({{ site.episode_count }})</div>
+            >{{ site.name }} ({{ site.episode_count }}集)</div>
           </div>
         </div>
 
