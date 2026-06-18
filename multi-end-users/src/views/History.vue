@@ -1,27 +1,38 @@
 <template>
   <div class="page">
-    <van-nav-bar title="观看历史" left-arrow @click-left="goBack" :fixed="true" placeholder />
+    <!-- 左侧导航（大屏幕 >= 500px） -->
+    <van-sidebar v-model="activeSidebar" class="sidebar-nav">
+      <van-sidebar-item title="首页" @click="goHome" />
+      <van-sidebar-item title="搜索" @click="goSearch" />
+      <van-sidebar-item title="排行榜" @click="goRank" />
+      <van-sidebar-item title="我的" @click="goUser" />
+    </van-sidebar>
 
-    <div v-if="loading" class="loading-wrapper">
-      <van-loading>加载中...</van-loading>
-    </div>
-    <div v-else>
-      <div v-if="validList.length" class="list">
-        <div v-for="(item, index) in validList" :key="item.id || `local-${item.video_id}-${item.episode_id}`" class="item" @click="goPlay(item.episode_id)">
-          <div class="img-wrapper">
-            <img :src="item.cover_url" :alt="item.title" />
-            <div class="time-badge">{{ formatProgress(item) }}</div>
-          </div>
-          <div class="info">
-            <div class="title">
-              {{ item.title }}
-              <span v-if="item.episode_name" class="episode-tag">{{ item.episode_name }}</span>
+    <!-- 右侧内容区域 -->
+    <div class="content-wrapper">
+      <van-nav-bar title="观看历史" :fixed="true" placeholder />
+
+      <div v-if="loading" class="loading-wrapper">
+        <van-loading>加载中...</van-loading>
+      </div>
+      <div v-else class="content-scroll">
+        <div v-if="validList.length" class="list">
+          <div v-for="(item, index) in validList" :key="item.id || `local-${item.video_id}-${item.episode_id}`" class="item" @click="goPlay(item.episode_id)">
+            <div class="img-wrapper">
+              <img :src="item.cover_url" :alt="item.title" />
+              <div class="time-badge">{{ formatProgress(item) }}</div>
+            </div>
+            <div class="info">
+              <div class="title">
+                {{ item.title }}
+                <span v-if="item.episode_name" class="episode-tag">{{ item.episode_name }}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-      <div v-else class="empty">
-        <van-empty description="暂无观看历史" />
+        <div v-else class="empty">
+          <van-empty description="暂无观看历史" />
+        </div>
       </div>
     </div>
   </div>
@@ -39,10 +50,17 @@ import { showToast } from 'vant'
 const router = useRouter()
 const historyStore = useHistoryStore()
 const userStore = useUserStore()
-const { safeBack } = useSafeBack()
+const activeSidebar = ref(3) // 默认选中"我的"
+
 const list = ref([])
 const loading = ref(true)
 const syncing = ref(false)
+
+// 导航方法
+const goHome = () => router.push('/')
+const goSearch = () => router.push('/search')
+const goRank = () => router.push('/rank')
+const goUser = () => router.push('/user')
 
 const validList = computed(() => {
   return list.value.filter(item => item && item.video_id)
@@ -106,7 +124,6 @@ const syncLocalToServer = async () => {
 }
 
 const goPlay = (epId) => router.push({ name: 'Detail', params: { id: '0' }, query: { episode_id: epId } })
-const goBack = () => safeBack('/')
 
 onMounted(() => {
   loadHistory()
@@ -114,6 +131,40 @@ onMounted(() => {
 </script>
 
 <style lang="scss" scoped>
+.page {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f5f5;
+  
+  @media (min-width: 500px) {
+    gap: 8px;
+  }
+}
+
+.sidebar-nav {
+  @media (min-width: 500px) {
+    :deep(.van-sidebar-item) {
+      height: 46px;
+      line-height: 46px;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+  }
+}
+
+.content-wrapper {
+  flex: 1;
+  min-height: 100vh;
+  
+  @media (min-width: 500px) {
+    background: white;
+  }
+}
+
+.content-scroll {
+  padding: 12px;
+}
+
 .loading-wrapper {
   display: flex;
   justify-content: center;
@@ -123,7 +174,6 @@ onMounted(() => {
 }
 
 .list {
-  padding: 12px 16px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
