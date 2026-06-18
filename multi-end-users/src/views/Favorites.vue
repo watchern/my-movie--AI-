@@ -1,7 +1,7 @@
 <template>
   <div class="page">
     <!-- 左侧导航（大屏幕 >= 500px） -->
-    <van-sidebar v-model="activeSidebar" class="sidebar-nav">
+    <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
       <van-sidebar-item title="首页" />
       <van-sidebar-item title="排行榜" />
       <van-sidebar-item title="我的" />
@@ -9,7 +9,7 @@
 
     <!-- 右侧内容区域 -->
     <div class="content-wrapper">
-      <van-nav-bar title="我的收藏" placeholder />
+      <van-nav-bar title="我的收藏" left-arrow @click-left="goBack" placeholder />
 
       <div v-if="loading" class="loading-wrapper">
         <van-loading>加载中...</van-loading>
@@ -59,6 +59,15 @@ const onTabChange = (index) => {
   else if (index === 1) router.push('/rank')
   else if (index === 2) router.push('/user')
 }
+
+// 左侧导航切换
+const onSidebarChange = (index) => {
+  if (index === 0) router.push('/')
+  else if (index === 1) router.push('/rank')
+  else if (index === 2) router.push('/user')
+}
+
+const goBack = () => router.push('/')
 
 const loadList = async () => {
   loading.value = true
