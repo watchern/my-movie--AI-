@@ -6,6 +6,7 @@ use app\model\Video;
 use app\model\Category;
 use app\model\User;
 use app\model\VideoSource;
+use app\model\Favorite;
 
 /**
  * 视频控制器
@@ -135,6 +136,9 @@ class VideoController extends BaseController
         $page = max(1, intval($data['page'] ?? 1));
         $limit = max(1, min(50, intval($data['limit'] ?? 20)));
         $orderBy = $data['order_by'] ?? 'update_time';
+        $year = $data['year'] ?? '';
+        $region = $data['region'] ?? '';
+        $language = $data['language'] ?? '';
 
         $where = [
             ['is_show', '=', 1],
@@ -143,6 +147,21 @@ class VideoController extends BaseController
 
         if ($categoryId > 0) {
             $where[] = ['category_id', '=', $categoryId];
+        }
+
+        // 年份筛选
+        if ($year && $year !== 'all') {
+            $where[] = ['release_year', '=', $year];
+        }
+
+        // 地区筛选
+        if ($region && $region !== 'all') {
+            $where[] = ['region', '=', $region];
+        }
+
+        // 语种筛选
+        if ($language && $language !== 'all') {
+            $where[] = ['language', '=', $language];
         }
 
         $order = 'created_at desc';
@@ -209,8 +228,20 @@ class VideoController extends BaseController
         $video->play_count = $video->play_count + 1;
         $video->save();
 
-        // 检查VIP权限
+        // 获取用户ID（尝试从header解析token）
         $userId = $this->request->uid ?? 0;
+        if ($userId == 0) {
+            $token = $this->request->header('Authorization', '');
+            $token = str_replace('Bearer ', '', $token);
+            if (!empty($token)) {
+                $payload = \app\common\JwtHelper::verify($token);
+                if ($payload && isset($payload->user_id)) {
+                    $userId = $payload->user_id;
+                }
+            }
+        }
+
+        // 检查VIP权限
         $isVip = false;
         if ($video->is_vip == 1) {
             if ($userId > 0) {
@@ -221,6 +252,15 @@ class VideoController extends BaseController
 
         // 获取该视频有剧集的资源站列表
         $sourceSites = $this->getVideoSourceSites($video->id);
+
+        // 检查用户是否已收藏该视频
+        $isFavorited = false;
+        if ($userId > 0) {
+            $favorite = Favorite::where('user_id', $userId)
+                ->where('video_id', $video->id)
+                ->find();
+            $isFavorited = $favorite ? true : false;
+        }
 
         // 获取当前资源站的剧集（如果没有指定，取第一个有剧集的资源站）
         $currentSourceSite = null;
@@ -266,6 +306,7 @@ class VideoController extends BaseController
             'play_count' => $video->play_count,
             'is_vip' => $video->is_vip,
             'is_vip_valid' => $isVip,
+            'is_favorited' => $isFavorited,
             'category' => $video->category ? [
                 'id' => $video->category->id,
                 'name' => $video->category->name,

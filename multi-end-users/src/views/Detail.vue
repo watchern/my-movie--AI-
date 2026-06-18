@@ -5,12 +5,13 @@
       <van-sidebar-item title="首页" />
       <van-sidebar-item title="搜索" />
       <van-sidebar-item title="排行榜" />
+      <van-sidebar-item title="影视详情" />
       <van-sidebar-item title="我的" />
     </van-sidebar>
 
     <!-- 右侧内容区域 -->
     <div class="content-wrapper">
-      <van-nav-bar :title="detail.title" left-arrow @click-left="goBack" :fixed="true" placeholder />
+      <van-nav-bar :title="detail.title" left-arrow @click-left="goBack" />
 
       <div v-if="loading" class="loading-wrapper">
         <van-loading>加载中...</van-loading>
@@ -37,28 +38,25 @@
         <!-- 标题 -->
         <div class="title-section">
           <div class="title-row">
-            <van-icon 
-              :name="isFavorited ? 'star' : 'star-o'" 
-              size="20" 
-              :color="isFavorited ? '#ff976a' : '#999'" 
-              @click="toggleFav"
-              class="fav-icon"
-            />
             <h2>{{ detail.title }} <span v-if="currentSource">- {{ currentSource.name }}</span></h2>
           </div>
-        </div>
-
-        <!-- 资源站信息 -->
-        <div class="source-site-section" v-if="sourceSites.length > 0">
-          <div class="section-title">播放源</div>
-          <div class="source-site-list">
-            <div
-              v-for="site in sourceSites"
-              :key="site.id"
-              class="source-site-item"
-              :class="{ active: site.id === currentSourceSite?.id }"
-              @click="switchSourceSite(site)"
-            >{{ site.name }} ({{ site.episode_count }}集)</div>
+          <!-- 操作按钮 -->
+          <div class="action-buttons">
+            <!-- 播放源选择 -->
+            <div class="action-btn" v-if="sourceSites.length > 0" @click="showSourcePicker = true">
+              <van-icon name="apps-o" size="24" />
+              <span>换源</span>
+            </div>
+            <!-- 收藏 -->
+            <div class="action-btn" @click="toggleFav">
+              <van-icon :name="isFavorited ? 'star' : 'star-o'" size="24" :color="isFavorited ? '#ff976a' : '#666'" />
+              <span>{{ isFavorited ? '已收藏' : '收藏' }}</span>
+            </div>
+            <!-- 分享 -->
+            <div class="action-btn" @click="handleShare">
+              <van-icon name="share-o" size="24" />
+              <span>分享</span>
+            </div>
           </div>
         </div>
 
@@ -106,6 +104,29 @@
 
     <!-- 快捷登录弹窗 -->
     <QuickLogin ref="quickLoginRef" @success="onLoginSuccess" />
+
+    <!-- 播放源选择弹窗 -->
+    <van-popup v-model:show="showSourcePicker" position="bottom" round>
+      <div class="source-picker">
+        <div class="picker-header">
+          <span>选择播放源</span>
+          <van-icon name="cross" size="20" @click="showSourcePicker = false" />
+        </div>
+        <div class="source-list">
+          <div
+            v-for="site in sourceSites"
+            :key="site.id"
+            class="source-item"
+            :class="{ active: site.id === currentSourceSite?.id }"
+            @click="selectSourceSite(site)"
+          >
+            <div class="source-name">{{ site.name }}</div>
+            <div class="source-info">{{ site.episode_count }}集</div>
+            <van-icon v-if="site.id === currentSourceSite?.id" name="success" size="18" color="#1989fa" />
+          </div>
+        </div>
+      </div>
+    </van-popup>
   </div>
 </template>
 
@@ -124,7 +145,7 @@ const userStore = useUserStore()
 const historyStore = useHistoryStore()
 const { safeBack } = useSafeBack()
 const quickLoginRef = ref(null)
-const activeSidebar = ref(0) // 默认选中首页
+const activeSidebar = ref(3) // 默认选中"影视详情"
 const activeTab = ref(0) // 默认选中首页
 
 const videoRef = ref(null)
@@ -135,6 +156,7 @@ const episodes = ref([])
 const currentSource = ref(null)
 const isFavorited = ref(false)
 const loading = ref(true)
+const showSourcePicker = ref(false)
 let timer = null
 let historyTimer = null
 
@@ -143,7 +165,8 @@ const onSidebarChange = (index) => {
   if (index === 0) router.push('/')
   else if (index === 1) router.push('/search')
   else if (index === 2) router.push('/rank')
-  else if (index === 3) router.push('/user')
+  else if (index === 3) return // 影视详情，保持当前页
+  else if (index === 4) router.push('/user')
 }
 
 // 底部导航切换
@@ -203,6 +226,44 @@ const switchSourceSite = async (site) => {
     }
   } catch (e) {
     console.error('切换资源站失败', e)
+  }
+}
+
+// 选择资源站（弹窗中调用）
+const selectSourceSite = (site) => {
+  showSourcePicker.value = false
+  switchSourceSite(site)
+}
+
+// 分享功能
+const handleShare = async () => {
+  const shareData = {
+    title: detail.value.title,
+    desc: detail.value.description || '推荐观看',
+    link: window.location.href,
+    imgUrl: detail.value.cover
+  }
+  
+  // 尝试使用微信分享（如果可用）
+  if (navigator.share) {
+    try {
+      await navigator.share(shareData)
+    } catch (e) {
+      if (e.name !== 'AbortError') {
+        // 用户取消分享时不提示
+        console.log('分享失败', e)
+      }
+    }
+  } else {
+    // 复制链接到剪贴板
+    try {
+      await navigator.clipboard.writeText(window.location.href)
+      // 这里可以使用 Vant 的 Toast 提示
+      const { showToast } = await import('vant')
+      showToast('链接已复制到剪贴板')
+    } catch (e) {
+      console.error('复制失败', e)
+    }
   }
 }
 
@@ -330,55 +391,58 @@ onMounted(() => loadDetail())
 .page {
   display: flex;
   min-height: 100vh;
-  background: #f5f5f5;
+  overflow-x: hidden;
+  width: 100%;
   
   @media (min-width: 500px) {
     gap: 8px;
   }
 }
 
+// 右侧内容区域
+.content-wrapper {
+  flex: 1;
+  min-height: 100vh;
+  background: #f5f5f5;
+  overflow-x: hidden;
+}
+
+// 左侧导航（大屏幕 >= 500px）
 .sidebar-nav {
   display: none;
+  width: 100px;
+  background: white;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
   
   @media (min-width: 500px) {
     display: block;
-    width: 100px;
+  }
+  
+  :deep(.van-sidebar-item) {
+    height: 46px;
+    line-height: 46px;
+    padding: 0 12px;
+    font-size: 14px;
     
-    :deep(.van-sidebar-item) {
-      height: 46px;
-      line-height: 46px;
-      padding: 0 12px;
-      font-size: 14px;
-      
-      &.van-sidebar-item--select {
-        color: #1989fa;
-        font-weight: 500;
-      }
+    &.van-sidebar-item--select {
+      color: #1989fa;
+      font-weight: 500;
     }
   }
 }
 
+// 底部导航栏（小屏幕 < 500px）
 .bottom-tabbar {
-  display: block;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  display: none;
   
-  @media (min-width: 500px) {
-    display: none;
-  }
-}
-
-.content-wrapper {
-  flex: 1;
-  min-height: 100vh;
-  overflow-x: hidden;
-  padding-bottom: 60px;
-  
-  @media (min-width: 500px) {
-    background: white;
-    padding-bottom: 0;
+  @media (max-width: 499px) {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
   }
 }
 
@@ -414,22 +478,33 @@ onMounted(() => loadDetail())
     border-radius: 8px;
 
     .title-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-
-      .fav-icon {
-        cursor: pointer;
-        flex-shrink: 0;
-      }
-
       h2 {
         font-size: 18px;
         font-weight: 600;
-        margin: 0;
+        margin: 0 0 12px 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 24px;
+      justify-content: space-around;
+
+      .action-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        flex: 1;
+
+        span {
+          font-size: 13px;
+          color: #666;
+        }
       }
     }
   }
@@ -469,36 +544,7 @@ onMounted(() => loadDetail())
   }
 
   :deep(.source-site-section) {
-    margin-top: 12px;
-    background: white;
-    padding: 16px;
-    border-radius: 8px;
-
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 12px;
-    }
-
-    .source-site-list {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-
-      .source-site-item {
-        padding: 8px 16px;
-        background: #f5f5f5;
-        border-radius: 6px;
-        font-size: 14px;
-        color: #333;
-        cursor: pointer;
-
-        &.active {
-          background: #1989fa;
-          color: white;
-        }
-      }
-    }
+    display: none;
   }
 
   :deep(.video-info) {
@@ -541,6 +587,57 @@ onMounted(() => loadDetail())
       font-size: 14px;
       color: #666;
       line-height: 1.8;
+    }
+  }
+}
+
+// 播放源选择弹窗
+.source-picker {
+  padding: 16px;
+
+  .picker-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #eee;
+
+    span {
+      font-size: 16px;
+      font-weight: 600;
+    }
+  }
+
+  .source-list {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .source-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #f5f5f5;
+    cursor: pointer;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.active {
+      color: #1989fa;
+    }
+
+    .source-name {
+      flex: 1;
+      font-size: 15px;
+    }
+
+    .source-info {
+      font-size: 13px;
+      color: #999;
+      margin-right: 8px;
     }
   }
 }
