@@ -38,9 +38,11 @@ import { useRouter } from 'vue-router'
 import { post } from '@/utils/request'
 import { showToast } from 'vant'
 import { useUserStore } from '@/stores/user'
+import { useSafeBack } from '@/utils/router'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { safeBack } = useSafeBack()
 const activeSidebar = ref(2) // 默认选中"我的"
 const activeTab = ref(2) // 默认选中"我的"
 
@@ -61,7 +63,7 @@ const onSidebarChange = (index) => {
   else if (index === 2) router.push('/user')
 }
 
-const goBack = () => router.push('/')
+const goBack = () => safeBack('/')
 
 const onExchange = async () => {
   if (!cardKey.value.trim()) {

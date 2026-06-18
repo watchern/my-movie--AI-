@@ -56,6 +56,7 @@ import { showToast } from 'vant'
 const router = useRouter()
 const historyStore = useHistoryStore()
 const userStore = useUserStore()
+const { safeBack } = useSafeBack()
 const activeSidebar = ref(2) // 默认选中"我的"
 const activeTab = ref(2) // 默认选中"我的"
 
@@ -77,7 +78,7 @@ const onSidebarChange = (index) => {
   else if (index === 2) router.push('/user')
 }
 
-const goBack = () => router.push('/')
+const goBack = () => safeBack('/')
 
 const validList = computed(() => {
   return list.value.filter(item => item && item.video_id)
