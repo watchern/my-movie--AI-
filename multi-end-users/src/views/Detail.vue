@@ -1,29 +1,38 @@
 <template>
   <div class="page">
-    <van-nav-bar :title="detail.title" left-arrow @click-left="goBack" :fixed="true" placeholder />
+    <!-- 左侧导航（大屏幕 >= 500px） -->
+    <van-sidebar v-model="activeSidebar" class="sidebar-nav">
+      <van-sidebar-item title="首页" @click="goHome" />
+      <van-sidebar-item title="排行榜" @click="goRank" />
+      <van-sidebar-item title="我的" @click="goUser" />
+    </van-sidebar>
 
-    <div v-if="loading" class="loading-wrapper">
-      <van-loading>加载中...</van-loading>
-    </div>
-    <div v-else-if="detail.id">
-      <!-- 视频播放器 -->
-      <div class="player-wrapper">
-        <video
-          v-if="currentSource"
-          ref="videoRef"
-          class="video-player"
-          controls
-          :src="currentSource.play_url"
-          :poster="detail.cover"
-          @timeupdate="onTimeUpdate"
-          @ended="onEnded"
-        >
-          <source :src="currentSource.play_url" type="video/mp4">
-        </video>
+    <!-- 右侧内容区域 -->
+    <div class="content-wrapper">
+      <van-nav-bar :title="detail.title" left-arrow @click-left="goBack" :fixed="true" placeholder />
+
+      <div v-if="loading" class="loading-wrapper">
+        <van-loading>加载中...</van-loading>
       </div>
+      <div v-else-if="detail.id" class="content-scroll">
+        <!-- 视频播放器 -->
+        <div class="player-wrapper">
+          <video
+            v-if="currentSource"
+            ref="videoRef"
+            class="video-player"
+            controls
+            :src="currentSource.play_url"
+            :poster="detail.cover"
+            @timeupdate="onTimeUpdate"
+            @ended="onEnded"
+          >
+            <source :src="currentSource.play_url" type="video/mp4">
+          </video>
+        </div>
 
-      <!-- 视频信息和选集 -->
-      <div class="content">
+        <!-- 视频信息和选集 -->
+        <div class="content">
         <!-- 标题 -->
         <div class="title-section">
           <div class="title-row">
@@ -84,6 +93,7 @@
           <div class="description">{{ detail.description || '暂无简介' }}</div>
         </div>
       </div>
+      </div>
     </div>
 
     <!-- 快捷登录弹窗 -->
@@ -106,6 +116,7 @@ const userStore = useUserStore()
 const historyStore = useHistoryStore()
 const { safeBack } = useSafeBack()
 const quickLoginRef = ref(null)
+const activeSidebar = ref(0) // 默认选中首页
 
 const videoRef = ref(null)
 const detail = ref({})
@@ -117,6 +128,11 @@ const isFavorited = ref(false)
 const loading = ref(true)
 let timer = null
 let historyTimer = null
+
+// 导航方法
+const goHome = () => router.push('/')
+const goRank = () => router.push('/rank')
+const goUser = () => router.push('/user')
 
 const loadDetail = async () => {
   loading.value = true
@@ -293,8 +309,37 @@ onMounted(() => loadDetail())
 
 <style lang="scss" scoped>
 .page {
+  display: flex;
   min-height: 100vh;
   background: #f5f5f5;
+  
+  @media (min-width: 500px) {
+    gap: 8px;
+  }
+}
+
+.sidebar-nav {
+  @media (min-width: 500px) {
+    :deep(.van-sidebar-item) {
+      height: 46px;
+      line-height: 46px;
+      padding: 0 12px;
+      font-size: 14px;
+    }
+  }
+}
+
+.content-wrapper {
+  flex: 1;
+  min-height: 100vh;
+  
+  @media (min-width: 500px) {
+    background: white;
+  }
+}
+
+.content-scroll {
+  padding: 12px;
 }
 
 .loading-wrapper {
@@ -319,9 +364,7 @@ onMounted(() => loadDetail())
 }
 
 .content {
-  padding: 12px;
-
-  .title-section {
+  :deep(.title-section) {
     background: white;
     padding: 16px;
     border-radius: 8px;
@@ -347,7 +390,7 @@ onMounted(() => loadDetail())
     }
   }
 
-  .episode-section {
+  :deep(.episode-section) {
     margin-top: 12px;
     background: white;
     padding: 16px;
@@ -381,7 +424,7 @@ onMounted(() => loadDetail())
     }
   }
 
-  .source-site-section {
+  :deep(.source-site-section) {
     margin-top: 12px;
     background: white;
     padding: 16px;
@@ -414,7 +457,7 @@ onMounted(() => loadDetail())
     }
   }
 
-  .video-info {
+  :deep(.video-info) {
     margin-top: 12px;
     background: white;
     padding: 16px;
