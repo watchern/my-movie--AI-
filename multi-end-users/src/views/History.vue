@@ -2,20 +2,19 @@
   <div class="page">
     <!-- 左侧导航（大屏幕 >= 500px） -->
     <van-sidebar v-model="activeSidebar" class="sidebar-nav">
-      <van-sidebar-item title="首页" @click="goHome" />
-      <van-sidebar-item title="搜索" @click="goSearch" />
-      <van-sidebar-item title="排行榜" @click="goRank" />
-      <van-sidebar-item title="我的" @click="goUser" />
+      <van-sidebar-item title="首页" />
+      <van-sidebar-item title="排行榜" />
+      <van-sidebar-item title="我的" />
     </van-sidebar>
 
     <!-- 右侧内容区域 -->
     <div class="content-wrapper">
-      <van-nav-bar title="观看历史" :fixed="true" placeholder />
+      <van-nav-bar title="观看历史" placeholder />
 
       <div v-if="loading" class="loading-wrapper">
         <van-loading>加载中...</van-loading>
       </div>
-      <div v-else class="content-scroll">
+      <div v-else>
         <div v-if="validList.length" class="list">
           <div v-for="(item, index) in validList" :key="item.id || `local-${item.video_id}-${item.episode_id}`" class="item" @click="goPlay(item.episode_id)">
             <div class="img-wrapper">
@@ -35,6 +34,13 @@
         </div>
       </div>
     </div>
+
+    <!-- 底部导航栏（小屏幕 < 500px） -->
+    <van-tabbar v-model="activeTab" class="bottom-tabbar" @change="onTabChange">
+      <van-tabbar-item icon="wap-home">首页</van-tabbar-item>
+      <van-tabbar-item icon="chart-trending-o">排行榜</van-tabbar-item>
+      <van-tabbar-item icon="user-o">我的</van-tabbar-item>
+    </van-tabbar>
   </div>
 </template>
 
@@ -50,17 +56,19 @@ import { showToast } from 'vant'
 const router = useRouter()
 const historyStore = useHistoryStore()
 const userStore = useUserStore()
-const activeSidebar = ref(3) // 默认选中"我的"
+const activeSidebar = ref(2) // 默认选中"我的"
+const activeTab = ref(2) // 默认选中"我的"
 
 const list = ref([])
 const loading = ref(true)
 const syncing = ref(false)
 
-// 导航方法
-const goHome = () => router.push('/')
-const goSearch = () => router.push('/search')
-const goRank = () => router.push('/rank')
-const goUser = () => router.push('/user')
+// 底部导航切换
+const onTabChange = (index) => {
+  if (index === 0) router.push('/')
+  else if (index === 1) router.push('/rank')
+  else if (index === 2) router.push('/user')
+}
 
 const validList = computed(() => {
   return list.value.filter(item => item && item.video_id)
@@ -134,35 +142,59 @@ onMounted(() => {
 .page {
   display: flex;
   min-height: 100vh;
-  background: #f5f5f5;
+  overflow-x: hidden;
+  width: 100%;
   
   @media (min-width: 500px) {
     gap: 8px;
   }
 }
 
+// 右侧内容区域
+.content-wrapper {
+  flex: 1;
+  min-height: 100vh;
+  background: #f5f5f5;
+  overflow-x: hidden;
+}
+
+// 左侧导航（大屏幕 >= 500px）
 .sidebar-nav {
+  display: none;
+  width: 100px;
+  background: white;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+  
   @media (min-width: 500px) {
-    :deep(.van-sidebar-item) {
-      height: 46px;
-      line-height: 46px;
-      padding: 0 12px;
-      font-size: 14px;
+    display: block;
+  }
+  
+  :deep(.van-sidebar-item) {
+    height: 46px;
+    line-height: 46px;
+    padding: 0 12px;
+    font-size: 14px;
+    
+    &.van-sidebar-item--select {
+      color: #1989fa;
+      font-weight: 500;
     }
   }
 }
 
-.content-wrapper {
-  flex: 1;
-  min-height: 100vh;
+// 底部导航栏（小屏幕 < 500px）
+.bottom-tabbar {
+  display: none;
   
-  @media (min-width: 500px) {
-    background: white;
+  @media (max-width: 499px) {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 999;
   }
-}
-
-.content-scroll {
-  padding: 12px;
 }
 
 .loading-wrapper {
@@ -174,6 +206,7 @@ onMounted(() => {
 }
 
 .list {
+  padding: 12px 16px;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 12px;
