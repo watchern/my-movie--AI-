@@ -97,6 +97,13 @@
       </div>
     </div>
 
+    <!-- 底部导航栏（小屏幕 < 500px） -->
+    <van-tabbar v-model="activeTab" class="bottom-tabbar" @change="onTabChange">
+      <van-tabbar-item icon="wap-home">首页</van-tabbar-item>
+      <van-tabbar-item icon="chart-trending-o">排行榜</van-tabbar-item>
+      <van-tabbar-item icon="user-o">我的</van-tabbar-item>
+    </van-tabbar>
+
     <!-- 快捷登录弹窗 -->
     <QuickLogin ref="quickLoginRef" @success="onLoginSuccess" />
   </div>
@@ -118,6 +125,7 @@ const historyStore = useHistoryStore()
 const { safeBack } = useSafeBack()
 const quickLoginRef = ref(null)
 const activeSidebar = ref(0) // 默认选中首页
+const activeTab = ref(0) // 默认选中首页
 
 const videoRef = ref(null)
 const detail = ref({})
@@ -136,6 +144,13 @@ const onSidebarChange = (index) => {
   else if (index === 1) router.push('/search')
   else if (index === 2) router.push('/rank')
   else if (index === 3) router.push('/user')
+}
+
+// 底部导航切换
+const onTabChange = (index) => {
+  if (index === 0) router.push('/')
+  else if (index === 1) router.push('/rank')
+  else if (index === 2) router.push('/user')
 }
 
 const loadDetail = async () => {
@@ -323,22 +338,47 @@ onMounted(() => loadDetail())
 }
 
 .sidebar-nav {
+  display: none;
+  
   @media (min-width: 500px) {
+    display: block;
+    width: 100px;
+    
     :deep(.van-sidebar-item) {
       height: 46px;
       line-height: 46px;
       padding: 0 12px;
       font-size: 14px;
+      
+      &.van-sidebar-item--select {
+        color: #1989fa;
+        font-weight: 500;
+      }
     }
+  }
+}
+
+.bottom-tabbar {
+  display: block;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  
+  @media (min-width: 500px) {
+    display: none;
   }
 }
 
 .content-wrapper {
   flex: 1;
   min-height: 100vh;
+  overflow-x: hidden;
+  padding-bottom: 60px;
   
   @media (min-width: 500px) {
     background: white;
+    padding-bottom: 0;
   }
 }
 
