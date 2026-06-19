@@ -20,11 +20,24 @@
         <!-- 视频播放器 -->
         <div class="player-wrapper">
           <video
+            v-if="currentSource"
             ref="videoRef"
-            class="video-js vjs-big-play-centered vjs-fluid"
-          >
-            <p class="vjs-no-js">请启用JavaScript以观看此视频</p>
-          </video>
+            class="video-player"
+            controls
+            :poster="detail.cover"
+            @timeupdate="onTimeUpdate"
+            @ended="onEnded"
+            @pause="onPause"
+            @play="onPlay"
+          />
+          <!-- 暂停广告 -->
+          <div v-if="showAdOverlay" class="ad-overlay" @click="clickAd">
+            <div class="ad-image-wrapper">
+              <img :src="adConfig.image" alt="广告" class="ad-image" />
+              <div class="ad-tip">广告</div>
+            </div>
+            <van-icon name="cross" class="ad-close" @click.stop="closeAd" />
+          </div>
         </div>
 
         <!-- 视频信息和选集 -->
@@ -145,14 +158,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { get, post } from '@/utils/request'
 import { useUserStore } from '@/stores/user'
 import { useHistoryStore } from '@/stores/history'
 import { useSafeBack } from '@/utils/router'
-import videojs from 'video.js'
-import 'video.js/dist/video-js.css'
+import Hls from 'hls.js'
 import QuickLogin from '@/components/QuickLogin.vue'
 
 const router = useRouter()
@@ -165,7 +177,6 @@ const activeSidebar = ref(3) // 默认选中"影视详情"
 const activeTab = ref(0) // 默认选中首页
 
 const videoRef = ref(null)
-const player = ref(null)
 const hlsInstance = ref(null)
 const detail = ref({})
 const sourceSites = ref([])
@@ -176,6 +187,13 @@ const isFavorited = ref(false)
 const loading = ref(true)
 const showSourcePicker = ref(false)
 const showEpisodePicker = ref(false)
+const showAdOverlay = ref(false)
+
+// 暂停广告 Mock 配置
+const adConfig = {
+  image: 'https://picsum.photos/seed/ad/600/300',
+  link: 'https://www.example.com'
+}
 let timer = null
 let historyTimer = null
 
@@ -294,110 +312,60 @@ const selectSource = (source) => {
   initVideoPlayer(source)
 }
 
-// 初始化视频播放器（使用video.js）
-const initVideoPlayer = (source) => {
-  if (!videoRef.value || !source?.play_url) return
+// 初始化视频播放器（原生 + hls.js）
+const initVideoPlayer = async (source) => {
+  if (!source?.play_url) return
   
+  // 等待 video 元素渲染
+  await nextTick()
+  
+  // 如果 videoRef 还是 null，等待一下
+  if (!videoRef.value) {
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  
+  if (!videoRef.value) return
+  
+  // 先清理之前的实例
+  destroyHls()
+  
+  const video = videoRef.value
   const url = source.play_url
   const isM3U8 = url.includes('.m3u8')
   
-  // 如果播放器已存在，直接切换源
-  if (player.value) {
-    player.value.src({
-      src: url,
-      type: isM3U8 ? 'application/x-mpegURL' : 'video/mp4'
-    })
-    player.value.play().catch(() => {})
-    return
-  }
-  
-  // video.js 配置
-  const options = {
-    controls: true,
-    fluid: true,
-    preload: 'auto',
-    autoplay: true, // 添加 autoplay 配置
-    poster: detail.value.cover,
-    sources: [{
-      src: url,
-      type: isM3U8 ? 'application/x-mpegURL' : 'video/mp4'
-    }]
-  }
-  
-  // 使用 setTimeout 确保元素已在 DOM 中并渲染完成
-  setTimeout(() => {
-    if (!videoRef.value || player.value) return
-    
-    // 创建 video.js 播放器
-    const p = videojs(videoRef.value, options, function() {
-      // 播放就绪后的回调
-      this.on('ended', onEnded)
-      this.on('timeupdate', onTimeUpdate)
+  if (isM3U8) {
+    // M3U8 格式使用 hls.js
+    if (Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+      })
       
-      // 播放器就绪后延迟播放
-      setTimeout(() => {
-        const playPromise = this.play()
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {})
-        }
-      }, 300)
+      hls.loadSource(url)
+      hls.attachMedia(video)
       
-      // 添加自定义控制按钮
-      addCustomButtons(this)
-    })
-    
-    player.value = p
-  }, 300)
-}
-
-// 添加自定义控制按钮到播放器
-const addCustomButtons = (playerInstance) => {
-  const Component = videojs.getComponent('Component')
-  const dom = videojs.dom || videojs
-  
-  // 换源按钮组件
-  class SourceButton extends Component {
-    constructor(player, options) {
-      super(player, options)
-    }
-    createEl() {
-      const el = dom.createEl('div', {
-        className: 'vjs-control vjs-button source-btn',
-        innerHTML: '<span class="vjs-icon-placeholder"></span><span class="btn-text">换源</span>'
-      })
-      el.addEventListener('click', () => {
-        showSourcePicker.value = true
-      })
-      return el
-    }
-  }
-  SourceButton.prototype.controlText = '换源'
-  videojs.registerComponent('SourceButton', SourceButton)
-  
-  // 选集按钮组件
-  class EpisodeButton extends Component {
-    constructor(player, options) {
-      super(player, options)
-    }
-    createEl() {
-      const el = dom.createEl('div', {
-        className: 'vjs-control vjs-button episode-btn',
-        innerHTML: '<span class="vjs-icon-placeholder"></span><span class="btn-text">选集</span>'
-      })
-      el.addEventListener('click', () => {
-        if (episodes.value.length > 0) {
-          showEpisodePicker.value = true
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error('HLS加载错误:', data)
         }
       })
-      return el
+      
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        // 加载完成后自动播放
+        video.play().catch(() => {})
+      })
+      
+      hlsInstance.value = hls
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Safari 原生支持 HLS
+      video.src = url
+      video.play().catch(() => {})
     }
+  } else {
+    // 普通视频直接设置 src
+    video.src = url
+    video.play().catch(() => {})
   }
-  EpisodeButton.prototype.controlText = '选集'
-  videojs.registerComponent('EpisodeButton', EpisodeButton)
-  
-  // 将按钮添加到控制栏
-  playerInstance.addChild('SourceButton')
-  playerInstance.addChild('EpisodeButton')
 }
 
 // 销毁Hls实例
@@ -406,20 +374,6 @@ const destroyHls = () => {
     hlsInstance.value.destroy()
     hlsInstance.value = null
   }
-}
-
-// 销毁 video.js 播放器
-const destroyPlayer = () => {
-  if (player.value) {
-    try {
-      player.value.dispose()
-    } catch (e) {
-      console.error('销毁播放器失败', e)
-    }
-    player.value = null
-  }
-  // 同时清理 Hls
-  destroyHls()
 }
 
 // 添加历史记录
@@ -483,34 +437,18 @@ const onLoginSuccess = async () => {
 }
 
 const onTimeUpdate = () => {
-  if (!timer) {
-    timer = setTimeout(() => {
-      if (videoRef.value && currentSource.value && detail.value.id) {
-        const progress = videoRef.value.duration > 0 
-          ? videoRef.value.currentTime / videoRef.value.duration 
-          : 0
-        
-        // 只更新播放进度，不使用 addHistory（避免覆盖 episode_name）
-        const existing = historyStore.getHistory(detail.value.id)
-        if (existing) {
-          existing.last_position = videoRef.value.currentTime
-          existing.progress = progress
-          existing.watched_at = new Date().toISOString()
-        }
-        
-        // 登录用户同步到服务器
-        if (userStore.isLogin) {
-          post('/history/add', {
-            video_id: detail.value.id,
-            episode_id: currentSource.value.id,
-            progress: Math.round(progress * 100),
-            last_position: Math.round(videoRef.value.currentTime),
-            duration: Math.round(videoRef.value.duration)
-          }).catch(e => console.error('同步历史失败', e))
-        }
-      }
-      timer = null
-    }, 3000)
+  // 只更新本地播放进度，不调用API
+  if (videoRef.value && currentSource.value && detail.value.id) {
+    const progress = videoRef.value.duration > 0 
+      ? videoRef.value.currentTime / videoRef.value.duration 
+      : 0
+    
+    const existing = historyStore.getHistory(detail.value.id)
+    if (existing) {
+      existing.last_position = videoRef.value.currentTime
+      existing.progress = progress
+      existing.watched_at = new Date().toISOString()
+    }
   }
 }
 
@@ -519,6 +457,27 @@ const onEnded = () => {
   if (idx < episodes.value.length - 1) {
     selectSource(episodes.value[idx + 1])
   }
+}
+
+// 暂停时显示广告
+const onPause = () => {
+  showAdOverlay.value = true
+}
+
+// 播放时隐藏广告
+const onPlay = () => {
+  showAdOverlay.value = false
+}
+
+// 关闭广告
+const closeAd = () => {
+  showAdOverlay.value = false
+  // 保持暂停状态，不自动播放
+}
+
+// 点击广告
+const clickAd = () => {
+  window.location.href = adConfig.link
 }
 
 const formatCount = (count) => {
@@ -532,7 +491,7 @@ onMounted(() => loadDetail())
 
 // 组件卸载时清理Hls实例
 onBeforeUnmount(() => {
-  destroyPlayer()
+  destroyHls()
 })
 </script>
 
@@ -608,8 +567,18 @@ onBeforeUnmount(() => {
 }
 
 .player-wrapper {
+  position: relative;
   background: #000;
   width: 100%;
+  aspect-ratio: 16/9;
+  
+  .video-player {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: contain;
+    background: #000;
+  }
 }
 
 .content {
@@ -732,28 +701,6 @@ onBeforeUnmount(() => {
   }
 }
 
-// video.js 自定义按钮样式
-:deep(.vjs-control-bar) {
-  .source-btn,
-  .episode-btn {
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    min-width: 50px !important;
-    padding: 0 8px;
-    
-    .btn-text {
-      font-size: 12px;
-      color: #fff;
-      margin-left: 2px;
-    }
-    
-    &:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-  }
-}
-
 // 播放源选择弹窗
 .source-picker {
   width: 33vw;
@@ -818,6 +765,63 @@ onBeforeUnmount(() => {
     .source-item {
       padding: 8px;
       justify-content: center;
+    }
+  }
+}
+
+// 暂停广告样式
+.ad-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60%;
+  max-width: 300px;
+  background: transparent;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+
+  .ad-image-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .ad-image {
+      width: 100%;
+      display: block;
+    }
+
+    .ad-tip {
+      position: absolute;
+      bottom: 6px;
+      right: 6px;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.9);
+      background: rgba(0, 0, 0, 0.6);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+  }
+
+  .ad-close {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    font-size: 20px;
+    color: white;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    padding: 6px;
+    line-height: 1;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.9);
     }
   }
 }
