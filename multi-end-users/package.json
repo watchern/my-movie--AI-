@@ -19,7 +19,9 @@
     "video.js": "^8.10.0",
     "videojs-contrib-hls.js": "^3.2.0",
     "vue": "^3.4.21",
-    "vue-router": "^4.3.0"
+    "vue-router": "^4.3.0",
+    "xgplayer": "^3.0.24",
+    "xgplayer-vue": "^1.1.5"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

@@ -10,3 +10,4 @@ backend/runtime
 backend/public/test*.php
 backend/public/test_*.php
 *.lock
+dist
