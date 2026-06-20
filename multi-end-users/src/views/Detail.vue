@@ -206,7 +206,11 @@ let historyTimer = null
 let skipTimer = null
 let isAutoPlayingNext = false  // 防抖标志，防止自动播放下一集重复触发
 let lastEndedTime = 0  // 上一次触发ended的时间，用于防抖
-let isVideoPlaying = false  // 标记视频是否正在播放（非暂停状态）
+let isNearEnd = false  // 是否接近视频结尾（最后5秒内）- 通过timeupdate事件检测
+let playerInitAttempts = 0  // 播放器初始化尝试次数，防止无限重试
+const MAX_PLAYER_INIT_ATTEMPTS = 3  // 最大尝试次数
+let lastCheckedSourceUrl = ''  // 上一次检查的视频源URL，避免重复检查同一个URL
+let sourceCheckFailed = false  // 标记当前视频源检查是否失败
 
 // 检查视频源是否可访问
 const checkVideoSource = (url) => {
@@ -548,13 +552,8 @@ class SkipIntroPlugin extends Player.Plugin {
       }, 500)
     }
     
-    // 自动跳过片尾
-    if (duration > 0 && currentTime >= this.outroStart && currentTime < duration - 1) {
-      if (this.skipTimer) clearTimeout(this.skipTimer)
-      this.skipTimer = setTimeout(() => {
-        this.player.currentTime = duration
-      }, 500)
-    }
+    // 注意：不再自动跳过片尾，因为这会与自动播放下一集功能冲突
+    // 用户可以通过设置面板关闭自动跳过片头片尾功能
   }
 
   setEnabled(enabled) {
@@ -668,6 +667,13 @@ const handleShare = async () => {
 }
 
 const selectSource = (source) => {
+  // 重置所有状态标志，防止切换视频源时的误触发
+  isNearEnd = false
+  isAutoPlayingNext = false
+  playerInitAttempts = 0
+  lastCheckedSourceUrl = ''  // 重置已检查的URL
+  sourceCheckFailed = false  // 重置失败标志
+  
   if (historyTimer) {
     clearTimeout(historyTimer)
     historyTimer = null
@@ -708,14 +714,31 @@ const selectSource = (source) => {
 }
 
 const initPlayer = (source) => {
-  // 检查是否已有播放器，避免重复创建
-  if (playerRef.value) return
+  if (!source?.play_url) {
+    console.log('[Player] initPlayer: no play_url')
+    return
+  }
   
-  if (!source?.play_url) return
+  // 检查尝试次数，防止无限重试
+  if (playerInitAttempts >= MAX_PLAYER_INIT_ATTEMPTS) {
+    console.log('[Player] initPlayer: max attempts reached, stopping')
+    return
+  }
+  playerInitAttempts++
+  console.log('[Player] initPlayer: attempt', playerInitAttempts)
   
   nextTick(() => {
     const container = document.getElementById('xgplayer-container')
-    if (!container) return
+    if (!container) {
+      console.log('[Player] initPlayer: container not found')
+      return
+    }
+    
+    // 如果已经有播放器，先销毁
+    if (playerRef.value) {
+      console.log('[Player] initPlayer: destroying existing player')
+      destroyPlayer()
+    }
     
     const isM3U8 = source.play_url.includes('.m3u8')
     
@@ -773,8 +796,22 @@ const initPlayer = (source) => {
       }
     }
     
+    console.log('[Player] initPlayer: creating new player with url:', source.play_url)
+    
     const player = new Player(config)
     playerRef.value = player
+    
+    // 视频加载成功后重置尝试次数
+    player.on('loadedmetadata', () => {
+      console.log('[Player] loadedmetadata: video loaded successfully')
+      playerInitAttempts = 0
+    })
+    
+    // 视频加载失败时的处理
+    player.on('error', (err) => {
+      console.log('[Player] error:', err)
+      // 不自动重试，让用户手动选择
+    })
     
     player.on('pause', onPause)
     player.on('play', onPlay)
@@ -783,6 +820,8 @@ const initPlayer = (source) => {
       if (isAutoPlayingNext) {
         isAutoPlayingNext = false
       }
+      // 重置尝试次数
+      playerInitAttempts = 0
     })
     player.on('fullscreenchange', onFullscreenChange)
     player.on('pipChange', onPipChange)
@@ -795,9 +834,15 @@ const initPlayer = (source) => {
         return
       }
       
-      // 如果视频不是正在播放状态（可能是暂停），忽略
-      if (!isVideoPlaying) {
-        console.log('[AutoPlayNext] ended event ignored, video is not playing')
+      // 如果之前检查过视频源且失败，不再重复检查
+      if (sourceCheckFailed) {
+        console.log('[AutoPlayNext] ended event ignored, sourceCheckFailed is true')
+        return
+      }
+      
+      // 如果不是接近结尾触发的ended，忽略（通过timeupdate事件检测）
+      if (!isNearEnd) {
+        console.log('[AutoPlayNext] ended event ignored, isNearEnd is false')
         return
       }
       
@@ -809,31 +854,10 @@ const initPlayer = (source) => {
       }
       lastEndedTime = now
       
-      // 检查播放进度是否接近视频结尾（最后5秒内）
-      const video = player.video
-      if (!video) {
-        console.log('[AutoPlayNext] ended event ignored, video element not found')
-        return
-      }
+      // 重置接近结尾标志
+      isNearEnd = false
       
-      const currentTime = video.currentTime
-      const duration = video.duration
-      
-      console.log('[AutoPlayNext] ended event received, currentTime:', currentTime, 'duration:', duration)
-      
-      // 如果视频时长无效，忽略
-      if (duration <= 0 || isNaN(duration)) {
-        console.log('[AutoPlayNext] ended event ignored, invalid duration')
-        return
-      }
-      
-      // 如果当前时间不在最后5秒内，忽略这个ended事件
-      if (currentTime < duration - 5) {
-        console.log('[AutoPlayNext] ended event ignored, currentTime not near end')
-        return
-      }
-      
-      console.log('[AutoPlayNext] ended event accepted, checking next episode...')
+      console.log('[AutoPlayNext] ended event accepted')
       
       const episodesVal = episodes.value
       const currentSourceVal = currentSource.value
@@ -860,26 +884,50 @@ const initPlayer = (source) => {
         return
       }
       
+      // 如果已经检查过这个URL，不再重复检查
+      if (lastCheckedSourceUrl === nextEpisode.play_url) {
+        console.log('[AutoPlayNext] already checked this URL, skip')
+        return
+      }
+      
+      // 立即设置防抖标志，防止重复触发检查
+      isAutoPlayingNext = true
+      lastCheckedSourceUrl = nextEpisode.play_url
+      
       // 检查下一集视频源是否可访问
       console.log('[AutoPlayNext] checking video source:', nextEpisode.play_url)
       const isSourceAvailable = await checkVideoSource(nextEpisode.play_url)
       
       if (!isSourceAvailable) {
-        console.log('[AutoPlayNext] video source is not available, skip')
+        console.log('[AutoPlayNext] video source is not available, marking as failed')
+        sourceCheckFailed = true
+        isAutoPlayingNext = false  // 重置标志，允许用户手动操作
         return
       }
       
-      console.log('[AutoPlayNext] video source is available, will play next episode after delay')
+      console.log('[AutoPlayNext] video source is available, playing next episode')
       
-      // 设置5秒延迟后自动播放下一集
-      setTimeout(() => {
-        // 再次检查状态
-        if (!isAutoPlayingNext) {
-          isAutoPlayingNext = true
-          console.log('[AutoPlayNext] switching to episode', idx + 2)
-          selectSource(nextEpisode)
-        }
-      }, 5000)
+      // 重置失败标志
+      sourceCheckFailed = false
+      
+      console.log('[AutoPlayNext] switching to episode', idx + 2)
+      selectSource(nextEpisode)
+    })
+    
+    // 监听时间更新，检测是否接近视频结尾
+    player.on('timeupdate', () => {
+      const video = player.video
+      if (!video) return
+      
+      const currentTime = video.currentTime
+      const duration = video.duration
+      
+      // 如果视频时长有效且当前时间在最后5秒内
+      if (duration > 0 && currentTime >= duration - 5) {
+        isNearEnd = true
+      } else {
+        isNearEnd = false
+      }
     })
   })
 }
@@ -967,13 +1015,11 @@ const onLoginSuccess = async () => {
 
 const onPlay = () => {
   isPlaying.value = true
-  isVideoPlaying = true  // 标记视频正在播放
   showAdOverlay.value = false
 }
 
 const onPause = () => {
   isPlaying.value = false
-  isVideoPlaying = false  // 标记视频暂停
 }
 
 const closeAd = () => {
