@@ -176,9 +176,16 @@ class CollectionTaskService
     protected static function startWorkerIfNeeded(): void
     {
         // 检查 worker 锁，避免重复启动
-        if (Cache::get(self::WORKER_LOCK_KEY)) {
-            Log::info('[CollectionTask] worker锁存在，跳过启动');
-            return;
+        $lockTime = Cache::get(self::WORKER_LOCK_KEY);
+        if ($lockTime) {
+            if (time() - intval($lockTime) > 300) {
+                // 锁已超时，自动释放
+                Log::info('[CollectionTask] worker锁已超时，自动释放');
+                Cache::delete(self::WORKER_LOCK_KEY);
+            } else {
+                Log::info('[CollectionTask] worker锁存在，跳过启动');
+                return;
+            }
         }
 
         // 设置 worker 锁（60秒后自动释放，防止 worker 异常退出导致死锁）
@@ -310,9 +317,16 @@ class CollectionTaskService
         $queue = Cache::get(self::TASK_QUEUE_KEY, []);
         foreach ($queue as $task) {
             if (intval($task['collect_source_id'] ?? 0) === $collectSourceId) {
-                // 如果任务排队中但 worker 没启动，尝试重新启动
-                if (!Cache::get(self::WORKER_LOCK_KEY)) {
+                $lockTime = Cache::get(self::WORKER_LOCK_KEY);
+
+                if (!$lockTime) {
+                    // worker 锁不存在，尝试启动
                     Log::info('[CollectionTask] 检测到排队任务但worker未运行，尝试重新启动');
+                    self::startWorkerIfNeeded();
+                } elseif (time() - intval($lockTime) > 300) {
+                    // worker 锁已超时（超过5分钟未刷新），自动释放并重启
+                    Log::info('[CollectionTask] worker锁已超时，自动释放并重启');
+                    Cache::delete(self::WORKER_LOCK_KEY);
                     self::startWorkerIfNeeded();
                 }
 
