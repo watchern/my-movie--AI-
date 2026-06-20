@@ -8,6 +8,7 @@ use app\model\User;
 use app\model\SourceSite;
 use app\model\CardKey;
 use app\service\AppleCmsService;
+use app\service\CollectionTaskService;
 
 /**
  * 管理端 - 视频管理
