@@ -142,6 +142,15 @@ class VideoController extends BaseController
             return $this->error('请选择要删除的视频');
         }
 
+        // 确保是数组
+        if (!is_array($ids)) {
+            $ids = [$ids];
+        }
+
+        // 先删除关联的剧集
+        VideoSource::whereIn('video_id', $ids)->delete();
+
+        // 再删除视频
         Video::whereIn('id', $ids)->delete();
 
         return $this->success(null, '删除成功');

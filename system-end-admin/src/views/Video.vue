@@ -438,8 +438,8 @@ const save = async () => {
 }
 
 const del = (id) => {
-    ElMessageBox.confirm('确定删除吗？', '提示').then(async () => {
-        await post('/video/delete', { id })
+    ElMessageBox.confirm('确定删除吗？删除视频将同时删除其所有剧集。', '提示').then(async () => {
+        await post('/video/delete', { ids: [id] })
         loadList()
     }).catch(() => {})
 }
