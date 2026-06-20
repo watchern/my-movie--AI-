@@ -89,11 +89,19 @@ class CollectionTaskService
 
         // 缓存视频列表
         $cacheKey = self::getListCacheKey($collectSourceId);
-        Cache::set($cacheKey, $listData, 3600);
+        $listSet = Cache::set($cacheKey, $listData, 3600);
 
         // 重置处理索引
         $indexKey = self::getIndexCacheKey($collectSourceId);
-        Cache::set($indexKey, 0, 3600);
+        $indexSet = Cache::set($indexKey, 0, 3600);
+
+        if (!$listSet || !$indexSet) {
+            Log::error('[CollectionTask] 缓存写入失败，source_id=' . $collectSourceId);
+            return [
+                'started' => false,
+                'msg' => '缓存写入失败，请检查 runtime/cache 目录权限',
+            ];
+        }
 
         // 记录上次采集时间
         Cache::set(self::LAST_RUN_KEY, time(), 86400);
@@ -131,6 +139,20 @@ class CollectionTaskService
         $progressKey = self::getProgressCacheKey($collectSourceId);
 
         $listData = Cache::get($cacheKey);
+        if (empty($listData['list'])) {
+            Log::warning('[CollectionTask] 缓存列表为空，尝试从采集服务缓存恢复，source_id=' . $collectSourceId);
+
+            // 尝试从 AppleCmsService 的缓存或接口重新获取
+            $service = self::createServiceBySourceId($collectSourceId);
+            if ($service) {
+                $listData = $service->getVideoList([], 1, 100);
+                if (!empty($listData['list'])) {
+                    Log::info('[CollectionTask] 已从采集服务恢复列表，source_id=' . $collectSourceId . ', total=' . count($listData['list']));
+                    Cache::set($cacheKey, $listData, 3600);
+                }
+            }
+        }
+
         if (empty($listData['list'])) {
             // 没有缓存列表，可能是已经完成或没有触发过
             $progress = Cache::get($progressKey);
@@ -181,14 +203,17 @@ class CollectionTaskService
             if (empty($vodId)) {
                 Log::warning('[CollectionTask] 缺少 vod_id，跳过第 ' . $current . ' 个');
             } else {
+                Log::info('[CollectionTask] 开始处理第 ' . $current . '/' . $total . ' 个视频，vod_id=' . $vodId);
                 $detail = $service->getVideoDetail($vodId);
                 if (empty($detail)) {
                     Log::warning('[CollectionTask] 获取详情失败，vod_id=' . $vodId);
                 } else {
                     try {
-                        $service->saveVideo($detail);
+                        $video = $service->saveVideo($detail);
+                        Log::info('[CollectionTask] 保存视频成功，id=' . ($video->id ?? 0) . ', title=' . ($detail['vod_name'] ?? ''));
                     } catch (\Exception $saveError) {
                         if (strpos($saveError->getMessage(), '视频已存在') !== false) {
+                            Log::info('[CollectionTask] 视频已存在，跳过，vod_id=' . $vodId);
                             // 已存在不算失败，继续下一个
                         } else {
                             throw $saveError;
@@ -198,7 +223,10 @@ class CollectionTaskService
             }
 
             // 处理成功，移动到下一个
-            Cache::set($indexKey, $current, 3600);
+            $setResult = Cache::set($indexKey, $current, 3600);
+            if (!$setResult) {
+                Log::error('[CollectionTask] 索引缓存写入失败，source_id=' . $collectSourceId . ', current=' . $current);
+            }
 
             // 检查是否已处理完
             if ($current >= $total) {
