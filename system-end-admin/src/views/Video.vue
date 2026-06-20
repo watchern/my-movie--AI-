@@ -52,10 +52,13 @@
                                 >{{ row.is_show ? '显示' : '隐藏' }}</el-tag>
                             </template>
                         </el-table-column>
-                        <el-table-column label="操作" width="150" resizable>
+                        <el-table-column label="操作" width="200" resizable>
                             <template #default="{ row }">
                                 <el-tooltip content="编辑" placement="top">
                                     <el-button link type="primary" @click="edit(row)"><el-icon><Edit /></el-icon></el-button>
+                                </el-tooltip>
+                                <el-tooltip content="管理剧集" placement="top">
+                                    <el-button link type="warning" @click="manageEpisodes(row)"><el-icon><VideoPlay /></el-icon></el-button>
                                 </el-tooltip>
                                 <el-tooltip content="添加轮播" placement="top">
                                     <el-button link type="success" @click="addToBanner(row)"><el-icon><Picture /></el-icon></el-button>
@@ -235,6 +238,59 @@
             </template>
         </el-dialog>
 
+        <!-- 剧集管理对话框 -->
+        <el-dialog v-model="showEpisodeDialogVisible" :title="`剧集管理 - ${currentVideo.title || ''}`" width="900px">
+            <el-card>
+                <template #header>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>剧集列表</span>
+                        <el-button type="primary" size="small" @click="showEpisodeForm()">添加剧集</el-button>
+                    </div>
+                </template>
+                <el-table :data="episodeList" stripe border>
+                    <el-table-column prop="id" label="ID" width="80" />
+                    <el-table-column prop="name" label="剧集名称" min-width="150" />
+                    <el-table-column prop="play_url" label="播放地址" min-width="300" show-overflow-tooltip />
+                    <el-table-column prop="sort_order" label="排序" width="80" />
+                    <el-table-column prop="status" label="状态" width="80">
+                        <template #default="{ row }">
+                            <el-tag :type="row.status ? 'success' : 'danger'" size="small">
+                                {{ row.status ? '正常' : '禁用' }}
+                            </el-tag>
+                        </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="150">
+                        <template #default="{ row }">
+                            <el-button link type="primary" @click="showEpisodeForm(row)">编辑</el-button>
+                            <el-button link type="danger" @click="deleteEpisode(row)">删除</el-button>
+                        </template>
+                    </el-table-column>
+                </el-table>
+            </el-card>
+        </el-dialog>
+
+        <!-- 剧集编辑对话框 -->
+        <el-dialog v-model="showEpisodeFormVisible" :title="episodeForm.id ? '编辑剧集' : '添加剧集'" width="600px">
+            <el-form :model="episodeForm" label-width="100px">
+                <el-form-item label="剧集名称" required>
+                    <el-input v-model="episodeForm.name" placeholder="如：第01集" />
+                </el-form-item>
+                <el-form-item label="播放地址" required>
+                    <el-input v-model="episodeForm.play_url" type="textarea" :rows="3" placeholder="视频播放地址" />
+                </el-form-item>
+                <el-form-item label="排序">
+                    <el-input-number v-model="episodeForm.sort_order" :min="0" style="width: 100%" />
+                </el-form-item>
+                <el-form-item label="状态">
+                    <el-switch v-model="episodeForm.status" :active-value="1" :inactive-value="0" />
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <el-button @click="showEpisodeFormVisible = false">取消</el-button>
+                <el-button type="primary" @click="saveEpisode">保存</el-button>
+            </template>
+        </el-dialog>
+
         <!-- 分类编辑对话框 -->
         <el-dialog v-model="showCategoryDialogVisible" :title="categoryForm.id ? '编辑分类' : '添加分类'" width="500px">
             <el-form :model="categoryForm" label-width="80px">
@@ -269,9 +325,23 @@
 import { ref, onMounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { Edit, Delete, Picture } from '@element-plus/icons-vue'
+import { Edit, Delete, Picture, VideoPlay } from '@element-plus/icons-vue'
 
 const activeTab = ref('video')
+
+// 剧集管理相关
+const showEpisodeDialogVisible = ref(false)
+const showEpisodeFormVisible = ref(false)
+const currentVideo = ref({})
+const episodeList = ref([])
+const episodeForm = ref({
+    id: 0,
+    video_id: 0,
+    name: '',
+    play_url: '',
+    sort_order: 0,
+    status: 1
+})
 
 const query = ref({ page: 1, limit: 20, type: '', is_show: '', keyword: '' })
 const list = ref([])
@@ -427,6 +497,64 @@ const deleteCategory = (row) => {
     ElMessageBox.confirm(`确定删除分类"${row.name}"吗？`, '提示').then(async () => {
         await post('/video/deleteCategory', { ids: [row.id] })
         loadCategoryList()
+    }).catch(() => {})
+}
+
+// 剧集管理方法
+const manageEpisodes = async (row) => {
+    currentVideo.value = row
+    await loadEpisodeList(row.id)
+    showEpisodeDialogVisible.value = true
+}
+
+const loadEpisodeList = async (videoId) => {
+    const res = await get('/video/episodes', { video_id: videoId })
+    episodeList.value = res.data || []
+}
+
+const showEpisodeForm = (row = null) => {
+    if (row) {
+        episodeForm.value = { ...row }
+    } else {
+        episodeForm.value = {
+            id: 0,
+            video_id: currentVideo.value.id,
+            name: '',
+            play_url: '',
+            sort_order: episodeList.value.length,
+            status: 1
+        }
+    }
+    showEpisodeFormVisible.value = true
+}
+
+const saveEpisode = async () => {
+    if (!episodeForm.value.name) {
+        ElMessage.error('剧集名称不能为空')
+        return
+    }
+    if (!episodeForm.value.play_url) {
+        ElMessage.error('播放地址不能为空')
+        return
+    }
+
+    const data = {
+        ...episodeForm.value,
+        video_id: currentVideo.value.id
+    }
+
+    await post('/video/saveEpisode', data)
+    showEpisodeFormVisible.value = false
+    await loadEpisodeList(currentVideo.value.id)
+}
+
+const deleteEpisode = (row) => {
+    ElMessageBox.confirm(`确定删除剧集"${row.name}"吗？`, '提示').then(async () => {
+        await post('/video/deleteEpisode', {
+            id: row.id,
+            video_id: currentVideo.value.id
+        })
+        await loadEpisodeList(currentVideo.value.id)
     }).catch(() => {})
 }
 

@@ -30,6 +30,11 @@ Route::group('admin/api', function () {
     Route::post('video/saveSourceSite', [VideoController::class, 'saveSourceSite']);
     Route::post('video/collect', [VideoController::class, 'collect']);
 
+    // 剧集管理
+    Route::get('video/episodes', [VideoController::class, 'episodes']);
+    Route::post('video/saveEpisode', [VideoController::class, 'saveEpisode']);
+    Route::post('video/deleteEpisode', [VideoController::class, 'deleteEpisode']);
+
     // 用户管理
     Route::get('user/list', [UserController::class, 'list']);
     Route::get('user/detail', [UserController::class, 'detail']);

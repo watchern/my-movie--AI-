@@ -329,6 +329,7 @@ class AppleCmsService
     /**
      * 保存剧集
      * 兼容苹果CMS格式：$$$分隔播放器源，#分隔剧集，$分隔集名和URL
+     * 只保存视频类型的URL，丢弃分享页、云盘链接等非视频地址
      */
     private function saveEpisodes(Video $video, string $playUrl): void
     {
@@ -351,6 +352,11 @@ class AppleCmsService
                     $episodeName = trim(substr($episodeStr, 0, $pos));
                     $url = substr($episodeStr, $pos + 1);
 
+                    // 跳过非视频类型的播放地址
+                    if (!$this->isVideoUrl($url)) {
+                        continue;
+                    }
+
                     $episode = new VideoSource();
                     $episode->video_id = $video->id;
                     $episode->source_site_id = $this->site->id;
@@ -362,6 +368,36 @@ class AppleCmsService
                 }
             }
         }
+    }
+
+    /**
+     * 判断URL是否为可直接播放的视频地址
+     */
+    private function isVideoUrl(string $url): bool
+    {
+        $url = trim($url);
+        if (empty($url)) {
+            return false;
+        }
+
+        // 移除URL中的查询参数，获取路径部分用于判断后缀
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+
+        // 支持的视频格式
+        $videoExts = ['m3u8', 'mp4', 'flv', 'ts', 'webm', 'ogg', 'mov', 'mkv', 'avi', 'rmvb', 'wmv'];
+
+        // 检查后缀
+        if (in_array($ext, $videoExts)) {
+            return true;
+        }
+
+        // 如果路径没有明显后缀，但包含某些流媒体协议或特征，也认为是视频
+        if (strpos($url, '.m3u8') !== false || strpos($url, '.mp4') !== false) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

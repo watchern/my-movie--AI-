@@ -7,6 +7,7 @@ use app\model\Category;
 use app\model\User;
 use app\model\SourceSite;
 use app\model\CardKey;
+use app\model\VideoSource;
 use app\service\AppleCmsService;
 use app\service\CollectionTaskService;
 
@@ -321,5 +322,82 @@ class VideoController extends BaseController
         }
 
         return $this->error($result['msg']);
+    }
+
+    /**
+     * 获取视频剧集列表
+     */
+    public function episodes()
+    {
+        $videoId = intval($this->request->get('video_id', 0));
+        if ($videoId <= 0) {
+            return $this->error('参数错误');
+        }
+
+        $list = VideoSource::where('video_id', $videoId)
+            ->order('sort_order', 'asc')
+            ->select();
+
+        return $this->success($list);
+    }
+
+    /**
+     * 保存剧集（添加/编辑）
+     */
+    public function saveEpisode()
+    {
+        $data = $this->getData();
+        $id = intval($data['id'] ?? 0);
+        $videoId = intval($data['video_id'] ?? 0);
+
+        if ($videoId <= 0) {
+            return $this->error('视频ID不能为空');
+        }
+        if (empty($data['name'])) {
+            return $this->error('剧集名称不能为空');
+        }
+        if (empty($data['play_url'])) {
+            return $this->error('播放地址不能为空');
+        }
+
+        if ($id > 0) {
+            $episode = VideoSource::where('id', $id)
+                ->where('video_id', $videoId)
+                ->find();
+            if (!$episode) {
+                return $this->error('剧集不存在');
+            }
+        } else {
+            $episode = new VideoSource();
+            $episode->video_id = $videoId;
+        }
+
+        $episode->name = trim($data['name']);
+        $episode->play_url = trim($data['play_url']);
+        $episode->sort_order = intval($data['sort_order'] ?? 0);
+        $episode->status = isset($data['status']) ? intval($data['status']) : 1;
+        $episode->save();
+
+        return $this->success(['id' => $episode->id], '保存成功');
+    }
+
+    /**
+     * 删除剧集
+     */
+    public function deleteEpisode()
+    {
+        $data = $this->getData();
+        $id = intval($data['id'] ?? 0);
+        $videoId = intval($data['video_id'] ?? 0);
+
+        if ($id <= 0 || $videoId <= 0) {
+            return $this->error('参数错误');
+        }
+
+        VideoSource::where('id', $id)
+            ->where('video_id', $videoId)
+            ->delete();
+
+        return $this->success(null, '删除成功');
     }
 }
