@@ -13,10 +13,15 @@ require __DIR__ . '/vendor/autoload.php';
 
 use app\service\CollectionTaskService;
 use think\App;
+use think\facade\Log;
 
 // 初始化 ThinkPHP 应用
 $app = new App(__DIR__);
 $app->initialize();
 
+Log::info('[CollectionTask] worker进程已启动，开始处理任务队列');
+
 // 执行 worker 主循环
 CollectionTaskService::runWorker();
+
+Log::info('[CollectionTask] worker进程已结束');

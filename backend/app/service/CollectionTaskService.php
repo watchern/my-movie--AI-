@@ -191,10 +191,10 @@ class CollectionTaskService
 
         try {
             if ($isWindows) {
-                // Windows 使用 start /B 后台启动
-                $shellCmd = 'start /B "" ' . $cmd;
+                // Windows 使用 start /B 后台启动，并重定向输出避免阻塞
+                $shellCmd = 'start /B "" ' . $cmd . ' > NUL 2>&1';
                 Log::info('[CollectionTask] 启动worker命令: ' . $shellCmd);
-                pclose(popen($shellCmd, 'r'));
+                exec($shellCmd);
             } else {
                 // Linux/Mac 使用 nohup 后台启动
                 $shellCmd = 'nohup ' . $cmd . ' > /dev/null 2>&1 &';
@@ -310,12 +310,18 @@ class CollectionTaskService
         $queue = Cache::get(self::TASK_QUEUE_KEY, []);
         foreach ($queue as $task) {
             if (intval($task['collect_source_id'] ?? 0) === $collectSourceId) {
+                // 如果任务排队中但 worker 没启动，尝试重新启动
+                if (!Cache::get(self::WORKER_LOCK_KEY)) {
+                    Log::info('[CollectionTask] 检测到排队任务但worker未运行，尝试重新启动');
+                    self::startWorkerIfNeeded();
+                }
+
                 return [
                     'status' => 'pending',
                     'total' => 0,
                     'current' => 0,
                     'percent' => 0,
-                    'msg' => '任务排队中，等待执行',
+                    'msg' => '任务排队中，等待worker执行',
                 ];
             }
         }
