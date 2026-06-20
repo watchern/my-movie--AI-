@@ -2,9 +2,8 @@
 
 namespace app\service;
 
+use app\model\CollectSource;
 use app\model\SourceSite;
-use app\model\Video;
-use app\model\VideoSource;
 use think\facade\Cache;
 use think\facade\Log;
 
@@ -17,8 +16,6 @@ class CollectionTaskService
     const RUNNING_KEY = 'collection_task_running';
     // 缓存key：上次采集时间
     const LAST_RUN_KEY = 'collection_task_last_run';
-    // 最小间隔时间（秒），防止频繁触发
-    const MIN_INTERVAL = 300;
 
     /**
      * 检查是否有采集任务进行中
@@ -43,17 +40,46 @@ class CollectionTaskService
 
     /**
      * 检查是否允许启动新任务
+     * 有调用即触发：只要没有进行中的任务就允许启动
      */
     public static function canStart(): bool
     {
-        if (self::isRunning()) {
-            return false;
+        return !self::isRunning();
+    }
+
+    /**
+     * 根据 CollectSource 配置触发异步采集
+     * @param int $sourceId collect_sources 表中的站点ID
+     * @param int $limit 本次采集数量
+     * @param array $typeIds 指定分类ID
+     * @return array
+     */
+    public static function triggerBySourceId(int $sourceId, int $limit = 100, array $typeIds = []): array
+    {
+        $source = CollectSource::find($sourceId);
+        if (!$source) {
+            return [
+                'started' => false,
+                'msg' => '采集站点不存在',
+            ];
         }
-        $lastRun = (int) Cache::get(self::LAST_RUN_KEY, 0);
-        if (time() - $lastRun < self::MIN_INTERVAL) {
-            return false;
+
+        if (!$source->status) {
+            return [
+                'started' => false,
+                'msg' => '采集站点已禁用',
+            ];
         }
-        return true;
+
+        $apiUrl = trim($source->api_url);
+        if (empty($apiUrl)) {
+            return [
+                'started' => false,
+                'msg' => '采集站点接口地址为空',
+            ];
+        }
+
+        return self::trigger($apiUrl, $limit, $typeIds);
     }
 
     /**
@@ -68,7 +94,7 @@ class CollectionTaskService
         if (!self::canStart()) {
             return [
                 'started' => false,
-                'msg' => '已有采集任务进行中或间隔时间太短',
+                'msg' => '已有采集任务进行中',
             ];
         }
 

@@ -299,31 +299,26 @@ class VideoController extends BaseController
     }
 
     /**
-     * 采集视频
+     * 采集视频（异步触发）
+     * 根据 collect_sources 配置中的 source_id 启动采集任务
      */
     public function collect()
     {
         $data = $this->getData();
-        $siteId = intval($data['site_id'] ?? 0);
+        $sourceId = intval($data['source_id'] ?? 0);
         $typeIds = $data['type_ids'] ?? [];
         $limit = intval($data['limit'] ?? 100);
 
-        if ($siteId <= 0) {
+        if ($sourceId <= 0) {
             return $this->error('请选择资源站点');
         }
 
-        $site = SourceSite::find($siteId);
-        if (!$site || $site->status != SourceSite::STATUS_ENABLED) {
-            return $this->error('资源站点不存在或已禁用');
+        $result = CollectionTaskService::triggerBySourceId($sourceId, $limit, $typeIds);
+
+        if ($result['started']) {
+            return $this->success($result, '采集任务已启动');
         }
 
-        try {
-            $service = new AppleCmsService($site);
-            $result = $service->collectToLocal($typeIds, $limit);
-
-            return $this->success($result, '采集完成');
-        } catch (\Exception $e) {
-            return $this->error('采集失败: ' . $e->getMessage());
-        }
+        return $this->error($result['msg']);
     }
 }

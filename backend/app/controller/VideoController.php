@@ -637,15 +637,21 @@ class VideoController extends BaseController
     /**
      * 触发异步采集任务
      * 访问该接口时，如果没有进行中的采集任务，则启动一个
+     * 优先使用 source_id 从 collect_sources 配置中读取，否则使用 api_url 或默认地址
      */
     public function collectTrigger()
     {
         $data = $this->getData();
-        $apiUrl = trim($data['api_url'] ?? 'http://caiji.dyttzyapi.com/api.php/provide/vod');
+        $sourceId = intval($data['source_id'] ?? 0);
         $limit = max(1, min(500, intval($data['limit'] ?? 100)));
         $typeIds = $data['type_ids'] ?? [];
 
-        $result = CollectionTaskService::trigger($apiUrl, $limit, $typeIds);
+        if ($sourceId > 0) {
+            $result = CollectionTaskService::triggerBySourceId($sourceId, $limit, $typeIds);
+        } else {
+            $apiUrl = trim($data['api_url'] ?? 'http://caiji.dyttzyapi.com/api.php/provide/vod');
+            $result = CollectionTaskService::trigger($apiUrl, $limit, $typeIds);
+        }
 
         return $this->success($result);
     }
