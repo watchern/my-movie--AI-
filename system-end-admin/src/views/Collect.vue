@@ -180,6 +180,29 @@ const loadList = async () => {
     total: 0,
     percent: 0,
   }))
+
+  // 恢复真实的采集状态
+  await restoreCollectStatus()
+}
+
+// 页面加载时恢复每个站点的采集状态
+const restoreCollectStatus = async () => {
+  for (const row of list.value) {
+    try {
+      const res = await get('/video/collectProgress', { source_id: row.id })
+      const progress = res.data || {}
+
+      if (progress.status === 'running' || progress.status === 'pending') {
+        row.collect_status = progress.status
+        row.total = progress.total || 0
+        row.percent = progress.percent || 0
+        // 恢复轮询
+        startProgressPolling(row)
+      }
+    } catch (e) {
+      console.error('恢复采集状态失败', e)
+    }
+  }
 }
 
 const handleEdit = (row) => {
