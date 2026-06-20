@@ -8,6 +8,7 @@ use app\model\User;
 use app\model\VideoSource;
 use app\model\Favorite;
 use app\model\WatchHistory;
+use app\service\CollectionTaskService;
 
 /**
  * 视频控制器
@@ -631,5 +632,29 @@ class VideoController extends BaseController
             ];
         }
         return $result;
+    }
+
+    /**
+     * 触发异步采集任务
+     * 访问该接口时，如果没有进行中的采集任务，则启动一个
+     */
+    public function collectTrigger()
+    {
+        $data = $this->getData();
+        $apiUrl = trim($data['api_url'] ?? 'http://caiji.dyttzyapi.com/api.php/provide/vod');
+        $limit = max(1, min(500, intval($data['limit'] ?? 100)));
+        $typeIds = $data['type_ids'] ?? [];
+
+        $result = CollectionTaskService::trigger($apiUrl, $limit, $typeIds);
+
+        return $this->success($result);
+    }
+
+    /**
+     * 获取采集任务状态
+     */
+    public function collectStatus()
+    {
+        return $this->success(CollectionTaskService::getStatus());
     }
 }

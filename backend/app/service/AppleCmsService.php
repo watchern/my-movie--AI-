@@ -80,7 +80,7 @@ class AppleCmsService
      */
     public function getVideoDetail(string $vodId): ?array
     {
-        $url = $this->apiUrl . '/api.php/provide/vod?id=' . $vodId;
+        $url = $this->apiUrl . '/api.php/provide/vod?ac=detail&id=' . $vodId;
         $data = $this->curlGet($url);
 
         if (empty($data) || !isset($data['code']) || $data['code'] != 1) {
@@ -129,14 +129,29 @@ class AppleCmsService
 
         foreach ($listData['list'] as $item) {
             try {
-                $this->saveVideo($item);
+                $vodId = $item['vod_id'] ?? '';
+                if (empty($vodId)) {
+                    $result['failed']++;
+                    $result['errors'][] = 'missing vod_id';
+                    continue;
+                }
+
+                // 通过详情接口获取完整数据
+                $detail = $this->getVideoDetail($vodId);
+                if (empty($detail)) {
+                    $result['failed']++;
+                    $result['errors'][] = $vodId . ': 获取详情失败';
+                    continue;
+                }
+
+                $this->saveVideo($detail);
                 $result['success']++;
             } catch (\Exception $e) {
                 if (strpos($e->getMessage(), '已存在') !== false) {
                     $result['exists']++;
                 } else {
                     $result['failed']++;
-                    $result['errors'][] = $item['vod_id'] . ': ' . $e->getMessage();
+                    $result['errors'][] = ($item['vod_id'] ?? 'unknown') . ': ' . $e->getMessage();
                 }
             }
         }

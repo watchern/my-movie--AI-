@@ -61,6 +61,10 @@ Route::group('api', function () {
         Route::get('video/categories', [VideoController::class, 'categories']);
         Route::get('video/playUrl', [VideoController::class, 'playUrl']);
         Route::get('video/play/:id', [VideoController::class, 'play']);
+
+        // 异步触发视频采集
+        Route::post('video/collect/trigger', [VideoController::class, 'collectTrigger']);
+        Route::get('video/collect/status', [VideoController::class, 'collectStatus']);
     });
 
     // 需要认证的接口

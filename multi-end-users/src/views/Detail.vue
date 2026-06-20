@@ -26,7 +26,7 @@
           <div id="xgplayer-container" class="xgplayer-container"></div>
           <!-- 暂停广告 -->
           <div
-            v-if="showAdOverlay && !isPlaying && !showEndAdOverlay"
+            v-if="showPauseAd && !isPlaying && !showEndAd"
             class="ad-overlay"
             @click="clickAd"
           >
@@ -38,7 +38,7 @@
           </div>
           <!-- 结束广告 -->
           <div
-            v-if="showEndAdOverlay && !isPlaying"
+            v-if="showEndAd && !isPlaying"
             class="ad-overlay"
             @click="clickEndAd"
           >
@@ -239,8 +239,8 @@ const isFavorited = ref(false);
 const loading = ref(true);
 const showSourcePicker = ref(false);
 const showEpisodePicker = ref(false);
-const showAdOverlay = ref(false);
-const showEndAdOverlay = ref(false);
+const showPauseAd = ref(false);
+const showEndAd = ref(false);
 const isPlaying = ref(false);
 const isFullscreen = ref(false);
 const isPip = ref(false);
@@ -382,19 +382,19 @@ class NextEpisodePlugin extends Player.Plugin {
     btn.innerHTML =
       '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 15 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>';
     btn.onclick = () => this.playNext();
-    btn.style.display = "flex";
-    btn.style.alignItems = "center";
-    btn.style.justifyContent = "center";
-    btn.style.width = "32px";
-    btn.style.height = "32px";
-    btn.style.marginRight = "8px";
-    btn.style.padding = "4px";
-    btn.style.background = "rgba(255, 255, 255, 0.2)";
-    btn.style.border = "none";
-    btn.style.borderRadius = "4px";
-    btn.style.cursor = "pointer";
-    btn.style.color = "#fff";
-    btn.style.transition = "background 0.3s";
+    // btn.style.display = "flex";
+    // btn.style.alignItems = "center";
+    // btn.style.justifyContent = "center";
+    // btn.style.width = "32px";
+    // btn.style.height = "32px";
+    // btn.style.marginRight = "8px";
+    // btn.style.padding = "4px";
+    // btn.style.background = "rgba(255, 255, 255, 0.2)";
+    // btn.style.border = "none";
+    // btn.style.borderRadius = "4px";
+    // btn.style.cursor = "pointer";
+    // btn.style.color = "#fff";
+    // btn.style.transition = "background 0.3s";
 
     container.appendChild(btn);
     console.log("[NextEpisodePlugin] button added successfully");
@@ -774,7 +774,7 @@ const selectSource = (source) => {
   playerInitAttempts = 0;
   lastCheckedSourceUrl = ""; // 重置已检查的URL
   sourceCheckFailed = false; // 重置失败标志
-  showEndAdOverlay.value = false; // 切换视频时隐藏结束广告
+  showEndAd.value = false; // 切换视频时隐藏结束广告
 
   if (historyTimer) {
     clearTimeout(historyTimer);
@@ -1022,8 +1022,8 @@ const initPlayer = (source) => {
 
       // 显示结束广告
       console.log("[AutoPlayNext] showing end ad");
-      showEndAdOverlay.value = true;
-      showAdOverlay.value = false;
+      showEndAd.value = true;
+      showPauseAd.value = false;
 
       if (!autoPlayNextEnabled.value) {
         console.log("[AutoPlayNext] autoPlayNext is disabled");
@@ -1071,7 +1071,7 @@ const initPlayer = (source) => {
 
       console.log("[AutoPlayNext] switching to episode", idx + 2);
       selectSource(nextEpisode);
-      showEndAdOverlay.value = false;
+      showEndAd.value = false;
     });
 
     // 监听时间更新，检测是否接近视频结尾
@@ -1085,7 +1085,7 @@ const initPlayer = (source) => {
       console.log("currentTime", currentTime, "duration", duration);
 
       // 如果视频时长有效且当前时间在最后5秒内
-      if (duration > 0 && currentTime >= duration - 5) {
+      if (duration > 0 && currentTime >= duration - 2) {
         isNearEnd = true;
       } else {
         isNearEnd = false;
@@ -1180,21 +1180,21 @@ const onLoginSuccess = async () => {
 
 const onPlay = () => {
   isPlaying.value = true;
-  showAdOverlay.value = false;
-  showEndAdOverlay.value = false;
+  showPauseAd.value = false;
+  showEndAd.value = false;
 };
 
 const onPause = () => {
   console.log("onPause");
   isPlaying.value = false;
   // 暂停时显示广告（仅在不是结束广告时）
-  if (!showEndAdOverlay.value) {
-    showAdOverlay.value = true;
+  if (!showEndAd.value) {
+    showPauseAd.value = true;
   }
 };
 
 const closeAd = () => {
-  showAdOverlay.value = false;
+  showPauseAd.value = false;
 };
 
 const clickAd = () => {
@@ -1202,7 +1202,7 @@ const clickAd = () => {
 };
 
 const closeEndAd = () => {
-  showEndAdOverlay.value = false;
+  showEndAd.value = false;
 };
 
 const clickEndAd = () => {
@@ -1605,10 +1605,9 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   width: 32px;
-  height: 32px;
   margin-right: 8px;
   padding: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0);
   border: none;
   border-radius: 4px;
   cursor: pointer;
