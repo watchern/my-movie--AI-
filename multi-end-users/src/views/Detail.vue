@@ -333,6 +333,7 @@ class NextEpisodePlugin extends Player.Plugin {
     if (!container) {
       container =
         this.player.root?.querySelector(".xgplayer-controls-left") ||
+        this.player.root?.querySelector(".xg-left-grid") ||
         this.player.root?.querySelector(".xgplayer-controls");
     }
 
@@ -817,6 +818,7 @@ const initPlayer = (source) => {
     const config = {
       id: "xgplayer-container",
       url: source.play_url,
+        mini: true, //开启小窗插件
       poster: detail.value.cover,
       autoplay: true,
       controls: true,
@@ -868,6 +870,9 @@ const initPlayer = (source) => {
         introEnd: introEnd.value,
         outroDuration: outroDuration.value,
       },
+      //  playnext: {
+      //   urlList: ['./a.mp4']
+      // }
     };
 
     console.log(
@@ -881,7 +886,7 @@ const initPlayer = (source) => {
       {
         name: "超清",
         definition: "1080p",
-        url: "//sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/mp4/xgplayer-demo-720p.mp4",
+        url: "http://ltjd.yiyuntech.net:9088/hls/40/index.m3u8",
       },
       {
         name: "高清",
@@ -894,6 +899,12 @@ const initPlayer = (source) => {
         url: "//sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/mp4/xgplayer-demo-360p.mp4",
       },
     ]);
+    if(config.playnext){      
+    player.on(Events.PLAYNEXT, () => {
+      // TODO
+      console.log('DO-PLAY-NEXT')
+    })
+    }
 
     // 视频加载成功后重置尝试次数
     player.on("loadedmetadata", () => {
