@@ -1,7 +1,11 @@
 <template>
   <div class="page">
     <!-- 左侧导航（大屏幕 >= 500px） -->
-    <van-sidebar v-model="activeSidebar" class="sidebar-nav" @change="onSidebarChange">
+    <van-sidebar
+      v-model="activeSidebar"
+      class="sidebar-nav"
+      @change="onSidebarChange"
+    >
       <van-sidebar-item title="首页" />
       <van-sidebar-item title="搜索" />
       <van-sidebar-item title="排行榜" />
@@ -21,7 +25,11 @@
         <div class="player-wrapper">
           <div id="xgplayer-container" class="xgplayer-container"></div>
           <!-- 暂停广告 -->
-          <div v-if="showAdOverlay && !isPlaying" class="ad-overlay" @click="clickAd">
+          <div
+            v-if="showAdOverlay && !isPlaying"
+            class="ad-overlay"
+            @click="clickAd"
+          >
             <div class="ad-image-wrapper">
               <img :src="adConfig.image" alt="广告" class="ad-image" />
               <div class="ad-tip">广告</div>
@@ -32,63 +40,84 @@
 
         <!-- 视频信息和选集 -->
         <div class="content">
-        <!-- 标题 -->
-        <div class="title-section">
-          <div class="title-row">
-            <h2>{{ detail.title }} <span v-if="currentSource">- {{ currentSource.name }}</span></h2>
+          <!-- 标题 -->
+          <div class="title-section">
+            <div class="title-row">
+              <h2>
+                {{ detail.title }}
+                <span v-if="currentSource">- {{ currentSource.name }}</span>
+              </h2>
+            </div>
+            <!-- 操作按钮 -->
+            <div class="action-buttons">
+              <!-- 播放源选择 -->
+              <div
+                class="action-btn"
+                v-if="sourceSites.length > 0"
+                @click="showSourcePicker = true"
+              >
+                <van-icon name="apps-o" size="24" />
+                <span>换源</span>
+              </div>
+              <!-- 收藏 -->
+              <div class="action-btn" @click="toggleFav">
+                <van-icon
+                  :name="isFavorited ? 'star' : 'star-o'"
+                  size="24"
+                  :color="isFavorited ? '#ff976a' : '#666'"
+                />
+                <span>{{ isFavorited ? "已收藏" : "收藏" }}</span>
+              </div>
+              <!-- 分享 -->
+              <div class="action-btn" @click="handleShare">
+                <van-icon name="share-o" size="24" />
+                <span>分享</span>
+              </div>
+            </div>
           </div>
-          <!-- 操作按钮 -->
-          <div class="action-buttons">
-            <!-- 播放源选择 -->
-            <div class="action-btn" v-if="sourceSites.length > 0" @click="showSourcePicker = true">
-              <van-icon name="apps-o" size="24" />
-              <span>换源</span>
-            </div>
-            <!-- 收藏 -->
-            <div class="action-btn" @click="toggleFav">
-              <van-icon :name="isFavorited ? 'star' : 'star-o'" size="24" :color="isFavorited ? '#ff976a' : '#666'" />
-              <span>{{ isFavorited ? '已收藏' : '收藏' }}</span>
-            </div>
-            <!-- 分享 -->
-            <div class="action-btn" @click="handleShare">
-              <van-icon name="share-o" size="24" />
-              <span>分享</span>
-            </div>
-          </div>
-        </div>
 
-        <!-- 选集列表 -->
-        <div class="episode-section" v-if="episodes.length">
-          <div class="section-title">选集</div>
-          <div class="episode-list">
-            <div
-              v-for="ep in episodes"
-              :key="ep.id"
-              class="episode-item"
-              :class="{ active: ep.id === currentSource.id }"
-              @click="selectSource(ep)"
-            >{{ ep.name }}</div>
+          <!-- 选集列表 -->
+          <div class="episode-section" v-if="episodes.length">
+            <div class="section-title">选集</div>
+            <div class="episode-list">
+              <div
+                v-for="ep in episodes"
+                :key="ep.id"
+                class="episode-item"
+                :class="{ active: ep.id === currentSource.id }"
+                @click="selectSource(ep)"
+              >
+                {{ ep.name }}
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- 视频详情信息 -->
-        <div class="video-info">
-          <div class="sub-info">
-            <span>{{ detail.release_year }}</span>
-            <span>{{ detail.region }}</span>
-            <span>{{ detail.type_name }}</span>
-            <span v-if="detail.is_vip" class="vip">VIP</span>
+          <!-- 视频详情信息 -->
+          <div class="video-info">
+            <div class="sub-info">
+              <span>{{ detail.release_year }}</span>
+              <span>{{ detail.region }}</span>
+              <span>{{ detail.type_name }}</span>
+              <span v-if="detail.is_vip" class="vip">VIP</span>
+            </div>
+            <div class="meta">
+              <span>播放 {{ formatCount(detail.play_count) }}</span>
+              <span>评分 {{ detail.rating }}</span>
+            </div>
+            <div class="tags">
+              <van-tag
+                type="primary"
+                size="mini"
+                v-for="t in (detail.tags || '').split(',')"
+                :key="t"
+                >{{ t }}</van-tag
+              >
+            </div>
+            <div class="description">
+              {{ detail.description || "暂无简介" }}
+            </div>
           </div>
-          <div class="meta">
-            <span>播放 {{ formatCount(detail.play_count) }}</span>
-            <span>评分 {{ detail.rating }}</span>
-          </div>
-          <div class="tags">
-            <van-tag type="primary" size="mini" v-for="t in (detail.tags || '').split(',')" :key="t">{{ t }}</van-tag>
-          </div>
-          <div class="description">{{ detail.description || '暂无简介' }}</div>
         </div>
-      </div>
       </div>
     </div>
 
@@ -103,7 +132,12 @@
     <QuickLogin ref="quickLoginRef" @success="onLoginSuccess" />
 
     <!-- 播放源选择弹窗 -->
-    <van-popup v-model:show="showSourcePicker" position="center" round closeable>
+    <van-popup
+      v-model:show="showSourcePicker"
+      position="center"
+      round
+      closeable
+    >
       <div class="source-picker">
         <div class="picker-header">
           <span>选择播放源</span>
@@ -118,14 +152,24 @@
           >
             <div class="source-name">{{ site.name }}</div>
             <div class="source-info">{{ site.episode_count }}集</div>
-            <van-icon v-if="site.id === currentSourceSite?.id" name="success" size="18" color="#1989fa" />
+            <van-icon
+              v-if="site.id === currentSourceSite?.id"
+              name="success"
+              size="18"
+              color="#1989fa"
+            />
           </div>
         </div>
       </div>
     </van-popup>
 
     <!-- 选集选择弹窗 -->
-    <van-popup v-model:show="showEpisodePicker" position="center" round closeable>
+    <van-popup
+      v-model:show="showEpisodePicker"
+      position="center"
+      round
+      closeable
+    >
       <div class="source-picker">
         <div class="picker-header">
           <span>选择剧集</span>
@@ -139,7 +183,12 @@
             @click="selectSource(ep)"
           >
             <div class="source-name">{{ ep.name }}</div>
-            <van-icon v-if="ep.id === currentSource?.id" name="success" size="18" color="#1989fa" />
+            <van-icon
+              v-if="ep.id === currentSource?.id"
+              name="success"
+              size="18"
+              color="#1989fa"
+            />
           </div>
         </div>
       </div>
@@ -148,287 +197,291 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { get, post } from '@/utils/request'
-import { useUserStore } from '@/stores/user'
-import { useHistoryStore } from '@/stores/history'
-import { useSafeBack } from '@/utils/router'
-import Hls from 'hls.js'
-import QuickLogin from '@/components/QuickLogin.vue'
-import Player from 'xgplayer'
-import 'xgplayer/dist/index.min.css'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { get, post } from "@/utils/request";
+import { useUserStore } from "@/stores/user";
+import { useHistoryStore } from "@/stores/history";
+import { useSafeBack } from "@/utils/router";
+import Hls from "hls.js";
+import QuickLogin from "@/components/QuickLogin.vue";
+import Player from "xgplayer";
+import "xgplayer/dist/index.min.css";
 
-const router = useRouter()
-const route = useRoute()
-const userStore = useUserStore()
-const historyStore = useHistoryStore()
-const { safeBack } = useSafeBack()
-const quickLoginRef = ref(null)
-const activeSidebar = ref(3)
-const activeTab = ref(0)
+const router = useRouter();
+const route = useRoute();
+const userStore = useUserStore();
+const historyStore = useHistoryStore();
+const { safeBack } = useSafeBack();
+const quickLoginRef = ref(null);
+const activeSidebar = ref(3);
+const activeTab = ref(0);
 
-const playerRef = ref(null)
-const detail = ref({})
-const sourceSites = ref([])
-const currentSourceSite = ref(null)
-const episodes = ref([])
-const currentSource = ref(null)
-const isFavorited = ref(false)
-const loading = ref(true)
-const showSourcePicker = ref(false)
-const showEpisodePicker = ref(false)
-const showAdOverlay = ref(false)
-const isPlaying = ref(false)
-const isFullscreen = ref(false)
-const isPip = ref(false)
-const danmakuEnabled = ref(true)
-const skipIntroEnabled = ref(true)
-const autoPlayNextEnabled = ref(true)
-const playbackRate = ref(1)
+const playerRef = ref(null);
+const detail = ref({});
+const sourceSites = ref([]);
+const currentSourceSite = ref(null);
+const episodes = ref([]);
+const currentSource = ref(null);
+const isFavorited = ref(false);
+const loading = ref(true);
+const showSourcePicker = ref(false);
+const showEpisodePicker = ref(false);
+const showAdOverlay = ref(false);
+const isPlaying = ref(false);
+const isFullscreen = ref(false);
+const isPip = ref(false);
+const danmakuEnabled = ref(true);
+const skipIntroEnabled = ref(true);
+const autoPlayNextEnabled = ref(true);
+const playbackRate = ref(1);
 
 // 片头片尾时间设置（单位：秒）
-const introStart = ref(0)
-const introEnd = ref(90) // 默认跳过前90秒的片头
-const outroStart = ref(0) // 片尾开始时间，会根据视频时长动态计算
-const outroDuration = ref(60) // 默认跳过最后60秒的片尾
+const introStart = ref(0);
+const introEnd = ref(90); // 默认跳过前90秒的片头
+const outroStart = ref(0); // 片尾开始时间，会根据视频时长动态计算
+const outroDuration = ref(60); // 默认跳过最后60秒的片尾
 
 // 倍速选项
-const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2]
+const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 // 暂停广告 Mock 配置
 const adConfig = {
-  image: 'https://picsum.photos/seed/ad/600/300',
-  link: 'https://www.example.com'
-}
+  image: "https://picsum.photos/seed/ad/600/300",
+  link: "https://www.example.com",
+};
 
-let historyTimer = null
-let skipTimer = null
-let isAutoPlayingNext = false  // 防抖标志，防止自动播放下一集重复触发
-let lastEndedTime = 0  // 上一次触发ended的时间，用于防抖
-let isNearEnd = false  // 是否接近视频结尾（最后5秒内）- 通过timeupdate事件检测
-let playerInitAttempts = 0  // 播放器初始化尝试次数，防止无限重试
-const MAX_PLAYER_INIT_ATTEMPTS = 3  // 最大尝试次数
-let lastCheckedSourceUrl = ''  // 上一次检查的视频源URL，避免重复检查同一个URL
-let sourceCheckFailed = false  // 标记当前视频源检查是否失败
+let historyTimer = null;
+let skipTimer = null;
+let isAutoPlayingNext = false; // 防抖标志，防止自动播放下一集重复触发
+let lastEndedTime = 0; // 上一次触发ended的时间，用于防抖
+let isNearEnd = false; // 是否接近视频结尾（最后5秒内）- 通过timeupdate事件检测
+let playerInitAttempts = 0; // 播放器初始化尝试次数，防止无限重试
+const MAX_PLAYER_INIT_ATTEMPTS = 3; // 最大尝试次数
+let lastCheckedSourceUrl = ""; // 上一次检查的视频源URL，避免重复检查同一个URL
+let sourceCheckFailed = false; // 标记当前视频源检查是否失败
 
 // 检查视频源是否可访问
 const checkVideoSource = (url) => {
   return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest()
-    xhr.open('HEAD', url, true)
-    xhr.timeout = 3000 // 3秒超时
+    const xhr = new XMLHttpRequest();
+    xhr.open("HEAD", url, true);
+    xhr.timeout = 3000; // 3秒超时
     xhr.onload = () => {
       // 2xx 和 3xx 状态码表示可访问
       if (xhr.status >= 200 && xhr.status < 400) {
-        resolve(true)
+        resolve(true);
       } else {
-        resolve(false)
+        resolve(false);
       }
-    }
+    };
     xhr.onerror = () => {
-      resolve(false)
-    }
+      resolve(false);
+    };
     xhr.ontimeout = () => {
-      resolve(false)
-    }
-    xhr.send()
-  })
-}
+      resolve(false);
+    };
+    xhr.send();
+  });
+};
 // 下一集插件 - 挂载到 CONTROLS_LEFT
 class NextEpisodePlugin extends Player.Plugin {
   static get pluginName() {
-    return 'NextEpisodePlugin'
+    return "NextEpisodePlugin";
   }
 
   static get defaultConfig() {
     return {
-      position: 'CONTROLS_LEFT'
-    }
+      position: "CONTROLS_LEFT",
+    };
   }
 
   afterCreate() {
-    this.isSwitching = false
+    this.isSwitching = false;
     // 使用 setTimeout 确保 DOM 已经渲染
     setTimeout(() => {
-      this.render()
-    }, 500)
+      this.render();
+    }, 500);
   }
 
   playNext() {
-    if (this.isSwitching) return
-    
-    const episodesVal = episodes.value
-    const currentSourceVal = currentSource.value
-    
-    if (!currentSourceVal || episodesVal.length === 0) return
-    
-    const idx = episodesVal.findIndex(e => e.id === currentSourceVal.id)
+    if (this.isSwitching) return;
+
+    const episodesVal = episodes.value;
+    const currentSourceVal = currentSource.value;
+
+    if (!currentSourceVal || episodesVal.length === 0) return;
+
+    const idx = episodesVal.findIndex((e) => e.id === currentSourceVal.id);
     if (idx < episodesVal.length - 1) {
-      this.isSwitching = true
-      selectSource(episodesVal[idx + 1])
+      this.isSwitching = true;
+      selectSource(episodesVal[idx + 1]);
     }
   }
 
   onSourceSwitched() {
     setTimeout(() => {
-      this.isSwitching = false
-    }, 300)
+      this.isSwitching = false;
+    }, 300);
   }
 
   render() {
     // 先尝试使用 this.root（xgplayer 3.x 的标准方式）
-    let container = this.root
-    
+    let container = this.root;
+
     // 如果 this.root 不存在，尝试手动查找控件容器
     if (!container) {
-      container = this.player.root?.querySelector('.xgplayer-controls-left') || 
-                  this.player.root?.querySelector('.xgplayer-controls')
+      container =
+        this.player.root?.querySelector(".xgplayer-controls-left") ||
+        this.player.root?.querySelector(".xgplayer-controls");
     }
-    
+
     if (!container) {
-      console.log('[NextEpisodePlugin] container not found, retrying...')
-      setTimeout(() => this.render(), 200)
-      return
+      console.log("[NextEpisodePlugin] container not found, retrying...");
+      setTimeout(() => this.render(), 200);
+      return;
     }
-    
+
     // 检查按钮是否已经存在
-    if (container.querySelector('.xgplayer-next-episode')) {
-      console.log('[NextEpisodePlugin] button already exists')
-      return
+    if (container.querySelector(".xgplayer-next-episode")) {
+      console.log("[NextEpisodePlugin] button already exists");
+      return;
     }
-    
-    const btn = document.createElement('button')
-    btn.className = 'xgplayer-next-episode'
-    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 15 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>'
-    btn.onclick = () => this.playNext()
-    btn.style.display = 'flex'
-    btn.style.alignItems = 'center'
-    btn.style.justifyContent = 'center'
-    btn.style.width = '32px'
-    btn.style.height = '32px'
-    btn.style.marginRight = '8px'
-    btn.style.padding = '4px'
-    btn.style.background = 'rgba(255, 255, 255, 0.2)'
-    btn.style.border = 'none'
-    btn.style.borderRadius = '4px'
-    btn.style.cursor = 'pointer'
-    btn.style.color = '#fff'
-    btn.style.transition = 'background 0.3s'
-    
-    container.appendChild(btn)
-    console.log('[NextEpisodePlugin] button added successfully')
+
+    const btn = document.createElement("button");
+    btn.className = "xgplayer-next-episode";
+    btn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 15 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>';
+    btn.onclick = () => this.playNext();
+    btn.style.display = "flex";
+    btn.style.alignItems = "center";
+    btn.style.justifyContent = "center";
+    btn.style.width = "32px";
+    btn.style.height = "32px";
+    btn.style.marginRight = "8px";
+    btn.style.padding = "4px";
+    btn.style.background = "rgba(255, 255, 255, 0.2)";
+    btn.style.border = "none";
+    btn.style.borderRadius = "4px";
+    btn.style.cursor = "pointer";
+    btn.style.color = "#fff";
+    btn.style.transition = "background 0.3s";
+
+    container.appendChild(btn);
+    console.log("[NextEpisodePlugin] button added successfully");
   }
 }
 
 // 旋转插件 - 挂载到 CONTROLS_RIGHT
 class RotatePlugin extends Player.Plugin {
   static get pluginName() {
-    return 'RotatePlugin'
+    return "RotatePlugin";
   }
 
   static get defaultConfig() {
     return {
-      position: 'CONTROLS_RIGHT'
-    }
+      position: "CONTROLS_RIGHT",
+    };
   }
 
   afterCreate() {
-    this.rotation = 0
-    this.render()
+    this.rotation = 0;
+    this.render();
   }
 
   rotate() {
-    this.rotation = (this.rotation + 90) % 360
-    const video = this.player.video
+    this.rotation = (this.rotation + 90) % 360;
+    const video = this.player.video;
     if (video) {
-      video.style.transform = `rotate(${this.rotation}deg)`
+      video.style.transform = `rotate(${this.rotation}deg)`;
     }
   }
 
   render() {
     if (!this.root) {
-      setTimeout(() => this.render(), 100)
-      return
+      setTimeout(() => this.render(), 100);
+      return;
     }
-    
-    const btn = document.createElement('button')
-    btn.className = 'xgplayer-rotate'
-    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>'
-    btn.onclick = () => this.rotate()
-    
-    this.root.appendChild(btn)
+
+    const btn = document.createElement("button");
+    btn.className = "xgplayer-rotate";
+    btn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>';
+    btn.onclick = () => this.rotate();
+
+    this.root.appendChild(btn);
   }
 }
 
 // 设置面板插件 - 挂载到 CONTROLS_RIGHT
 class SettingsPlugin extends Player.Plugin {
   static get pluginName() {
-    return 'SettingsPlugin'
+    return "SettingsPlugin";
   }
 
   static get defaultConfig() {
     return {
-      position: 'CONTROLS_RIGHT'
-    }
+      position: "CONTROLS_RIGHT",
+    };
   }
 
   afterCreate() {
-    this.panelVisible = false
-    this.render()
+    this.panelVisible = false;
+    this.render();
   }
 
   render() {
     if (!this.root) {
-      setTimeout(() => this.render(), 100)
-      return
+      setTimeout(() => this.render(), 100);
+      return;
     }
-    
-    const btn = document.createElement('button')
-    btn.className = 'xgplayer-settings-btn'
-    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'
+
+    const btn = document.createElement("button");
+    btn.className = "xgplayer-settings-btn";
+    btn.innerHTML =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
     btn.onclick = (e) => {
-      e.stopPropagation()
-      this.togglePanel()
-    }
-    
-    this.root.appendChild(btn)
+      e.stopPropagation();
+      this.togglePanel();
+    };
+
+    this.root.appendChild(btn);
   }
 
   togglePanel() {
-    this.panelVisible = !this.panelVisible
-    
+    this.panelVisible = !this.panelVisible;
+
     if (this.panelVisible) {
-      this.createPanel()
+      this.createPanel();
     } else {
-      this.destroyPanel()
+      this.destroyPanel();
     }
   }
 
   createPanel() {
-    if (!this.root) return
-    
-    let panel = this.player.root.querySelector('.xgplayer-settings-panel')
+    if (!this.root) return;
+
+    let panel = this.player.root.querySelector(".xgplayer-settings-panel");
     if (panel) {
-      panel.style.display = 'block'
-      return
+      panel.style.display = "block";
+      return;
     }
 
-    panel = document.createElement('div')
-    panel.className = 'xgplayer-settings-panel'
-    
+    panel = document.createElement("div");
+    panel.className = "xgplayer-settings-panel";
+
     panel.innerHTML = `
       <div class="settings-item">
         <span class="settings-label">自动跳过片头片尾</span>
         <label class="settings-switch">
-          <input type="checkbox" ${skipIntroEnabled.value ? 'checked' : ''} />
+          <input type="checkbox" ${skipIntroEnabled.value ? "checked" : ""} />
           <span class="settings-slider"></span>
         </label>
       </div>
       <div class="settings-item">
         <span class="settings-label">自动播放下一集</span>
         <label class="settings-switch">
-          <input type="checkbox" ${autoPlayNextEnabled.value ? 'checked' : ''} />
+          <input type="checkbox" ${autoPlayNextEnabled.value ? "checked" : ""} />
           <span class="settings-slider"></span>
         </label>
       </div>
@@ -436,106 +489,116 @@ class SettingsPlugin extends Player.Plugin {
         <span class="settings-label">倍速</span>
         <div class="settings-speed">
           <select class="speed-select">
-            ${speedOptions.map(speed => 
-              `<option value="${speed}" ${playbackRate.value === speed ? 'selected' : ''}>${speed}x</option>`
-            ).join('')}
+            ${speedOptions
+              .map(
+                (speed) =>
+                  `<option value="${speed}" ${playbackRate.value === speed ? "selected" : ""}>${speed}x</option>`,
+              )
+              .join("")}
           </select>
         </div>
       </div>
-    `
+    `;
 
-    this.root.appendChild(panel)
+    this.root.appendChild(panel);
 
     // 绑定事件
-    const skipSwitch = panel.querySelector('.settings-item:nth-child(1) .settings-switch input')
-    const autoNextSwitch = panel.querySelector('.settings-item:nth-child(2) .settings-switch input')
-    const speedSelect = panel.querySelector('.speed-select')
+    const skipSwitch = panel.querySelector(
+      ".settings-item:nth-child(1) .settings-switch input",
+    );
+    const autoNextSwitch = panel.querySelector(
+      ".settings-item:nth-child(2) .settings-switch input",
+    );
+    const speedSelect = panel.querySelector(".speed-select");
 
-    skipSwitch.addEventListener('change', (e) => {
-      skipIntroEnabled.value = e.target.checked
-      this.notifyChange()
-    })
+    skipSwitch.addEventListener("change", (e) => {
+      skipIntroEnabled.value = e.target.checked;
+      this.notifyChange();
+    });
 
-    autoNextSwitch.addEventListener('change', (e) => {
-      autoPlayNextEnabled.value = e.target.checked
-      this.notifyChange()
-    })
+    autoNextSwitch.addEventListener("change", (e) => {
+      autoPlayNextEnabled.value = e.target.checked;
+      this.notifyChange();
+    });
 
-    speedSelect.addEventListener('change', (e) => {
-      playbackRate.value = parseFloat(e.target.value)
-      this.player.playbackRate = playbackRate.value
-      this.notifyChange()
-    })
+    speedSelect.addEventListener("change", (e) => {
+      playbackRate.value = parseFloat(e.target.value);
+      this.player.playbackRate = playbackRate.value;
+      this.notifyChange();
+    });
 
     // 点击其他地方关闭面板
     setTimeout(() => {
-      document.addEventListener('click', this.handleOutsideClick)
-    }, 0)
+      document.addEventListener("click", this.handleOutsideClick);
+    }, 0);
   }
 
   destroyPanel() {
-    const panel = this.player.root.querySelector('.xgplayer-settings-panel')
+    const panel = this.player.root.querySelector(".xgplayer-settings-panel");
     if (panel) {
-      panel.style.display = 'none'
+      panel.style.display = "none";
     }
-    document.removeEventListener('click', this.handleOutsideClick)
+    document.removeEventListener("click", this.handleOutsideClick);
   }
 
   handleOutsideClick = (e) => {
-    const panel = this.player.root.querySelector('.xgplayer-settings-panel')
-    const btn = this.player.root.querySelector('.xgplayer-settings-btn')
+    const panel = this.player.root.querySelector(".xgplayer-settings-panel");
+    const btn = this.player.root.querySelector(".xgplayer-settings-btn");
     if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
-      this.togglePanel()
+      this.togglePanel();
     }
-  }
+  };
 
   notifyChange() {
     if (this.player.skipIntroPlugin) {
-      this.player.skipIntroPlugin.setEnabled(skipIntroEnabled.value)
+      this.player.skipIntroPlugin.setEnabled(skipIntroEnabled.value);
     }
   }
 
   destroy() {
-    this.destroyPanel()
-    super.destroy()
+    this.destroyPanel();
+    super.destroy();
   }
 }
 
 // 跳过片头片尾插件
 class SkipIntroPlugin extends Player.Plugin {
   static get pluginName() {
-    return 'SkipIntroPlugin'
+    return "SkipIntroPlugin";
   }
 
   afterCreate() {
-    this.enabled = skipIntroEnabled.value
-    this.introStart = introStart.value
-    this.introEnd = introEnd.value
-    this.outroDuration = outroDuration.value
-    this.outroStart = 0
-    this.skipTimer = null
-    this.bindEvents()
+    this.enabled = skipIntroEnabled.value;
+    this.introStart = introStart.value;
+    this.introEnd = introEnd.value;
+    this.outroDuration = outroDuration.value;
+    this.outroStart = 0;
+    this.skipTimer = null;
+    this.bindEvents();
   }
 
   bindEvents() {
-    this.player.on('timeupdate', () => {
-      this.onTimeUpdate()
-    })
-    
-    this.player.on('loadedmetadata', () => {
-      this.calculateOutro()
-    })
+    this.player.on("timeupdate", () => {
+      this.onTimeUpdate();
+    });
+
+    this.player.on("loadedmetadata", () => {
+      this.calculateOutro();
+    });
   }
 
   calculateOutro() {
-    const duration = this.player.duration
+    const duration = this.player.duration;
     if (duration > 0) {
-      this.outroStart = duration - this.outroDuration
+      this.outroStart = duration - this.outroDuration;
     }
   }
 
   onTimeUpdate() {
     if (!this.enabled) return
+    
+    // 只有在视频正在播放时才自动跳过，暂停时不跳过
+    if (this.player.paused) return
     
     const currentTime = this.player.currentTime
     const duration = this.player.duration
@@ -544,12 +607,19 @@ class SkipIntroPlugin extends Player.Plugin {
       this.outroStart = duration - this.outroDuration
     }
     
-    // 自动跳过片头
+    // 自动跳过片头 - 但要确保 introEnd 不超过视频时长
     if (currentTime > this.introStart && currentTime < this.introEnd) {
-      if (this.skipTimer) clearTimeout(this.skipTimer)
-      this.skipTimer = setTimeout(() => {
-        this.player.currentTime = this.introEnd
-      }, 500)
+      // 确保 introEnd 不超过视频时长
+      const targetTime = Math.min(this.introEnd, duration - 1)
+      if (currentTime < targetTime) {
+        if (this.skipTimer) clearTimeout(this.skipTimer)
+        this.skipTimer = setTimeout(() => {
+          // 再次检查是否正在播放
+          if (!this.player.paused) {
+            this.player.currentTime = targetTime
+          }
+        }, 500)
+      }
     }
     
     // 注意：不再自动跳过片尾，因为这会与自动播放下一集功能冲突
@@ -557,210 +627,214 @@ class SkipIntroPlugin extends Player.Plugin {
   }
 
   setEnabled(enabled) {
-    this.enabled = enabled
+    this.enabled = enabled;
   }
 
   isEnabled() {
-    return this.enabled
+    return this.enabled;
   }
 
   destroy() {
-    if (this.skipTimer) clearTimeout(this.skipTimer)
-    super.destroy()
+    if (this.skipTimer) clearTimeout(this.skipTimer);
+    super.destroy();
   }
 }
 
 // 左侧导航切换
 const onSidebarChange = (index) => {
-  if (index === 0) router.push('/')
-  else if (index === 1) router.push('/search')
-  else if (index === 2) router.push('/rank')
-  else if (index === 3) return
-  else if (index === 4) router.push('/user')
-}
+  if (index === 0) router.push("/");
+  else if (index === 1) router.push("/search");
+  else if (index === 2) router.push("/rank");
+  else if (index === 3) return;
+  else if (index === 4) router.push("/user");
+};
 
 // 底部导航切换
 const onTabChange = (index) => {
-  if (index === 0) router.push('/')
-  else if (index === 1) router.push('/rank')
-  else if (index === 2) router.push('/user')
-}
+  if (index === 0) router.push("/");
+  else if (index === 1) router.push("/rank");
+  else if (index === 2) router.push("/user");
+};
 
 // 是否有下一集
 const hasNextEpisode = computed(() => {
-  if (!currentSource.value || episodes.value.length === 0) return false
-  const idx = episodes.value.findIndex(e => e.id === currentSource.value.id)
-  return idx < episodes.value.length - 1
-})
+  if (!currentSource.value || episodes.value.length === 0) return false;
+  const idx = episodes.value.findIndex((e) => e.id === currentSource.value.id);
+  return idx < episodes.value.length - 1;
+});
 
 const loadDetail = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const params = { id: route.params.id }
+    const params = { id: route.params.id };
     if (route.query.episode_id) {
-      params.episode_id = route.query.episode_id
-      params.id = null
+      params.episode_id = route.query.episode_id;
+      params.id = null;
     }
-    const res = await get('/video/detail', params)
-    detail.value = res.data || {}
-    sourceSites.value = res.data?.source_sites || []
-    currentSourceSite.value = res.data?.current_source_site || null
-    episodes.value = res.data?.episodes || []
-    isFavorited.value = res.data?.is_favorited || false
-    
+    const res = await get("/video/detail", params);
+    detail.value = res.data || {};
+    sourceSites.value = res.data?.source_sites || [];
+    currentSourceSite.value = res.data?.current_source_site || null;
+    episodes.value = res.data?.episodes || [];
+    isFavorited.value = res.data?.is_favorited || false;
+
     if (episodes.value.length > 0) {
-      let targetSource = episodes.value[0]
+      let targetSource = episodes.value[0];
       if (res.data?.current_episode_id) {
-        targetSource = episodes.value.find(ep => ep.id === res.data.current_episode_id) || targetSource
+        targetSource =
+          episodes.value.find((ep) => ep.id === res.data.current_episode_id) ||
+          targetSource;
       }
-      selectSource(targetSource)
+      selectSource(targetSource);
     }
   } catch (e) {
-    console.error(e)
+    console.error(e);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const switchSourceSite = async (site) => {
-  if (site.id === currentSourceSite.value?.id) return
-  
-  currentSourceSite.value = site
-  currentSource.value = null
-  
+  if (site.id === currentSourceSite.value?.id) return;
+
+  currentSourceSite.value = site;
+  currentSource.value = null;
+
   try {
-    const res = await get('/video/detail', {
+    const res = await get("/video/detail", {
       id: detail.value.id,
-      source_site_id: site.id
-    })
-    episodes.value = res.data?.episodes || []
+      source_site_id: site.id,
+    });
+    episodes.value = res.data?.episodes || [];
     if (episodes.value.length > 0) {
-      selectSource(episodes.value[0])
+      selectSource(episodes.value[0]);
     }
   } catch (e) {
-    console.error('切换资源站失败', e)
+    console.error("切换资源站失败", e);
   }
-}
+};
 
 const selectSourceSite = (site) => {
-  showSourcePicker.value = false
-  switchSourceSite(site)
-}
+  showSourcePicker.value = false;
+  switchSourceSite(site);
+};
 
 const handleShare = async () => {
-  const shareText = `${detail.value.title}\n${window.location.href}`
-  
+  const shareText = `${detail.value.title}\n${window.location.href}`;
+
   try {
-    await navigator.clipboard.writeText(shareText)
-    const { showDialog } = await import('vant')
+    await navigator.clipboard.writeText(shareText);
+    const { showDialog } = await import("vant");
     showDialog({
-      title: '分享提示',
-      message: '分享内容已复制，快去发送给好友吧！',
-      confirmButtonText: '知道了',
-      confirmButtonColor: '#1989fa',
-    })
+      title: "分享提示",
+      message: "分享内容已复制，快去发送给好友吧！",
+      confirmButtonText: "知道了",
+      confirmButtonColor: "#1989fa",
+    });
   } catch (e) {
-    console.error('复制失败', e)
-    const { showToast } = await import('vant')
-    showToast('复制失败，请手动复制')
+    console.error("复制失败", e);
+    const { showToast } = await import("vant");
+    showToast("复制失败，请手动复制");
   }
-}
+};
 
 const selectSource = (source) => {
   // 重置所有状态标志，防止切换视频源时的误触发
-  isNearEnd = false
-  isAutoPlayingNext = false
-  playerInitAttempts = 0
-  lastCheckedSourceUrl = ''  // 重置已检查的URL
-  sourceCheckFailed = false  // 重置失败标志
-  
+  isNearEnd = false;
+  isAutoPlayingNext = false;
+  playerInitAttempts = 0;
+  lastCheckedSourceUrl = ""; // 重置已检查的URL
+  sourceCheckFailed = false; // 重置失败标志
+
   if (historyTimer) {
-    clearTimeout(historyTimer)
-    historyTimer = null
+    clearTimeout(historyTimer);
+    historyTimer = null;
   }
-  
-  currentSource.value = source
-  
+
+  currentSource.value = source;
+
   if (detail.value.id && source) {
     historyTimer = setTimeout(() => {
-      addHistoryRecord(source)
-    }, 2000)
+      addHistoryRecord(source);
+    }, 2000);
   }
-  
-  outroStart.value = 0
-  
+
+  outroStart.value = 0;
+
   // 使用播放器更新视频源方式切换，而不是销毁重建
-  const player = playerRef.value
+  const player = playerRef.value;
   if (player && source?.play_url) {
     // 先暂停当前播放
-    player.pause()
-    
+    player.pause();
+
     // 等待一小段时间确保播放器状态稳定后再切换
     setTimeout(() => {
       if (playerRef.value && source?.play_url) {
         // 使用 src 方式更新视频源
-        playerRef.value.src = source.play_url
-        playerRef.value.play()
-        
+        playerRef.value.src = source.play_url;
+        playerRef.value.play();
+
         // 重置下一集插件的状态
         if (playerRef.value.nextEpisodePlugin) {
-          playerRef.value.nextEpisodePlugin.onSourceSwitched()
+          playerRef.value.nextEpisodePlugin.onSourceSwitched();
         }
       }
-    }, 100)
+    }, 100);
   } else {
-    initPlayer(source)
+    initPlayer(source);
   }
-}
+};
 
 const initPlayer = (source) => {
   if (!source?.play_url) {
-    console.log('[Player] initPlayer: no play_url')
-    return
+    console.log("[Player] initPlayer: no play_url");
+    return;
   }
-  
+
   // 检查尝试次数，防止无限重试
   if (playerInitAttempts >= MAX_PLAYER_INIT_ATTEMPTS) {
-    console.log('[Player] initPlayer: max attempts reached, stopping')
-    return
+    console.log("[Player] initPlayer: max attempts reached, stopping");
+    return;
   }
-  playerInitAttempts++
-  console.log('[Player] initPlayer: attempt', playerInitAttempts)
-  
+  playerInitAttempts++;
+  console.log("[Player] initPlayer: attempt", playerInitAttempts);
+
   nextTick(() => {
-    const container = document.getElementById('xgplayer-container')
+    const container = document.getElementById("xgplayer-container");
     if (!container) {
-      console.log('[Player] initPlayer: container not found')
-      return
+      console.log("[Player] initPlayer: container not found");
+      return;
     }
-    
+
     // 如果已经有播放器，先销毁
     if (playerRef.value) {
-      console.log('[Player] initPlayer: destroying existing player')
-      destroyPlayer()
+      console.log("[Player] initPlayer: destroying existing player");
+      destroyPlayer();
     }
-    
-    const isM3U8 = source.play_url.includes('.m3u8')
-    
+
+    const isM3U8 = source.play_url.includes(".m3u8");
+
     const config = {
-      id: 'xgplayer-container',
+      id: "xgplayer-container",
       url: source.play_url,
       poster: detail.value.cover,
       autoplay: true,
       controls: true,
-      width: '100%',
-      height: '100%',
-      lang: 'zh-cn',
+      width: "100%",
+      height: "100%",
+      lang: "zh-cn",
       playsinline: true,
       pictureInPicture: true,
-      pipMode: ['mini', 'float', 'fullscreen'],
+      pipMode: ["mini", "float", "fullscreen"],
       screenFull: true,
       playbackRate: playbackRate.value,
       videoInit: {
-        hls: isM3U8 ? {
-          enableWorker: true,
-          lowLatencyMode: false
-        } : undefined
+        hls: isM3U8
+          ? {
+              enableWorker: true,
+              lowLatencyMode: false,
+            }
+          : undefined,
       },
       danmaku: {
         enable: danmakuEnabled.value,
@@ -768,214 +842,251 @@ const initPlayer = (source) => {
         opacity: 1,
         speed: 1,
         showBottom: true,
-        showTop: true
+        showTop: true,
       },
       plugins: [
         NextEpisodePlugin,
         SettingsPlugin,
         SkipIntroPlugin,
-        RotatePlugin
+        RotatePlugin,
       ],
       nextEpisodePlugin: {
         episodes,
         currentSource,
-        onEpisodeChange: selectSource
+        onEpisodeChange: selectSource,
       },
       settingsPlugin: {
         skipIntroEnabled: skipIntroEnabled.value,
         autoPlayNextEnabled: autoPlayNextEnabled.value,
         playbackRate: playbackRate.value,
         speedOptions,
-        onSettingsChange: onSettingsChange
+        onSettingsChange: onSettingsChange,
       },
       skipIntroPlugin: {
         enabled: skipIntroEnabled.value,
         introStart: introStart.value,
         introEnd: introEnd.value,
-        outroDuration: outroDuration.value
-      }
-    }
-    
-    console.log('[Player] initPlayer: creating new player with url:', source.play_url)
-    
-    const player = new Player(config)
-    playerRef.value = player
-    
+        outroDuration: outroDuration.value,
+      },
+    };
+
+    console.log(
+      "[Player] initPlayer: creating new player with url:",
+      source.play_url,
+    );
+
+    const player = new Player(config);
+    playerRef.value = player;
+    player.emit("resourceReady", [
+      {
+        name: "超清",
+        definition: "1080p",
+        url: "//sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/mp4/xgplayer-demo-720p.mp4",
+      },
+      {
+        name: "高清",
+        definition: "720p",
+        url: "//sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/mp4/xgplayer-demo-480p.mp4",
+      },
+      {
+        name: "标清",
+        definition: "480p",
+        url: "//sf1-cdn-tos.huoshanstatic.com/obj/media-fe/xgplayer_doc_video/mp4/xgplayer-demo-360p.mp4",
+      },
+    ]);
+
     // 视频加载成功后重置尝试次数
-    player.on('loadedmetadata', () => {
-      console.log('[Player] loadedmetadata: video loaded successfully')
-      playerInitAttempts = 0
-    })
-    
+    player.on("loadedmetadata", () => {
+      console.log("[Player] loadedmetadata: video loaded successfully");
+      playerInitAttempts = 0;
+    });
+
     // 视频加载失败时的处理
-    player.on('error', (err) => {
-      console.log('[Player] error:', err)
+    player.on("error", (err) => {
+      console.log("[Player] error:", err);
       // 不自动重试，让用户手动选择
-    })
-    
-    player.on('pause', onPause)
-    player.on('play', onPlay)
-    player.on('play', () => {
+    });
+
+    player.on("pause", onPause);
+    player.on("play", onPlay);
+    player.on("play", () => {
       // 新视频开始播放时，重置防抖标志
       if (isAutoPlayingNext) {
-        isAutoPlayingNext = false
+        isAutoPlayingNext = false;
       }
       // 重置尝试次数
-      playerInitAttempts = 0
-    })
-    player.on('fullscreenchange', onFullscreenChange)
-    player.on('pipChange', onPipChange)
-    
+      playerInitAttempts = 0;
+    });
+    player.on("fullscreenchange", onFullscreenChange);
+    player.on("pipChange", onPipChange);
+
     // 监听视频播放结束事件，自动播放下一集
-    player.on('ended', async () => {
+    player.on("ended", async () => {
       // 如果正在自动播放下一集，跳过
       if (isAutoPlayingNext) {
-        console.log('[AutoPlayNext] ended event ignored, isAutoPlayingNext is true')
-        return
+        console.log(
+          "[AutoPlayNext] ended event ignored, isAutoPlayingNext is true",
+        );
+        return;
       }
-      
+
       // 如果之前检查过视频源且失败，不再重复检查
       if (sourceCheckFailed) {
-        console.log('[AutoPlayNext] ended event ignored, sourceCheckFailed is true')
-        return
+        console.log(
+          "[AutoPlayNext] ended event ignored, sourceCheckFailed is true",
+        );
+        return;
       }
-      
+
       // 如果不是接近结尾触发的ended，忽略（通过timeupdate事件检测）
-      if (!isNearEnd) {
-        console.log('[AutoPlayNext] ended event ignored, isNearEnd is false')
-        return
+      if (!isNearEnd || !isPlaying.value) {
+        console.log(
+          "[AutoPlayNext] ended event ignored, isNearEnd or isPlaying is false",
+        );
+        return;
       }
-      
+
       // 防抖：如果1秒内已经触发过，忽略
-      const now = Date.now()
+      const now = Date.now();
       if (now - lastEndedTime < 1000) {
-        console.log('[AutoPlayNext] ended event ignored, debounce check failed')
-        return
+        console.log(
+          "[AutoPlayNext] ended event ignored, debounce check failed",
+        );
+        return;
       }
-      lastEndedTime = now
-      
+      lastEndedTime = now;
+
       // 重置接近结尾标志
-      isNearEnd = false
-      
-      console.log('[AutoPlayNext] ended event accepted')
-      
-      const episodesVal = episodes.value
-      const currentSourceVal = currentSource.value
-      
+      isNearEnd = false;
+
+      console.log("[AutoPlayNext] ended event accepted");
+
+      const episodesVal = episodes.value;
+      const currentSourceVal = currentSource.value;
+
       if (!currentSourceVal || episodesVal.length === 0) {
-        console.log('[AutoPlayNext] no episodes or current source, skip')
-        return
+        console.log("[AutoPlayNext] no episodes or current source, skip");
+        return;
       }
-      
-      const idx = episodesVal.findIndex(e => e.id === currentSourceVal.id)
+
+      const idx = episodesVal.findIndex((e) => e.id === currentSourceVal.id);
       if (idx >= episodesVal.length - 1) {
-        console.log('[AutoPlayNext] no next episode')
-        return
+        console.log("[AutoPlayNext] no next episode");
+        return;
       }
-      
+
       if (!autoPlayNextEnabled.value) {
-        console.log('[AutoPlayNext] autoPlayNext is disabled')
-        return
+        console.log("[AutoPlayNext] autoPlayNext is disabled");
+        return;
       }
-      
-      const nextEpisode = episodesVal[idx + 1]
+
+      const nextEpisode = episodesVal[idx + 1];
       if (!nextEpisode?.play_url) {
-        console.log('[AutoPlayNext] next episode has no play_url')
-        return
+        console.log("[AutoPlayNext] next episode has no play_url");
+        return;
       }
-      
+
       // 如果已经检查过这个URL，不再重复检查
       if (lastCheckedSourceUrl === nextEpisode.play_url) {
-        console.log('[AutoPlayNext] already checked this URL, skip')
-        return
+        console.log("[AutoPlayNext] already checked this URL, skip");
+        return;
       }
-      
+
       // 立即设置防抖标志，防止重复触发检查
-      isAutoPlayingNext = true
-      lastCheckedSourceUrl = nextEpisode.play_url
-      
+      isAutoPlayingNext = true;
+      lastCheckedSourceUrl = nextEpisode.play_url;
+
       // 检查下一集视频源是否可访问
-      console.log('[AutoPlayNext] checking video source:', nextEpisode.play_url)
-      const isSourceAvailable = await checkVideoSource(nextEpisode.play_url)
-      
+      console.log(
+        "[AutoPlayNext] checking video source:",
+        nextEpisode.play_url,
+      );
+      const isSourceAvailable = await checkVideoSource(nextEpisode.play_url);
+
       if (!isSourceAvailable) {
-        console.log('[AutoPlayNext] video source is not available, marking as failed')
-        sourceCheckFailed = true
-        isAutoPlayingNext = false  // 重置标志，允许用户手动操作
-        return
+        console.log(
+          "[AutoPlayNext] video source is not available, marking as failed",
+        );
+        sourceCheckFailed = true;
+        isAutoPlayingNext = false; // 重置标志，允许用户手动操作
+        return;
       }
-      
-      console.log('[AutoPlayNext] video source is available, playing next episode')
-      
+
+      console.log(
+        "[AutoPlayNext] video source is available, playing next episode",
+      );
+
       // 重置失败标志
-      sourceCheckFailed = false
-      
-      console.log('[AutoPlayNext] switching to episode', idx + 2)
-      selectSource(nextEpisode)
-    })
-    
+      sourceCheckFailed = false;
+
+      console.log("[AutoPlayNext] switching to episode", idx + 2);
+      selectSource(nextEpisode);
+    });
+
     // 监听时间更新，检测是否接近视频结尾
-    player.on('timeupdate', () => {
-      const video = player.video
-      if (!video) return
-      
-      const currentTime = video.currentTime
-      const duration = video.duration
-      
+    player.on("timeupdate", () => {
+      isNearEnd = false;
+      const video = player.video;
+      if (!video) return false;
+
+      const currentTime = video.currentTime;
+      const duration = video.duration;
+      console.log("currentTime", currentTime, "duration", duration);
+
       // 如果视频时长有效且当前时间在最后5秒内
       if (duration > 0 && currentTime >= duration - 5) {
-        isNearEnd = true
+        isNearEnd = true;
       } else {
-        isNearEnd = false
+        isNearEnd = false;
       }
-    })
-  })
-}
+    });
+  });
+};
 
 const onSettingsChange = (settings) => {
-  skipIntroEnabled.value = settings.skipIntroEnabled
-  autoPlayNextEnabled.value = settings.autoPlayNextEnabled
-  playbackRate.value = settings.playbackRate
-  
+  skipIntroEnabled.value = settings.skipIntroEnabled;
+  autoPlayNextEnabled.value = settings.autoPlayNextEnabled;
+  playbackRate.value = settings.playbackRate;
+
   if (playerRef.value && playerRef.value.skipIntroPlugin) {
-    playerRef.value.skipIntroPlugin.setEnabled(settings.skipIntroEnabled)
+    playerRef.value.skipIntroPlugin.setEnabled(settings.skipIntroEnabled);
   }
-}
+};
 
 const destroyPlayer = () => {
   if (playerRef.value) {
     // 先移除 video 元素的事件监听器，防止销毁后事件触发
-    const video = playerRef.value.video
+    const video = playerRef.value.video;
     if (video) {
-      const clone = video.cloneNode(false)
-      video.parentNode?.replaceChild(clone, video)
+      const clone = video.cloneNode(false);
+      video.parentNode?.replaceChild(clone, video);
     }
-    
+
     // 清空容器内容
-    const container = document.getElementById('xgplayer-container')
+    const container = document.getElementById("xgplayer-container");
     if (container) {
-      container.innerHTML = ''
+      container.innerHTML = "";
     }
-    
-    playerRef.value.destroy()
-    playerRef.value = null
+
+    playerRef.value.destroy();
+    playerRef.value = null;
   }
-}
+};
 
 const addHistoryRecord = (source) => {
-  if (!source || !detail.value.id) return
-  
-  let episodeName = source.name || ''
+  if (!source || !detail.value.id) return;
+
+  let episodeName = source.name || "";
   if (!episodeName && source.id) {
-    const found = episodes.value.find(e => e.id === source.id)
+    const found = episodes.value.find((e) => e.id === source.id);
     if (found) {
-      episodeName = found.name || ''
+      episodeName = found.name || "";
     }
   }
   if (!episodeName) {
-    episodeName = source.sort_order ? `第${source.sort_order}集` : ''
+    episodeName = source.sort_order ? `第${source.sort_order}集` : "";
   }
-  
+
   historyStore.addHistory({
     video_id: detail.value.id,
     episode_id: source.id,
@@ -983,111 +1094,116 @@ const addHistoryRecord = (source) => {
     title: detail.value.title,
     cover_url: detail.value.cover,
     last_position: 0,
-    progress: 0
-  })
-}
+    progress: 0,
+  });
+};
 
 const toggleFav = async () => {
   if (!userStore.isLogin) {
-    quickLoginRef.value?.open()
-    return
+    quickLoginRef.value?.open();
+    return;
   }
   try {
-    const res = await post(isFavorited.value ? '/favorite/remove' : '/favorite/add', {
-      video_id: detail.value.id
-    })
-    isFavorited.value = !isFavorited.value
-    const { showToast } = await import('vant')
-    showToast(isFavorited.value ? '收藏成功' : '已取消收藏')
+    const res = await post(
+      isFavorited.value ? "/favorite/remove" : "/favorite/add",
+      {
+        video_id: detail.value.id,
+      },
+    );
+    isFavorited.value = !isFavorited.value;
+    const { showToast } = await import("vant");
+    showToast(isFavorited.value ? "收藏成功" : "已取消收藏");
   } catch (e) {
-    console.error('收藏操作失败', e)
+    console.error("收藏操作失败", e);
   }
-}
+};
 
 const onLoginSuccess = async () => {
   try {
-    const res = await get('/favorite/check', { video_id: route.params.id })
-    isFavorited.value = res.data?.is_favorited || false
+    const res = await get("/favorite/check", { video_id: route.params.id });
+    isFavorited.value = res.data?.is_favorited || false;
   } catch (e) {
-    console.error('检查收藏状态失败', e)
+    console.error("检查收藏状态失败", e);
   }
-}
+};
 
 const onPlay = () => {
-  isPlaying.value = true
-  showAdOverlay.value = false
-}
+  isPlaying.value = true;
+  showAdOverlay.value = false;
+};
 
 const onPause = () => {
-  isPlaying.value = false
-}
+  console.log("onPause");
+  isPlaying.value = false;
+};
 
 const closeAd = () => {
-  showAdOverlay.value = false
-}
+  showAdOverlay.value = false;
+};
 
 const clickAd = () => {
-  window.open(adConfig.link, '_blank')
-}
+  window.open(adConfig.link, "_blank");
+};
 
 const onFullscreenChange = (e) => {
-  isFullscreen.value = e.fullscreen
-}
+  isFullscreen.value = e.fullscreen;
+};
 
 const onPipChange = (e) => {
-  isPip.value = e.pip
-}
+  console.log("onPipChange");
+  isPip.value = e.pip;
+};
 
 const toggleFullscreen = () => {
-  const player = playerRef.value
+  const player = playerRef.value;
   if (player) {
     if (isFullscreen.value) {
-      player.exitFullscreen()
+      player.exitFullscreen();
     } else {
-      player.requestFullscreen()
+      player.requestFullscreen();
     }
   }
-}
+};
 
 const togglePip = () => {
-  const player = playerRef.value
+  const player = playerRef.value;
   if (player) {
     if (isPip.value) {
-      player.exitPictureInPicture()
+      player.exitPictureInPicture();
     } else {
-      player.requestPictureInPicture()
+      player.requestPictureInPicture();
     }
   }
-}
+};
 
 const toggleDanmaku = () => {
-  danmakuEnabled.value = !danmakuEnabled.value
-  
-  const player = playerRef.value
+  danmakuEnabled.value = !danmakuEnabled.value;
+
+  const player = playerRef.value;
   if (player && player.danmaku) {
     if (danmakuEnabled.value) {
-      player.danmaku.show()
+      player.danmaku.show();
     } else {
-      player.danmaku.hide()
+      player.danmaku.hide();
     }
   }
-}
+};
 
 const formatCount = (count) => {
-  if (count >= 10000) return (count / 10000).toFixed(1) + '万'
-  return count
-}
+  if (count >= 10000) return (count / 10000).toFixed(1) + "万";
+  return count;
+};
 
-const goBack = () => safeBack('/')
+const goBack = () => safeBack("/");
 
-onMounted(() => loadDetail())
+onMounted(() => loadDetail());
 
 onBeforeUnmount(() => {
-  if (historyTimer) clearTimeout(historyTimer)
-  if (skipTimer) clearTimeout(skipTimer)
-  
-  destroyPlayer()
-})
+  if (historyTimer) clearTimeout(historyTimer);
+  if (skipTimer) clearTimeout(skipTimer);
+
+  destroyPlayer();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -1096,7 +1212,7 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   overflow-x: hidden;
   width: 100%;
-  
+
   @media (min-width: 500px) {
     gap: 8px;
   }
@@ -1115,17 +1231,17 @@ onBeforeUnmount(() => {
   background: white;
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
-  
+
   @media (min-width: 500px) {
     display: block;
   }
-  
+
   :deep(.van-sidebar-item) {
     height: 46px;
     line-height: 46px;
     padding: 0 12px;
     font-size: 14px;
-    
+
     &.van-sidebar-item--select {
       color: #1989fa;
       font-weight: 500;
@@ -1135,7 +1251,7 @@ onBeforeUnmount(() => {
 
 .bottom-tabbar {
   display: none;
-  
+
   @media (max-width: 499px) {
     display: flex;
     position: fixed;
@@ -1163,11 +1279,11 @@ onBeforeUnmount(() => {
   background: #000;
   width: 100%;
   aspect-ratio: 16/9;
-  
+
   .xgplayer-container {
     width: 100%;
     height: 100%;
-    
+
     :deep(video) {
       transition: transform 0.3s ease;
       transform-origin: center center;
@@ -1349,12 +1465,12 @@ onBeforeUnmount(() => {
       margin-right: 8px;
     }
   }
-  
+
   .episode-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 8px;
-    
+
     .source-item {
       padding: 8px;
       justify-content: center;
@@ -1434,11 +1550,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   color: #fff;
   transition: background 0.3s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.4);
   }
-  
+
   svg {
     width: 18px;
     height: 18px;
@@ -1461,11 +1577,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   color: #fff;
   transition: background 0.3s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.4);
   }
-  
+
   svg {
     width: 18px;
     height: 18px;
@@ -1488,11 +1604,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
   color: #fff;
   transition: background 0.3s;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.4);
   }
-  
+
   svg {
     width: 18px;
     height: 18px;
@@ -1511,35 +1627,35 @@ onBeforeUnmount(() => {
   min-width: 200px;
   z-index: 100;
   display: none;
-  
+
   .settings-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
     padding: 8px 0;
-    
+
     &:not(:last-child) {
       border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    
+
     .settings-label {
       font-size: 14px;
       color: #fff;
     }
   }
-  
+
   .settings-switch {
     position: relative;
     display: inline-block;
     width: 44px;
     height: 24px;
-    
+
     input {
       opacity: 0;
       width: 0;
       height: 0;
     }
-    
+
     .settings-slider {
       position: absolute;
       cursor: pointer;
@@ -1550,7 +1666,7 @@ onBeforeUnmount(() => {
       background-color: #444;
       transition: 0.3s;
       border-radius: 24px;
-      
+
       &:before {
         position: absolute;
         content: "";
@@ -1563,16 +1679,16 @@ onBeforeUnmount(() => {
         border-radius: 50%;
       }
     }
-    
+
     input:checked + .settings-slider {
       background-color: #1989fa;
     }
-    
+
     input:checked + .settings-slider:before {
       transform: translateX(20px);
     }
   }
-  
+
   .settings-speed {
     .speed-select {
       background: rgba(255, 255, 255, 0.1);
@@ -1583,11 +1699,12 @@ onBeforeUnmount(() => {
       font-size: 14px;
       cursor: pointer;
       outline: none;
-      
+
       option {
         background: #333;
         color: #fff;
       }
     }
   }
-}</style>
+}
+</style>
