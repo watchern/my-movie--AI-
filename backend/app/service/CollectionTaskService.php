@@ -9,42 +9,16 @@ use think\facade\Log;
 
 /**
  * 异步采集任务服务
- * 使用缓存队列 + 后台 worker 模式，避免前端请求超时
+ * 采用前端轮询驱动模式：trigger 只缓存视频列表，processNext 每次处理一个视频
+ * 避免后台 worker 在 Windows/共享主机环境下无法启动的问题
  */
 class CollectionTaskService
 {
-    // 缓存key：标记是否有采集任务正在执行
-    const RUNNING_KEY = 'collection_task_running';
-    // 缓存key：任务队列
-    const TASK_QUEUE_KEY = 'collection_task_queue';
-    // 缓存key：worker进程锁
-    const WORKER_LOCK_KEY = 'collection_worker_lock';
     // 缓存key：上次采集时间
     const LAST_RUN_KEY = 'collection_task_last_run';
 
     /**
-     * 检查是否有采集任务正在执行
-     */
-    public static function isRunning(): bool
-    {
-        return (bool) Cache::get(self::RUNNING_KEY, false);
-    }
-
-    /**
-     * 标记采集任务执行状态
-     */
-    public static function setRunning(bool $running): bool
-    {
-        if ($running) {
-            Cache::set(self::RUNNING_KEY, true, 3600);
-        } else {
-            Cache::delete(self::RUNNING_KEY);
-        }
-        return true;
-    }
-
-    /**
-     * 根据 CollectSource 配置触发异步采集
+     * 根据 CollectSource 配置触发采集
      * @param int $sourceId collect_sources 表中的站点ID
      * @param int $limit 本次采集数量
      * @param array $typeIds 指定分类ID
@@ -85,55 +59,260 @@ class CollectionTaskService
     }
 
     /**
-     * 触发异步采集
-     * @param string $apiUrl 采集接口地址，例如 http://caiji.dyttzyapi.com/api.php/provide/vod
-     * @param int $limit 本次采集数量
-     * @param array $typeIds 指定分类ID
-     * @param array $siteInfo 站点信息 ['id' => ..., 'name' => ..., 'description' => ...]
-     * @return array
+     * 触发采集
+     * 只负责从资源站获取视频列表并缓存，初始化进度，不执行实际处理
      */
     public static function trigger(string $apiUrl, int $limit = 100, array $typeIds = [], array $siteInfo = []): array
     {
         // 记录采集站点（如果不存在）
         $site = self::ensureSourceSite($apiUrl, $siteInfo);
-
         $collectSourceId = $siteInfo['id'] ?? 0;
 
-        // 构建任务
-        $task = [
-            'site_id' => $site->id,
-            'collect_source_id' => $collectSourceId,
-            'api_url' => $site->api_url,
-            'limit' => $limit,
-            'type_ids' => $typeIds,
-            'created_at' => time(),
-        ];
+        if ($collectSourceId <= 0) {
+            return [
+                'started' => false,
+                'msg' => '缺少采集源ID',
+            ];
+        }
 
-        // 加入队列
-        $queue = Cache::get(self::TASK_QUEUE_KEY, []);
-        $queue[] = $task;
-        Cache::set(self::TASK_QUEUE_KEY, $queue, 86400);
+        // 创建采集服务并获取视频列表
+        $service = new AppleCmsService($site, $collectSourceId);
+        $listData = $service->getVideoList($typeIds, 1, $limit);
+        $total = count($listData['list'] ?? []);
+
+        if ($total === 0) {
+            return [
+                'started' => false,
+                'msg' => '未获取到视频列表',
+            ];
+        }
+
+        // 缓存视频列表
+        $cacheKey = self::getListCacheKey($collectSourceId);
+        Cache::set($cacheKey, $listData, 3600);
+
+        // 重置处理索引
+        $indexKey = self::getIndexCacheKey($collectSourceId);
+        Cache::set($indexKey, 0, 3600);
 
         // 记录上次采集时间
         Cache::set(self::LAST_RUN_KEY, time(), 86400);
 
-        // 启动后台 worker（如果未运行）
-        self::startWorkerIfNeeded();
+        // 初始化进度
+        $progressKey = self::getProgressCacheKey($collectSourceId);
+        Cache::set($progressKey, [
+            'status' => 'running',
+            'total' => $total,
+            'current' => 0,
+            'percent' => 0,
+            'msg' => '准备处理，共 ' . $total . ' 个视频',
+            'updated_at' => time(),
+        ], 3600);
 
         return [
             'started' => true,
-            'msg' => '采集任务已加入队列',
+            'msg' => '采集已开始，共 ' . $total . ' 个视频',
+            'total' => $total,
         ];
     }
 
     /**
+     * 处理下一个视频
+     * 由前端轮询调用，每次只处理一个视频，避免请求超时
+     */
+    public static function processNext(int $collectSourceId): array
+    {
+        if ($collectSourceId <= 0) {
+            return ['status' => 'failed', 'msg' => '参数错误'];
+        }
+
+        $cacheKey = self::getListCacheKey($collectSourceId);
+        $indexKey = self::getIndexCacheKey($collectSourceId);
+        $progressKey = self::getProgressCacheKey($collectSourceId);
+
+        $listData = Cache::get($cacheKey);
+        if (empty($listData['list'])) {
+            // 没有缓存列表，可能是已经完成或没有触发过
+            $progress = Cache::get($progressKey);
+            if ($progress) {
+                return ['status' => $progress['status'], 'msg' => $progress['msg']];
+            }
+            return ['status' => 'idle', 'msg' => '没有待处理的采集任务'];
+        }
+
+        $total = count($listData['list']);
+        $index = intval(Cache::get($indexKey, 0));
+
+        if ($index >= $total) {
+            // 已经处理完
+            self::clearCollectCache($collectSourceId);
+            Cache::set($progressKey, [
+                'status' => 'completed',
+                'total' => $total,
+                'current' => $total,
+                'percent' => 100,
+                'msg' => '采集完成',
+                'updated_at' => time(),
+            ], 300);
+            return ['status' => 'completed', 'msg' => '采集完成'];
+        }
+
+        $item = $listData['list'][$index];
+        $current = $index + 1;
+        $percent = $total > 0 ? floor(($current / $total) * 100) : 0;
+
+        // 更新进度为处理中
+        Cache::set($progressKey, [
+            'status' => 'running',
+            'total' => $total,
+            'current' => $current,
+            'percent' => $percent,
+            'msg' => "正在处理第 {$current}/{$total} 个视频",
+            'updated_at' => time(),
+        ], 3600);
+
+        try {
+            $service = self::createServiceBySourceId($collectSourceId);
+            if (!$service) {
+                throw new \Exception('无法初始化采集服务');
+            }
+
+            $vodId = $item['vod_id'] ?? '';
+            if (empty($vodId)) {
+                Log::warning('[CollectionTask] 缺少 vod_id，跳过第 ' . $current . ' 个');
+            } else {
+                $detail = $service->getVideoDetail($vodId);
+                if (empty($detail)) {
+                    Log::warning('[CollectionTask] 获取详情失败，vod_id=' . $vodId);
+                } else {
+                    try {
+                        $service->saveVideo($detail);
+                    } catch (\Exception $saveError) {
+                        if (strpos($saveError->getMessage(), '视频已存在') !== false) {
+                            // 已存在不算失败，继续下一个
+                        } else {
+                            throw $saveError;
+                        }
+                    }
+                }
+            }
+
+            // 处理成功，移动到下一个
+            Cache::set($indexKey, $current, 3600);
+
+            // 检查是否已处理完
+            if ($current >= $total) {
+                self::clearCollectCache($collectSourceId);
+                Cache::set($progressKey, [
+                    'status' => 'completed',
+                    'total' => $total,
+                    'current' => $total,
+                    'percent' => 100,
+                    'msg' => '采集完成',
+                    'updated_at' => time(),
+                ], 300);
+                return ['status' => 'completed', 'msg' => '采集完成'];
+            }
+
+            return [
+                'status' => 'running',
+                'msg' => "已处理第 {$current}/{$total} 个视频",
+                'total' => $total,
+                'current' => $current,
+                'percent' => $percent,
+            ];
+        } catch (\Throwable $e) {
+            Log::error('[CollectionTask] 处理视频失败: ' . $e->getMessage());
+
+            // 单个视频失败，继续下一个（避免卡住）
+            Cache::set($indexKey, $current, 3600);
+
+            Cache::set($progressKey, [
+                'status' => 'running',
+                'total' => $total,
+                'current' => $current,
+                'percent' => $percent,
+                'msg' => '第 ' . $current . ' 个处理失败: ' . $e->getMessage() . '，继续下一个',
+                'updated_at' => time(),
+            ], 3600);
+
+            return [
+                'status' => 'running',
+                'msg' => '第 ' . $current . ' 个处理失败，继续下一个',
+                'total' => $total,
+                'current' => $current,
+                'percent' => $percent,
+            ];
+        }
+    }
+
+    /**
+     * 获取某个采集源的任务进度
+     */
+    public static function getProgress(int $collectSourceId): array
+    {
+        $progressKey = self::getProgressCacheKey($collectSourceId);
+        $progress = Cache::get($progressKey);
+
+        if ($progress) {
+            return $progress;
+        }
+
+        $cacheKey = self::getListCacheKey($collectSourceId);
+        if (Cache::get($cacheKey)) {
+            return [
+                'status' => 'running',
+                'total' => 0,
+                'current' => 0,
+                'percent' => 0,
+                'msg' => '等待前端驱动处理',
+                'updated_at' => time(),
+            ];
+        }
+
+        return [
+            'status' => 'idle',
+            'total' => 0,
+            'current' => 0,
+            'percent' => 0,
+            'msg' => '暂无采集任务',
+        ];
+    }
+
+    /**
+     * 获取任务状态
+     */
+    public static function getStatus(): array
+    {
+        return [
+            'last_run' => (int) Cache::get(self::LAST_RUN_KEY, 0),
+        ];
+    }
+
+    /**
+     * 强制重置采集任务
+     */
+    public static function reset(int $collectSourceId = 0): array
+    {
+        if ($collectSourceId > 0) {
+            self::clearCollectCache($collectSourceId);
+            Cache::delete(self::getProgressCacheKey($collectSourceId));
+        } else {
+            // 清除所有采集相关缓存（简单匹配前缀）
+            // 文件缓存不支持按前缀删除，这里只清除常见的 key
+            Cache::delete(self::LAST_RUN_KEY);
+        }
+
+        Log::info('[CollectionTask] 强制重置采集任务: source_id=' . $collectSourceId);
+
+        return ['reset' => true];
+    }
+
+    /**
      * 获取或创建采集站点
-     * 兼容用户配置完整接口地址的情况
-     * @param array $siteInfo 采集源信息 ['id' => ..., 'name' => ..., 'description' => ...]
      */
     protected static function ensureSourceSite(string $apiUrl, array $siteInfo = []): SourceSite
     {
-        // 如果包含完整接口路径，去掉查询参数
         if (stripos($apiUrl, 'api.php/provide/vod') !== false) {
             $apiUrl = preg_replace('/\?.*$/', '', $apiUrl);
         }
@@ -153,7 +332,6 @@ class CollectionTaskService
             $site->sort_order = 100;
             $site->save();
         } else {
-            // 如果名称或描述发生变化，同步更新
             $needSave = false;
             if ($site->name !== $sourceName) {
                 $site->name = $sourceName;
@@ -171,249 +349,54 @@ class CollectionTaskService
     }
 
     /**
-     * 启动后台 worker（幂等）
+     * 根据采集源ID创建 AppleCmsService
      */
-    protected static function startWorkerIfNeeded(): void
+    protected static function createServiceBySourceId(int $collectSourceId): ?AppleCmsService
     {
-        // 检查 worker 锁，避免重复启动
-        $lockTime = Cache::get(self::WORKER_LOCK_KEY);
-        if ($lockTime) {
-            if (time() - intval($lockTime) > 300) {
-                // 锁已超时，自动释放
-                Log::info('[CollectionTask] worker锁已超时，自动释放');
-                Cache::delete(self::WORKER_LOCK_KEY);
-            } else {
-                Log::info('[CollectionTask] worker锁存在，跳过启动');
-                return;
+        $source = CollectSource::find($collectSourceId);
+        if (!$source) {
+            return null;
+        }
+
+        $apiUrl = trim($source->api_url);
+        if (stripos($apiUrl, 'api.php/provide/vod') !== false) {
+            $apiUrl = preg_replace('/\?.*$/', '', $apiUrl);
+        }
+        $apiUrl = rtrim($apiUrl, '/');
+
+        $site = SourceSite::where('api_url', $apiUrl)->find();
+        if (!$site) {
+            // 尝试查找未处理过的原始地址
+            $site = SourceSite::where('api_url', trim($source->api_url))->find();
+            if (!$site) {
+                return null;
             }
         }
 
-        // 设置 worker 锁（60秒后自动释放，防止 worker 异常退出导致死锁）
-        Cache::set(self::WORKER_LOCK_KEY, time(), 60);
-
-        $workerPath = dirname(__DIR__) . '/collect_worker.php';
-        $cmd = 'php ' . escapeshellarg($workerPath);
-
-        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
-
-        try {
-            if ($isWindows) {
-                // Windows 使用 start /B 后台启动，并重定向输出避免阻塞
-                $shellCmd = 'start /B "" ' . $cmd . ' > NUL 2>&1';
-                Log::info('[CollectionTask] 启动worker命令: ' . $shellCmd);
-                exec($shellCmd);
-            } else {
-                // Linux/Mac 使用 nohup 后台启动
-                $shellCmd = 'nohup ' . $cmd . ' > /dev/null 2>&1 &';
-                Log::info('[CollectionTask] 启动worker命令: ' . $shellCmd);
-                exec($shellCmd);
-            }
-            Log::info('[CollectionTask] worker已启动');
-        } catch (\Throwable $e) {
-            Log::error('[CollectionTask] 启动worker失败: ' . $e->getMessage());
-            Cache::delete(self::WORKER_LOCK_KEY);
-        }
+        return new AppleCmsService($site, $collectSourceId);
     }
 
     /**
-     * worker 主循环，处理任务队列
-     * 供 collect_worker.php 调用
+     * 清除采集相关缓存
      */
-    public static function runWorker(): void
+    protected static function clearCollectCache(int $collectSourceId): void
     {
-        // 设置 worker 锁，防止多个 worker 同时运行
-        Cache::set(self::WORKER_LOCK_KEY, time(), 300);
-
-        $startTime = time();
-        $maxRunTime = 240; // 最多运行4分钟
-
-        try {
-            while (time() - $startTime < $maxRunTime) {
-                $queue = Cache::get(self::TASK_QUEUE_KEY, []);
-                if (empty($queue)) {
-                    break;
-                }
-
-                // 取出第一个任务
-                $task = array_shift($queue);
-                Cache::set(self::TASK_QUEUE_KEY, $queue, 86400);
-
-                // 执行任务
-                $site = SourceSite::find($task['site_id'] ?? 0);
-                if ($site) {
-                    self::runCollect(
-                        $site,
-                        intval($task['limit'] ?? 100),
-                        $task['type_ids'] ?? [],
-                        intval($task['collect_source_id'] ?? 0)
-                    );
-                }
-
-                // 刷新 worker 锁
-                Cache::set(self::WORKER_LOCK_KEY, time(), 300);
-            }
-        } catch (\Throwable $e) {
-            Log::error('[CollectionTask] worker异常: ' . $e->getMessage());
-        } finally {
-            Cache::delete(self::WORKER_LOCK_KEY);
-            Cache::delete(self::RUNNING_KEY);
-        }
+        Cache::delete(self::getListCacheKey($collectSourceId));
+        Cache::delete(self::getIndexCacheKey($collectSourceId));
     }
 
-    /**
-     * 执行采集
-     */
-    public static function runCollect(SourceSite $site, int $limit, array $typeIds, int $collectSourceId = 0): void
+    protected static function getListCacheKey(int $collectSourceId): string
     {
-        try {
-            Log::info("[CollectionTask] 开始采集，站点: {$site->api_url}, limit: {$limit}");
-            self::setRunning(true);
-
-            // 写入初始 running 进度，让前端尽快看到状态变化
-            if ($collectSourceId > 0) {
-                Cache::set('collection_progress_' . $collectSourceId, [
-                    'status' => 'running',
-                    'total' => 0,
-                    'current' => 0,
-                    'percent' => 0,
-                    'msg' => '开始采集',
-                    'updated_at' => time(),
-                ], 3600);
-            }
-
-            $service = new AppleCmsService($site, $collectSourceId);
-            $result = $service->collectToLocal($typeIds, $limit);
-            Log::info('[CollectionTask] 采集完成: ' . json_encode($result, JSON_UNESCAPED_UNICODE));
-        } catch (\Throwable $e) {
-            Log::error('[CollectionTask] 采集异常: ' . $e->getMessage());
-            if ($collectSourceId > 0) {
-                Cache::set('collection_progress_' . $collectSourceId, [
-                    'status' => 'failed',
-                    'total' => 0,
-                    'current' => 0,
-                    'percent' => 0,
-                    'msg' => '采集异常: ' . $e->getMessage(),
-                    'updated_at' => time(),
-                ], 300);
-            }
-        } finally {
-            self::setRunning(false);
-        }
+        return 'collection_video_list_' . $collectSourceId;
     }
 
-    /**
-     * 获取某个采集源的任务进度
-     */
-    public static function getProgress(int $collectSourceId): array
+    protected static function getIndexCacheKey(int $collectSourceId): string
     {
-        $key = 'collection_progress_' . $collectSourceId;
-        $progress = Cache::get($key);
-
-        if ($progress) {
-            return $progress;
-        }
-
-        // 没有进度缓存，检查是否还在排队中
-        $queue = Cache::get(self::TASK_QUEUE_KEY, []);
-        foreach ($queue as $task) {
-            if (intval($task['collect_source_id'] ?? 0) === $collectSourceId) {
-                $lockTime = Cache::get(self::WORKER_LOCK_KEY);
-
-                if (!$lockTime) {
-                    // worker 锁不存在，尝试启动
-                    Log::info('[CollectionTask] 检测到排队任务但worker未运行，尝试重新启动');
-                    self::startWorkerIfNeeded();
-                } elseif (time() - intval($lockTime) > 300) {
-                    // worker 锁已超时（超过5分钟未刷新），自动释放并重启
-                    Log::info('[CollectionTask] worker锁已超时，自动释放并重启');
-                    Cache::delete(self::WORKER_LOCK_KEY);
-                    self::startWorkerIfNeeded();
-                }
-
-                return [
-                    'status' => 'pending',
-                    'total' => 0,
-                    'current' => 0,
-                    'percent' => 0,
-                    'msg' => '任务排队中，等待worker执行',
-                ];
-            }
-        }
-
-        return [
-            'status' => 'idle',
-            'total' => 0,
-            'current' => 0,
-            'percent' => 0,
-            'msg' => '暂无采集任务',
-        ];
+        return 'collection_process_index_' . $collectSourceId;
     }
 
-    /**
-     * 获取任务状态
-     */
-    public static function getStatus(): array
+    protected static function getProgressCacheKey(int $collectSourceId): string
     {
-        return [
-            'running' => self::isRunning(),
-            'last_run' => (int) Cache::get(self::LAST_RUN_KEY, 0),
-            'can_start' => true,
-            'queue_length' => count(Cache::get(self::TASK_QUEUE_KEY, [])),
-        ];
-    }
-
-    /**
-     * 强制重置采集任务
-     * @param int $collectSourceId 指定采集源ID，0 表示重置所有
-     * @return array
-     */
-    public static function reset(int $collectSourceId = 0): array
-    {
-        $result = [
-            'cleared_queue' => false,
-            'cleared_lock' => false,
-            'cleared_running' => false,
-            'cleared_progress' => false,
-            'cleared_list_cache' => false,
-            'cleared_process_index' => false,
-        ];
-
-        if ($collectSourceId > 0) {
-            // 只清除指定采集源的任务
-            $queue = Cache::get(self::TASK_QUEUE_KEY, []);
-            $newQueue = [];
-            foreach ($queue as $task) {
-                if (intval($task['collect_source_id'] ?? 0) !== $collectSourceId) {
-                    $newQueue[] = $task;
-                }
-            }
-            Cache::set(self::TASK_QUEUE_KEY, $newQueue, 86400);
-            $result['cleared_queue'] = true;
-
-            // 清除该采集源的进度、缓存和索引
-            Cache::delete('collection_progress_' . $collectSourceId);
-            Cache::delete('collection_video_list_' . $collectSourceId . '_' . md5(json_encode([[], 100])));
-            Cache::delete('collection_process_index_' . $collectSourceId);
-            $result['cleared_progress'] = true;
-            $result['cleared_list_cache'] = true;
-            $result['cleared_process_index'] = true;
-        } else {
-            // 重置所有
-            Cache::delete(self::TASK_QUEUE_KEY);
-            $result['cleared_queue'] = true;
-            $result['cleared_progress'] = true;
-            $result['cleared_list_cache'] = true;
-            $result['cleared_process_index'] = true;
-        }
-
-        // 清除 worker 锁和 running 状态
-        Cache::delete(self::WORKER_LOCK_KEY);
-        Cache::delete(self::RUNNING_KEY);
-        $result['cleared_lock'] = true;
-        $result['cleared_running'] = true;
-
-        Log::info('[CollectionTask] 强制重置采集任务: source_id=' . $collectSourceId);
-
-        return $result;
+        return 'collection_progress_' . $collectSourceId;
     }
 }

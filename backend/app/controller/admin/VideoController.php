@@ -348,6 +348,22 @@ class VideoController extends BaseController
     }
 
     /**
+     * 处理下一个视频（前端轮询驱动）
+     */
+    public function collectProcessNext()
+    {
+        $data = $this->getData();
+        $sourceId = intval($data['source_id'] ?? 0);
+
+        if ($sourceId <= 0) {
+            return $this->error('参数错误');
+        }
+
+        $result = CollectionTaskService::processNext($sourceId);
+        return $this->success($result);
+    }
+
+    /**
      * 强制重置采集任务（清除队列、锁、进度等）
      */
     public function collectReset()

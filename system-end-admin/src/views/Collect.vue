@@ -196,10 +196,10 @@ const restoreCollectStatus = async () => {
       const progress = res.data || {}
 
       if (progress.status === 'running' || progress.status === 'pending') {
-        row.collect_status = progress.status
+        row.collect_status = 'running'
         row.total = progress.total || 0
         row.percent = progress.percent || 0
-        // 恢复轮询
+        // 恢复轮询，由前端继续驱动处理
         startProgressPolling(row)
       }
     } catch (e) {
@@ -292,17 +292,23 @@ const toggleStatus = async (row) => {
 const progressTimers = ref({})
 
 const startCollect = async (row) => {
-  row.collect_status = 'pending'
+  row.collect_status = 'running'
   row.total = 0
   row.percent = 0
 
   try {
-    await post('/video/collect', {
+    const res = await post('/video/collect', {
       source_id: row.id,
       api_url: row.api_url
     })
-    ElMessage.success('采集任务已加入队列')
-    // 启动真实进度轮询
+    const data = res.data || {}
+    row.total = data.total || 0
+    ElMessage.success(data.msg || '采集已开始')
+
+    // 立即处理第一个视频
+    await post('/video/collectProcessNext', { source_id: row.id })
+
+    // 启动轮询，由前端驱动处理后续视频
     startProgressPolling(row)
   } catch (e) {
     row.collect_status = ''
@@ -331,13 +337,26 @@ const startProgressPolling = (row) => {
     clearInterval(progressTimers.value[row.id])
   }
 
-  // 立即获取一次
-  fetchProgress(row)
+  // 立即驱动一次
+  processNextAndFetchProgress(row)
 
-  // 每 2 秒轮询一次
+  // 每 1 秒轮询一次，每次驱动处理一个视频
   progressTimers.value[row.id] = setInterval(() => {
-    fetchProgress(row)
-  }, 2000)
+    processNextAndFetchProgress(row)
+  }, 1000)
+}
+
+// 驱动处理下一个视频并刷新进度
+const processNextAndFetchProgress = async (row) => {
+  try {
+    // 1. 先驱动后端处理一个视频
+    await post('/video/collectProcessNext', { source_id: row.id })
+  } catch (e) {
+    console.error('驱动采集处理失败', e)
+  }
+
+  // 2. 再获取最新进度
+  fetchProgress(row)
 }
 
 // 获取采集进度
@@ -349,9 +368,9 @@ const fetchProgress = async (row) => {
     row.total = progress.total || 0
     row.percent = progress.percent || 0
 
-    // 同步状态：pending 或 running 都显示采集中
+    // 运行中
     if (progress.status === 'running' || progress.status === 'pending') {
-      row.collect_status = progress.status
+      row.collect_status = 'running'
     }
 
     // 任务结束、失败或空闲时停止轮询
