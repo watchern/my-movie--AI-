@@ -18,7 +18,17 @@ class AppleCmsService
     public function __construct(SourceSite $site)
     {
         $this->site = $site;
-        $this->apiUrl = rtrim($site->api_url, '/');
+        $apiUrl = trim($site->api_url);
+
+        // 兼容用户直接配置完整接口地址的情况
+        // 例如：http://caiji.dyttzyapi.com/api.php/provide/vod/?ac=detail
+        if (stripos($apiUrl, 'api.php/provide/vod') !== false) {
+            // 去掉 ?ac=xxx 等查询参数，只保留基础接口路径
+            $apiUrl = preg_replace('/\?.*$/', '', $apiUrl);
+            $this->apiUrl = rtrim($apiUrl, '/');
+        } else {
+            $this->apiUrl = rtrim($apiUrl, '/');
+        }
     }
 
     /**
@@ -205,8 +215,8 @@ class AppleCmsService
 
         $video->save();
 
-        // 如果是电视剧，保存剧集
-        if ($type == Video::TYPE_TV && !empty($item['vod_play_url'])) {
+        // 保存播放源/剧集（电影也可能有播放地址）
+        if (!empty($item['vod_play_url'])) {
             $this->saveEpisodes($video, $item['vod_play_url']);
         }
 
@@ -271,31 +281,45 @@ class AppleCmsService
 
     /**
      * 解析播放地址
+     * 兼容苹果CMS格式：$$$分隔播放器源，#分隔剧集，$分隔集名和URL
      */
     private function parsePlayUrl(array $item): array
     {
         $playUrl = $item['vod_play_url'] ?? '';
+        $playFrom = $item['vod_play_from'] ?? '';
 
         if (empty($playUrl)) {
             return [];
         }
 
-        // 格式: $$player$url$$player$url
         $urls = [];
-        $parts = explode('$$', trim($playUrl, '$'));
+        // 先按 $$$ 分隔不同播放器源
+        $sourceParts = explode('$$$', $playUrl);
+        $sourceNames = explode('$$$', $playFrom);
 
-        foreach ($parts as $part) {
-            if (empty($part)) {
+        foreach ($sourceParts as $sourceIndex => $sourceUrlStr) {
+            if (empty($sourceUrlStr)) {
                 continue;
             }
-            $pos = strpos($part, '$');
-            if ($pos !== false) {
-                $player = substr($part, 0, $pos);
-                $url = substr($part, $pos + 1);
-                $urls[] = [
-                    'player' => $player,
-                    'url' => $url,
-                ];
+
+            // 再按 # 分隔剧集
+            $episodes = explode('#', $sourceUrlStr);
+            $sourceName = $sourceNames[$sourceIndex] ?? ('source' . ($sourceIndex + 1));
+
+            foreach ($episodes as $episodeStr) {
+                if (empty($episodeStr)) {
+                    continue;
+                }
+                $pos = strpos($episodeStr, '$');
+                if ($pos !== false) {
+                    $name = substr($episodeStr, 0, $pos);
+                    $url = substr($episodeStr, $pos + 1);
+                    $urls[] = [
+                        'player' => $sourceName,
+                        'name' => $name,
+                        'url' => $url,
+                    ];
+                }
             }
         }
 
@@ -304,30 +328,38 @@ class AppleCmsService
 
     /**
      * 保存剧集
+     * 兼容苹果CMS格式：$$$分隔播放器源，#分隔剧集，$分隔集名和URL
      */
     private function saveEpisodes(Video $video, string $playUrl): void
     {
-        // 格式: 集数$$player$url
-        $parts = explode('$$', trim($playUrl, '$'));
+        $parts = explode('$$$', $playUrl);
 
         foreach ($parts as $index => $part) {
             if (empty($part)) {
                 continue;
             }
 
-            $pos = strpos($part, '$');
-            if ($pos !== false) {
-                $episodeName = trim(substr($part, 0, $pos));
-                $url = substr($part, $pos + 1);
+            $episodes = explode('#', $part);
 
-                $episode = new VideoSource();
-                $episode->video_id = $video->id;
-                $episode->source_site_id = $this->site->id;
-                $episode->name = $episodeName;
-                $episode->play_url = $url;
-                $episode->sort_order = $index;
-                $episode->status = 1;
-                $episode->save();
+            foreach ($episodes as $episodeStr) {
+                if (empty($episodeStr)) {
+                    continue;
+                }
+
+                $pos = strpos($episodeStr, '$');
+                if ($pos !== false) {
+                    $episodeName = trim(substr($episodeStr, 0, $pos));
+                    $url = substr($episodeStr, $pos + 1);
+
+                    $episode = new VideoSource();
+                    $episode->video_id = $video->id;
+                    $episode->source_site_id = $this->site->id;
+                    $episode->name = $episodeName;
+                    $episode->play_url = $url;
+                    $episode->sort_order = $index;
+                    $episode->status = 1;
+                    $episode->save();
+                }
             }
         }
     }

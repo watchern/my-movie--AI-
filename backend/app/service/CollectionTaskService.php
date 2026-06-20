@@ -125,10 +125,16 @@ class CollectionTaskService
 
     /**
      * 获取或创建采集站点
+     * 兼容用户配置完整接口地址的情况
      */
     protected static function ensureSourceSite(string $apiUrl): SourceSite
     {
+        // 如果包含完整接口路径，去掉查询参数
+        if (stripos($apiUrl, 'api.php/provide/vod') !== false) {
+            $apiUrl = preg_replace('/\?.*$/', '', $apiUrl);
+        }
         $apiUrl = rtrim($apiUrl, '/');
+
         $site = SourceSite::where('api_url', $apiUrl)->find();
         if (!$site) {
             $site = new SourceSite();

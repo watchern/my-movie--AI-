@@ -132,6 +132,7 @@ class CollectSourceController extends BaseController
 
     /**
      * 测试连接
+     * 使用 ac=detail 接口测试苹果CMS资源站是否可用
      */
     public function test()
     {
@@ -143,28 +144,37 @@ class CollectSourceController extends BaseController
         }
 
         try {
-            // 测试获取视频分类接口
-            $testUrl = rtrim($api_url, '/') . '/api.php/provide/artlist?ac=types';
-            
+            // 用户提供的接口地址已经是完整地址，例如：
+            // http://caiji.dyttzyapi.com/api.php/provide/vod/?ac=detail
+            // 直接请求该地址即可
+            $testUrl = $api_url;
+
             $context = stream_context_create([
                 'http' => [
                     'timeout' => 10,
                     'ignore_errors' => true,
+                    'header' => 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 ]
             ]);
-            
+
             $response = @file_get_contents($testUrl, false, $context);
-            
+
             if ($response === false) {
                 return $this->error('连接失败，请检查接口地址是否正确');
             }
 
             $result = json_decode($response, true);
-            
-            if ($result && isset($result['code']) && $result['code'] == 200) {
-                return $this->success(['msg' => '连接成功']);
+
+            // 苹果CMS标准返回：code=1 表示成功
+            if ($result && isset($result['code']) && $result['code'] == 1) {
+                $listCount = isset($result['list']) ? count($result['list']) : 0;
+                return $this->success([
+                    'msg' => '连接成功',
+                    'list_count' => $listCount,
+                ]);
             } else {
-                return $this->error('接口返回数据格式不正确');
+                $msg = $result['msg'] ?? '接口返回数据格式不正确';
+                return $this->error('接口返回异常：' . $msg);
             }
         } catch (\Exception $e) {
             return $this->error('连接失败：' . $e->getMessage());
