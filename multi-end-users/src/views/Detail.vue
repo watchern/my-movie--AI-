@@ -906,10 +906,14 @@ const initPlayer = (source) => {
     })
     }
 
-    // 视频加载成功后重置尝试次数
+    // 视频加载成功后重置尝试次数，并尝试播放
     player.on("loadedmetadata", () => {
       console.log("[Player] loadedmetadata: video loaded successfully");
       playerInitAttempts = 0;
+      // 手动调用 play 确保自动播放生效
+      player.play().catch(err => {
+        console.log("[Player] play() failed:", err);
+      });
     });
 
     // 视频加载失败时的处理
@@ -950,9 +954,10 @@ const initPlayer = (source) => {
       }
 
       // 如果不是接近结尾触发的ended，忽略（通过timeupdate事件检测）
-      if (!isNearEnd || !isPlaying.value) {
+      // 注意：移除了 isPlaying.value 的检查，因为首次加载时 isPlaying 可能还未设置为 true
+      if (!isNearEnd) {
         console.log(
-          "[AutoPlayNext] ended event ignored, isNearEnd or isPlaying is false",
+          "[AutoPlayNext] ended event ignored, isNearEnd is false",
         );
         return;
       }
