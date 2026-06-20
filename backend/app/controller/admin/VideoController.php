@@ -338,7 +338,30 @@ class VideoController extends BaseController
             ->order('sort_order', 'asc')
             ->select();
 
-        return $this->success($list);
+        // 关联资源站点名称
+        $result = [];
+        foreach ($list as $item) {
+            $siteName = '';
+            if ($item->source_site_id > 0) {
+                $site = SourceSite::find($item->source_site_id);
+                $siteName = $site ? $site->name : '';
+            }
+
+            $result[] = [
+                'id' => $item->id,
+                'video_id' => $item->video_id,
+                'source_site_id' => $item->source_site_id,
+                'source_site_name' => $siteName,
+                'name' => $item->name,
+                'play_url' => $item->play_url,
+                'sort_order' => $item->sort_order,
+                'status' => $item->status,
+                'created_at' => $item->created_at,
+                'updated_at' => $item->updated_at,
+            ];
+        }
+
+        return $this->success($result);
     }
 
     /**

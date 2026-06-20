@@ -249,8 +249,14 @@
                 </template>
                 <el-table :data="episodeList" stripe border>
                     <el-table-column prop="id" label="ID" width="80" />
-                    <el-table-column prop="name" label="剧集名称" min-width="150" />
-                    <el-table-column prop="play_url" label="播放地址" min-width="300" show-overflow-tooltip />
+                    <el-table-column prop="name" label="剧集名称" min-width="120" />
+                    <el-table-column prop="source_site_name" label="来源站点" min-width="120">
+                        <template #default="{ row }">
+                            <el-tag v-if="row.source_site_name" size="small" type="info">{{ row.source_site_name }}</el-tag>
+                            <span v-else style="color: #999;">-</span>
+                        </template>
+                    </el-table-column>
+                    <el-table-column prop="play_url" label="播放地址" min-width="250" show-overflow-tooltip />
                     <el-table-column prop="sort_order" label="排序" width="80" />
                     <el-table-column prop="status" label="状态" width="80">
                         <template #default="{ row }">
@@ -549,12 +555,27 @@ const saveEpisode = async () => {
 }
 
 const deleteEpisode = (row) => {
-    ElMessageBox.confirm(`确定删除剧集"${row.name}"吗？`, '提示').then(async () => {
+    const message = `
+        <div style="max-width: 100%;">
+            <p style="margin-bottom: 12px;">确定删除剧集 <strong>"${row.name}"</strong> 吗？</p>
+            <p style="margin-bottom: 4px; color: #666;">播放地址：</p>
+            <div style="padding: 10px; background: #f5f7fa; border-radius: 4px; word-break: break-all; white-space: normal; line-height: 1.6; color: #333;">${row.play_url}</div>
+        </div>
+    `
+
+    ElMessageBox.confirm(message, '删除确认', {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: true,
+        customClass: 'episode-delete-confirm'
+    }).then(async () => {
         await post('/video/deleteEpisode', {
             id: row.id,
             video_id: currentVideo.value.id
         })
         await loadEpisodeList(currentVideo.value.id)
+        ElMessage.success('删除成功')
     }).catch(() => {})
 }
 
