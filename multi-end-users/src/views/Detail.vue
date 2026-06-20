@@ -1135,6 +1135,8 @@ const onPlay = () => {
 const onPause = () => {
   console.log("onPause");
   isPlaying.value = false;
+  // 暂停时显示广告
+  showAdOverlay.value = true;
 };
 
 const closeAd = () => {
