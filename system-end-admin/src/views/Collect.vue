@@ -11,7 +11,7 @@
         <el-table :data="list" border stripe>
         <el-table-column prop="id" label="ID" width="80" resizable />
         <el-table-column prop="name" label="站点名称" min-width="120" resizable />
-        <el-table-column prop="description" label="资源描述" min-width="200" resizable>
+        <el-table-column prop="description" label="资源描述" min-width="200" resizable show-overflow-tooltip>
           <template #default="{ row }">
             {{ row.description || '-' }}
           </template>
