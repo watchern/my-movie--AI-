@@ -9,16 +9,21 @@ use think\facade\Log;
 
 /**
  * 异步采集任务服务
+ * 使用缓存队列 + 后台 worker 模式，避免前端请求超时
  */
 class CollectionTaskService
 {
-    // 缓存key：标记是否有采集任务进行中
+    // 缓存key：标记是否有采集任务正在执行
     const RUNNING_KEY = 'collection_task_running';
+    // 缓存key：任务队列
+    const TASK_QUEUE_KEY = 'collection_task_queue';
+    // 缓存key：worker进程锁
+    const WORKER_LOCK_KEY = 'collection_worker_lock';
     // 缓存key：上次采集时间
     const LAST_RUN_KEY = 'collection_task_last_run';
 
     /**
-     * 检查是否有采集任务进行中
+     * 检查是否有采集任务正在执行
      */
     public static function isRunning(): bool
     {
@@ -26,7 +31,7 @@ class CollectionTaskService
     }
 
     /**
-     * 标记采集任务状态
+     * 标记采集任务执行状态
      */
     public static function setRunning(bool $running): bool
     {
@@ -36,15 +41,6 @@ class CollectionTaskService
             Cache::delete(self::RUNNING_KEY);
         }
         return true;
-    }
-
-    /**
-     * 检查是否允许启动新任务
-     * 有调用即触发：只要没有进行中的任务就允许启动
-     */
-    public static function canStart(): bool
-    {
-        return !self::isRunning();
     }
 
     /**
@@ -98,37 +94,35 @@ class CollectionTaskService
      */
     public static function trigger(string $apiUrl, int $limit = 100, array $typeIds = [], array $siteInfo = []): array
     {
-        if (!self::canStart()) {
-            return [
-                'started' => false,
-                'msg' => '已有采集任务进行中',
-            ];
-        }
-
-        self::setRunning(true);
-        Cache::set(self::LAST_RUN_KEY, time(), 86400);
-
         // 记录采集站点（如果不存在）
         $site = self::ensureSourceSite($apiUrl, $siteInfo);
 
-        // 在后台执行采集
         $collectSourceId = $siteInfo['id'] ?? 0;
 
-        if (function_exists('fastcgi_finish_request')) {
-            // 注册关闭回调执行采集
-            register_shutdown_function(function () use ($site, $limit, $typeIds, $collectSourceId) {
-                self::runCollect($site, $limit, $typeIds, $collectSourceId);
-            });
-            // 立即结束请求，让客户端继续
-            fastcgi_finish_request();
-        } else {
-            // CLI 或无 fastcgi 环境，同步执行
-            self::runCollect($site, $limit, $typeIds, $collectSourceId);
-        }
+        // 构建任务
+        $task = [
+            'site_id' => $site->id,
+            'collect_source_id' => $collectSourceId,
+            'api_url' => $site->api_url,
+            'limit' => $limit,
+            'type_ids' => $typeIds,
+            'created_at' => time(),
+        ];
+
+        // 加入队列
+        $queue = Cache::get(self::TASK_QUEUE_KEY, []);
+        $queue[] = $task;
+        Cache::set(self::TASK_QUEUE_KEY, $queue, 86400);
+
+        // 记录上次采集时间
+        Cache::set(self::LAST_RUN_KEY, time(), 86400);
+
+        // 启动后台 worker（如果未运行）
+        self::startWorkerIfNeeded();
 
         return [
             'started' => true,
-            'msg' => '采集任务已启动',
+            'msg' => '采集任务已加入队列',
         ];
     }
 
@@ -160,12 +154,90 @@ class CollectionTaskService
     }
 
     /**
+     * 启动后台 worker（幂等）
+     */
+    protected static function startWorkerIfNeeded(): void
+    {
+        // 检查 worker 锁，避免重复启动
+        if (Cache::get(self::WORKER_LOCK_KEY)) {
+            return;
+        }
+
+        // 设置 worker 锁（60秒后自动释放，防止 worker 异常退出导致死锁）
+        Cache::set(self::WORKER_LOCK_KEY, time(), 60);
+
+        $workerPath = dirname(__DIR__) . '/collect_worker.php';
+        $cmd = 'php ' . escapeshellarg($workerPath);
+
+        $isWindows = strtoupper(substr(PHP_OS, 0, 3)) === 'WIN';
+
+        try {
+            if ($isWindows) {
+                // Windows 使用 start /B 后台启动
+                pclose(popen('start /B "" ' . $cmd, 'r'));
+            } else {
+                // Linux/Mac 使用 nohup 后台启动
+                exec('nohup ' . $cmd . ' > /dev/null 2>&1 &');
+            }
+        } catch (\Throwable $e) {
+            Log::error('[CollectionTask] 启动worker失败: ' . $e->getMessage());
+            Cache::delete(self::WORKER_LOCK_KEY);
+        }
+    }
+
+    /**
+     * worker 主循环，处理任务队列
+     * 供 collect_worker.php 调用
+     */
+    public static function runWorker(): void
+    {
+        // 设置 worker 锁，防止多个 worker 同时运行
+        Cache::set(self::WORKER_LOCK_KEY, time(), 300);
+
+        $startTime = time();
+        $maxRunTime = 240; // 最多运行4分钟
+
+        try {
+            while (time() - $startTime < $maxRunTime) {
+                $queue = Cache::get(self::TASK_QUEUE_KEY, []);
+                if (empty($queue)) {
+                    break;
+                }
+
+                // 取出第一个任务
+                $task = array_shift($queue);
+                Cache::set(self::TASK_QUEUE_KEY, $queue, 86400);
+
+                // 执行任务
+                $site = SourceSite::find($task['site_id'] ?? 0);
+                if ($site) {
+                    self::runCollect(
+                        $site,
+                        intval($task['limit'] ?? 100),
+                        $task['type_ids'] ?? [],
+                        intval($task['collect_source_id'] ?? 0)
+                    );
+                }
+
+                // 刷新 worker 锁
+                Cache::set(self::WORKER_LOCK_KEY, time(), 300);
+            }
+        } catch (\Throwable $e) {
+            Log::error('[CollectionTask] worker异常: ' . $e->getMessage());
+        } finally {
+            Cache::delete(self::WORKER_LOCK_KEY);
+            Cache::delete(self::RUNNING_KEY);
+        }
+    }
+
+    /**
      * 执行采集
      */
     public static function runCollect(SourceSite $site, int $limit, array $typeIds, int $collectSourceId = 0): void
     {
         try {
             Log::info("[CollectionTask] 开始采集，站点: {$site->api_url}, limit: {$limit}");
+            self::setRunning(true);
             $service = new AppleCmsService($site, $collectSourceId);
             $result = $service->collectToLocal($typeIds, $limit);
             Log::info('[CollectionTask] 采集完成: ' . json_encode($result, JSON_UNESCAPED_UNICODE));
@@ -205,7 +277,8 @@ class CollectionTaskService
         return [
             'running' => self::isRunning(),
             'last_run' => (int) Cache::get(self::LAST_RUN_KEY, 0),
-            'can_start' => self::canStart(),
+            'can_start' => true,
+            'queue_length' => count(Cache::get(self::TASK_QUEUE_KEY, [])),
         ];
     }
 }
