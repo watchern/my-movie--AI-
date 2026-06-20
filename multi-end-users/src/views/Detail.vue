@@ -204,7 +204,33 @@ const adConfig = {
 
 let historyTimer = null
 let skipTimer = null
+let isAutoPlayingNext = false  // 防抖标志，防止自动播放下一集重复触发
+let lastEndedTime = 0  // 上一次触发ended的时间，用于防抖
+let isVideoPlaying = false  // 标记视频是否正在播放（非暂停状态）
 
+// 检查视频源是否可访问
+const checkVideoSource = (url) => {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('HEAD', url, true)
+    xhr.timeout = 3000 // 3秒超时
+    xhr.onload = () => {
+      // 2xx 和 3xx 状态码表示可访问
+      if (xhr.status >= 200 && xhr.status < 400) {
+        resolve(true)
+      } else {
+        resolve(false)
+      }
+    }
+    xhr.onerror = () => {
+      resolve(false)
+    }
+    xhr.ontimeout = () => {
+      resolve(false)
+    }
+    xhr.send()
+  })
+}
 // 下一集插件 - 挂载到 CONTROLS_LEFT
 class NextEpisodePlugin extends Player.Plugin {
   static get pluginName() {
@@ -217,58 +243,77 @@ class NextEpisodePlugin extends Player.Plugin {
     }
   }
 
-  constructor(player, options) {
-    super(player, options)
-    this.episodes = options.episodes || []
-    this.currentSource = options.currentSource
-    this.onEpisodeChange = options.onEpisodeChange
-    this.init()
-  }
-
-  init() {
-    this.bindEvents()
-  }
-
-  bindEvents() {
-    this.on(this.player, 'ended', () => {
-      this.onVideoEnded()
-    })
-  }
-
-  onVideoEnded() {
-    if (!this.currentSource.value || this.episodes.value.length === 0) return
-    
-    const idx = this.episodes.value.findIndex(e => e.id === this.currentSource.value.id)
-    if (idx < this.episodes.value.length - 1 && autoPlayNextEnabled.value) {
-      this.onEpisodeChange(this.episodes.value[idx + 1])
-    }
+  afterCreate() {
+    this.isSwitching = false
+    // 使用 setTimeout 确保 DOM 已经渲染
+    setTimeout(() => {
+      this.render()
+    }, 500)
   }
 
   playNext() {
-    if (!this.currentSource.value || this.episodes.value.length === 0) return
+    if (this.isSwitching) return
     
-    const idx = this.episodes.value.findIndex(e => e.id === this.currentSource.value.id)
-    if (idx < this.episodes.value.length - 1) {
-      this.onEpisodeChange(this.episodes.value[idx + 1])
+    const episodesVal = episodes.value
+    const currentSourceVal = currentSource.value
+    
+    if (!currentSourceVal || episodesVal.length === 0) return
+    
+    const idx = episodesVal.findIndex(e => e.id === currentSourceVal.id)
+    if (idx < episodesVal.length - 1) {
+      this.isSwitching = true
+      selectSource(episodesVal[idx + 1])
     }
+  }
+
+  onSourceSwitched() {
+    setTimeout(() => {
+      this.isSwitching = false
+    }, 300)
   }
 
   render() {
-    const nextBtn = this.findDOM('.xgplayer-next-episode')
-    if (!nextBtn) {
-      const btn = this.createEl('button', {
-        class: 'xgplayer-next-episode'
-      })
-      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 15 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>'
-      btn.onclick = () => this.playNext()
-      
-      this.root.appendChild(btn)
+    // 先尝试使用 this.root（xgplayer 3.x 的标准方式）
+    let container = this.root
+    
+    // 如果 this.root 不存在，尝试手动查找控件容器
+    if (!container) {
+      container = this.player.root?.querySelector('.xgplayer-controls-left') || 
+                  this.player.root?.querySelector('.xgplayer-controls')
     }
-  }
-
-  updateEpisodes(episodes, currentSource) {
-    this.episodes = episodes
-    this.currentSource = currentSource
+    
+    if (!container) {
+      console.log('[NextEpisodePlugin] container not found, retrying...')
+      setTimeout(() => this.render(), 200)
+      return
+    }
+    
+    // 检查按钮是否已经存在
+    if (container.querySelector('.xgplayer-next-episode')) {
+      console.log('[NextEpisodePlugin] button already exists')
+      return
+    }
+    
+    const btn = document.createElement('button')
+    btn.className = 'xgplayer-next-episode'
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 15 12 5 21 5 3"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>'
+    btn.onclick = () => this.playNext()
+    btn.style.display = 'flex'
+    btn.style.alignItems = 'center'
+    btn.style.justifyContent = 'center'
+    btn.style.width = '32px'
+    btn.style.height = '32px'
+    btn.style.marginRight = '8px'
+    btn.style.padding = '4px'
+    btn.style.background = 'rgba(255, 255, 255, 0.2)'
+    btn.style.border = 'none'
+    btn.style.borderRadius = '4px'
+    btn.style.cursor = 'pointer'
+    btn.style.color = '#fff'
+    btn.style.transition = 'background 0.3s'
+    
+    container.appendChild(btn)
+    console.log('[NextEpisodePlugin] button added successfully')
   }
 }
 
@@ -284,21 +329,13 @@ class RotatePlugin extends Player.Plugin {
     }
   }
 
-  constructor(player, options) {
-    super(player, options)
-    this.rotation = 0 // 当前旋转角度
-    this.init()
-  }
-
-  init() {
+  afterCreate() {
+    this.rotation = 0
     this.render()
   }
 
   rotate() {
-    // 顺时针旋转90度
     this.rotation = (this.rotation + 90) % 360
-    
-    // 获取video元素
     const video = this.player.video
     if (video) {
       video.style.transform = `rotate(${this.rotation}deg)`
@@ -306,24 +343,17 @@ class RotatePlugin extends Player.Plugin {
   }
 
   render() {
-    const rotateBtn = this.findDOM('.xgplayer-rotate')
-    if (!rotateBtn) {
-      const btn = this.createEl('button', {
-        class: 'xgplayer-rotate'
-      })
-      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>'
-      btn.onclick = () => this.rotate()
-      
-      this.root.appendChild(btn)
+    if (!this.root) {
+      setTimeout(() => this.render(), 100)
+      return
     }
-  }
-
-  reset() {
-    this.rotation = 0
-    const video = this.player.video
-    if (video) {
-      video.style.transform = 'rotate(0deg)'
-    }
+    
+    const btn = document.createElement('button')
+    btn.className = 'xgplayer-rotate'
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg>'
+    btn.onclick = () => this.rotate()
+    
+    this.root.appendChild(btn)
   }
 }
 
@@ -339,32 +369,26 @@ class SettingsPlugin extends Player.Plugin {
     }
   }
 
-  constructor(player, options) {
-    super(player, options)
-    this.skipIntroEnabled = ref(options.skipIntroEnabled || true)
-    this.autoPlayNextEnabled = ref(options.autoPlayNextEnabled || true)
-    this.playbackRate = ref(options.playbackRate || 1)
-    this.speedOptions = options.speedOptions || [0.5, 0.75, 1, 1.25, 1.5, 2]
-    this.onSettingsChange = options.onSettingsChange
+  afterCreate() {
     this.panelVisible = false
-    this.init()
-  }
-
-  init() {
     this.render()
   }
 
   render() {
-    const settingsBtn = this.findDOM('.xgplayer-settings-btn')
-    if (!settingsBtn) {
-      const btn = this.createEl('button', {
-        class: 'xgplayer-settings-btn'
-      })
-      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'
-      btn.onclick = () => this.togglePanel()
-      
-      this.root.appendChild(btn)
+    if (!this.root) {
+      setTimeout(() => this.render(), 100)
+      return
     }
+    
+    const btn = document.createElement('button')
+    btn.className = 'xgplayer-settings-btn'
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'
+    btn.onclick = (e) => {
+      e.stopPropagation()
+      this.togglePanel()
+    }
+    
+    this.root.appendChild(btn)
   }
 
   togglePanel() {
@@ -378,7 +402,9 @@ class SettingsPlugin extends Player.Plugin {
   }
 
   createPanel() {
-    let panel = document.querySelector('.xgplayer-settings-panel')
+    if (!this.root) return
+    
+    let panel = this.player.root.querySelector('.xgplayer-settings-panel')
     if (panel) {
       panel.style.display = 'block'
       return
@@ -391,14 +417,14 @@ class SettingsPlugin extends Player.Plugin {
       <div class="settings-item">
         <span class="settings-label">自动跳过片头片尾</span>
         <label class="settings-switch">
-          <input type="checkbox" ${this.skipIntroEnabled.value ? 'checked' : ''} />
+          <input type="checkbox" ${skipIntroEnabled.value ? 'checked' : ''} />
           <span class="settings-slider"></span>
         </label>
       </div>
       <div class="settings-item">
         <span class="settings-label">自动播放下一集</span>
         <label class="settings-switch">
-          <input type="checkbox" ${this.autoPlayNextEnabled.value ? 'checked' : ''} />
+          <input type="checkbox" ${autoPlayNextEnabled.value ? 'checked' : ''} />
           <span class="settings-slider"></span>
         </label>
       </div>
@@ -406,62 +432,62 @@ class SettingsPlugin extends Player.Plugin {
         <span class="settings-label">倍速</span>
         <div class="settings-speed">
           <select class="speed-select">
-            ${this.speedOptions.map(speed => 
-              `<option value="${speed}" ${this.playbackRate.value === speed ? 'selected' : ''}>${speed}x</option>`
+            ${speedOptions.map(speed => 
+              `<option value="${speed}" ${playbackRate.value === speed ? 'selected' : ''}>${speed}x</option>`
             ).join('')}
           </select>
         </div>
       </div>
     `
 
-    const controls = this.player.root.querySelector('.xgplayer-controls')
-    if (controls) {
-      controls.appendChild(panel)
-    }
+    this.root.appendChild(panel)
 
     // 绑定事件
-    panel.querySelector('.settings-item:nth-child(1) .settings-switch input').addEventListener('change', (e) => {
-      this.skipIntroEnabled.value = e.target.checked
+    const skipSwitch = panel.querySelector('.settings-item:nth-child(1) .settings-switch input')
+    const autoNextSwitch = panel.querySelector('.settings-item:nth-child(2) .settings-switch input')
+    const speedSelect = panel.querySelector('.speed-select')
+
+    skipSwitch.addEventListener('change', (e) => {
+      skipIntroEnabled.value = e.target.checked
       this.notifyChange()
     })
 
-    panel.querySelector('.settings-item:nth-child(2) .settings-switch input').addEventListener('change', (e) => {
-      this.autoPlayNextEnabled.value = e.target.checked
+    autoNextSwitch.addEventListener('change', (e) => {
+      autoPlayNextEnabled.value = e.target.checked
       this.notifyChange()
     })
 
-    panel.querySelector('.speed-select').addEventListener('change', (e) => {
-      this.playbackRate.value = parseFloat(e.target.value)
-      this.player.playbackRate = this.playbackRate.value
+    speedSelect.addEventListener('change', (e) => {
+      playbackRate.value = parseFloat(e.target.value)
+      this.player.playbackRate = playbackRate.value
       this.notifyChange()
     })
 
-    document.addEventListener('click', this.handleOutsideClick.bind(this))
+    // 点击其他地方关闭面板
+    setTimeout(() => {
+      document.addEventListener('click', this.handleOutsideClick)
+    }, 0)
   }
 
   destroyPanel() {
-    const panel = document.querySelector('.xgplayer-settings-panel')
+    const panel = this.player.root.querySelector('.xgplayer-settings-panel')
     if (panel) {
       panel.style.display = 'none'
     }
-    document.removeEventListener('click', this.handleOutsideClick.bind(this))
+    document.removeEventListener('click', this.handleOutsideClick)
   }
 
-  handleOutsideClick(e) {
-    const panel = document.querySelector('.xgplayer-settings-panel')
-    const btn = this.findDOM('.xgplayer-settings-btn')
+  handleOutsideClick = (e) => {
+    const panel = this.player.root.querySelector('.xgplayer-settings-panel')
+    const btn = this.player.root.querySelector('.xgplayer-settings-btn')
     if (panel && btn && !panel.contains(e.target) && !btn.contains(e.target)) {
       this.togglePanel()
     }
   }
 
   notifyChange() {
-    if (this.onSettingsChange) {
-      this.onSettingsChange({
-        skipIntroEnabled: this.skipIntroEnabled.value,
-        autoPlayNextEnabled: this.autoPlayNextEnabled.value,
-        playbackRate: this.playbackRate.value
-      })
+    if (this.player.skipIntroPlugin) {
+      this.player.skipIntroPlugin.setEnabled(skipIntroEnabled.value)
     }
   }
 
@@ -477,27 +503,22 @@ class SkipIntroPlugin extends Player.Plugin {
     return 'SkipIntroPlugin'
   }
 
-  constructor(player, options) {
-    super(player, options)
-    this.enabled = ref(options.enabled || true)
-    this.introStart = options.introStart || 0
-    this.introEnd = options.introEnd || 90
-    this.outroDuration = options.outroDuration || 60
+  afterCreate() {
+    this.enabled = skipIntroEnabled.value
+    this.introStart = introStart.value
+    this.introEnd = introEnd.value
+    this.outroDuration = outroDuration.value
     this.outroStart = 0
     this.skipTimer = null
-    this.init()
-  }
-
-  init() {
     this.bindEvents()
   }
 
   bindEvents() {
-    this.on(this.player, 'timeupdate', () => {
+    this.player.on('timeupdate', () => {
       this.onTimeUpdate()
     })
     
-    this.on(this.player, 'loadedmetadata', () => {
+    this.player.on('loadedmetadata', () => {
       this.calculateOutro()
     })
   }
@@ -510,7 +531,7 @@ class SkipIntroPlugin extends Player.Plugin {
   }
 
   onTimeUpdate() {
-    if (!this.enabled.value) return
+    if (!this.enabled) return
     
     const currentTime = this.player.currentTime
     const duration = this.player.duration
@@ -537,11 +558,11 @@ class SkipIntroPlugin extends Player.Plugin {
   }
 
   setEnabled(enabled) {
-    this.enabled.value = enabled
+    this.enabled = enabled
   }
 
   isEnabled() {
-    return this.enabled.value
+    return this.enabled
   }
 
   destroy() {
@@ -662,11 +683,33 @@ const selectSource = (source) => {
   
   outroStart.value = 0
   
-  initPlayer(source)
+  // 使用播放器更新视频源方式切换，而不是销毁重建
+  const player = playerRef.value
+  if (player && source?.play_url) {
+    // 先暂停当前播放
+    player.pause()
+    
+    // 等待一小段时间确保播放器状态稳定后再切换
+    setTimeout(() => {
+      if (playerRef.value && source?.play_url) {
+        // 使用 src 方式更新视频源
+        playerRef.value.src = source.play_url
+        playerRef.value.play()
+        
+        // 重置下一集插件的状态
+        if (playerRef.value.nextEpisodePlugin) {
+          playerRef.value.nextEpisodePlugin.onSourceSwitched()
+        }
+      }
+    }, 100)
+  } else {
+    initPlayer(source)
+  }
 }
 
 const initPlayer = (source) => {
-  destroyPlayer()
+  // 检查是否已有播放器，避免重复创建
+  if (playerRef.value) return
   
   if (!source?.play_url) return
   
@@ -735,8 +778,109 @@ const initPlayer = (source) => {
     
     player.on('pause', onPause)
     player.on('play', onPlay)
+    player.on('play', () => {
+      // 新视频开始播放时，重置防抖标志
+      if (isAutoPlayingNext) {
+        isAutoPlayingNext = false
+      }
+    })
     player.on('fullscreenchange', onFullscreenChange)
     player.on('pipChange', onPipChange)
+    
+    // 监听视频播放结束事件，自动播放下一集
+    player.on('ended', async () => {
+      // 如果正在自动播放下一集，跳过
+      if (isAutoPlayingNext) {
+        console.log('[AutoPlayNext] ended event ignored, isAutoPlayingNext is true')
+        return
+      }
+      
+      // 如果视频不是正在播放状态（可能是暂停），忽略
+      if (!isVideoPlaying) {
+        console.log('[AutoPlayNext] ended event ignored, video is not playing')
+        return
+      }
+      
+      // 防抖：如果1秒内已经触发过，忽略
+      const now = Date.now()
+      if (now - lastEndedTime < 1000) {
+        console.log('[AutoPlayNext] ended event ignored, debounce check failed')
+        return
+      }
+      lastEndedTime = now
+      
+      // 检查播放进度是否接近视频结尾（最后5秒内）
+      const video = player.video
+      if (!video) {
+        console.log('[AutoPlayNext] ended event ignored, video element not found')
+        return
+      }
+      
+      const currentTime = video.currentTime
+      const duration = video.duration
+      
+      console.log('[AutoPlayNext] ended event received, currentTime:', currentTime, 'duration:', duration)
+      
+      // 如果视频时长无效，忽略
+      if (duration <= 0 || isNaN(duration)) {
+        console.log('[AutoPlayNext] ended event ignored, invalid duration')
+        return
+      }
+      
+      // 如果当前时间不在最后5秒内，忽略这个ended事件
+      if (currentTime < duration - 5) {
+        console.log('[AutoPlayNext] ended event ignored, currentTime not near end')
+        return
+      }
+      
+      console.log('[AutoPlayNext] ended event accepted, checking next episode...')
+      
+      const episodesVal = episodes.value
+      const currentSourceVal = currentSource.value
+      
+      if (!currentSourceVal || episodesVal.length === 0) {
+        console.log('[AutoPlayNext] no episodes or current source, skip')
+        return
+      }
+      
+      const idx = episodesVal.findIndex(e => e.id === currentSourceVal.id)
+      if (idx >= episodesVal.length - 1) {
+        console.log('[AutoPlayNext] no next episode')
+        return
+      }
+      
+      if (!autoPlayNextEnabled.value) {
+        console.log('[AutoPlayNext] autoPlayNext is disabled')
+        return
+      }
+      
+      const nextEpisode = episodesVal[idx + 1]
+      if (!nextEpisode?.play_url) {
+        console.log('[AutoPlayNext] next episode has no play_url')
+        return
+      }
+      
+      // 检查下一集视频源是否可访问
+      console.log('[AutoPlayNext] checking video source:', nextEpisode.play_url)
+      const isSourceAvailable = await checkVideoSource(nextEpisode.play_url)
+      
+      if (!isSourceAvailable) {
+        console.log('[AutoPlayNext] video source is not available, skip')
+        return
+      }
+      
+      console.log('[AutoPlayNext] video source is available, will play next episode after delay')
+      
+      // 设置5秒延迟后自动播放下一集
+      setTimeout(() => {
+        // 再次检查状态
+        if (!isAutoPlayingNext) {
+          isAutoPlayingNext = true
+          console.log('[AutoPlayNext] switching to episode', idx + 2)
+          selectSource(nextEpisode)
+        }
+      }, 5000)
+    })
   })
 }
 
@@ -752,6 +896,19 @@ const onSettingsChange = (settings) => {
 
 const destroyPlayer = () => {
   if (playerRef.value) {
+    // 先移除 video 元素的事件监听器，防止销毁后事件触发
+    const video = playerRef.value.video
+    if (video) {
+      const clone = video.cloneNode(false)
+      video.parentNode?.replaceChild(clone, video)
+    }
+    
+    // 清空容器内容
+    const container = document.getElementById('xgplayer-container')
+    if (container) {
+      container.innerHTML = ''
+    }
+    
     playerRef.value.destroy()
     playerRef.value = null
   }
@@ -808,14 +965,15 @@ const onLoginSuccess = async () => {
   }
 }
 
-const onPause = () => {
-  isPlaying.value = false
-  showAdOverlay.value = true
-}
-
 const onPlay = () => {
   isPlaying.value = true
+  isVideoPlaying = true  // 标记视频正在播放
   showAdOverlay.value = false
+}
+
+const onPause = () => {
+  isPlaying.value = false
+  isVideoPlaying = false  // 标记视频暂停
 }
 
 const closeAd = () => {
@@ -1215,7 +1373,13 @@ onBeforeUnmount(() => {
 }
 
 // 下一集按钮样式
+:deep(.xgplayer-controls-left) .xgplayer-next-episode,
 :deep(.xgplayer-next-episode) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   margin-right: 8px;
   padding: 4px;
   background: rgba(255, 255, 255, 0.2);
@@ -1223,29 +1387,26 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   cursor: pointer;
   color: #fff;
+  transition: background 0.3s;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.4);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
 // 设置按钮样式
+:deep(.xgplayer-controls-right) .xgplayer-settings-btn,
 :deep(.xgplayer-settings-btn) {
-  margin-left: 8px;
-  padding: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  color: #fff;
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-}
-
-// 旋转按钮样式
-:deep(.xgplayer-rotate) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   margin-left: 8px;
   padding: 4px;
   background: rgba(255, 255, 255, 0.2);
@@ -1256,16 +1417,48 @@ onBeforeUnmount(() => {
   transition: background 0.3s;
   
   &:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.4);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+// 旋转按钮样式
+:deep(.xgplayer-controls-right) .xgplayer-rotate,
+:deep(.xgplayer-rotate) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-left: 8px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.3s;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.4);
+  }
+  
+  svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
 // 设置面板样式
 :deep(.xgplayer-settings-panel) {
   position: absolute;
-  bottom: 100%;
+  top: 100%;
   right: 0;
-  margin-bottom: 8px;
+  margin-top: 8px;
   background: rgba(0, 0, 0, 0.9);
   border-radius: 8px;
   padding: 12px;
@@ -1343,6 +1536,7 @@ onBeforeUnmount(() => {
       padding: 4px 8px;
       font-size: 14px;
       cursor: pointer;
+      outline: none;
       
       option {
         background: #333;
@@ -1350,5 +1544,4 @@ onBeforeUnmount(() => {
       }
     }
   }
-}
-</style>
+}</style>
