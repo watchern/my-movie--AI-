@@ -14,10 +14,12 @@ class AppleCmsService
 {
     private $site;
     private $apiUrl;
+    private $collectSourceId = 0;
 
-    public function __construct(SourceSite $site)
+    public function __construct(SourceSite $site, int $collectSourceId = 0)
     {
         $this->site = $site;
+        $this->collectSourceId = $collectSourceId;
         $apiUrl = trim($site->api_url);
 
         // 兼容用户直接配置完整接口地址的情况
@@ -123,6 +125,40 @@ class AppleCmsService
     }
 
     /**
+     * 更新采集进度到缓存
+     */
+    private function updateProgress(array $data): void
+    {
+        if ($this->collectSourceId <= 0) {
+            return;
+        }
+
+        $key = 'collection_progress_' . $this->collectSourceId;
+        $progress = array_merge([
+            'status' => 'running',
+            'total' => 0,
+            'current' => 0,
+            'percent' => 0,
+            'msg' => '',
+            'updated_at' => time(),
+        ], $data);
+
+        Cache::set($key, $progress, 3600);
+    }
+
+    /**
+     * 清除采集进度缓存
+     */
+    private function clearProgress(): void
+    {
+        if ($this->collectSourceId <= 0) {
+            return;
+        }
+
+        Cache::delete('collection_progress_' . $this->collectSourceId);
+    }
+
+    /**
      * 一键采集视频到本地
      */
     public function collectToLocal(array $typeIds = [], int $limit = 100): array
@@ -134,41 +170,91 @@ class AppleCmsService
             'errors' => [],
         ];
 
-        // 获取视频列表
-        $listData = $this->getVideoList($typeIds, 1, $limit);
+        try {
+            // 获取视频列表
+            $listData = $this->getVideoList($typeIds, 1, $limit);
+            $total = count($listData['list']);
 
-        foreach ($listData['list'] as $item) {
-            try {
-                $vodId = $item['vod_id'] ?? '';
-                if (empty($vodId)) {
-                    $result['failed']++;
-                    $result['errors'][] = 'missing vod_id';
-                    continue;
-                }
+            $this->updateProgress([
+                'status' => 'running',
+                'total' => $total,
+                'current' => 0,
+                'percent' => 0,
+                'msg' => '开始采集',
+            ]);
 
-                // 通过详情接口获取完整数据
-                $detail = $this->getVideoDetail($vodId);
-                if (empty($detail)) {
-                    $result['failed']++;
-                    $result['errors'][] = $vodId . ': 获取详情失败';
-                    continue;
-                }
+            foreach ($listData['list'] as $index => $item) {
+                $current = $index + 1;
+                $percent = $total > 0 ? floor(($current / $total) * 100) : 0;
 
-                $this->saveVideo($detail);
-                $result['success']++;
-            } catch (\Exception $e) {
-                if (strpos($e->getMessage(), '已存在') !== false) {
-                    $result['exists']++;
-                } else {
-                    $result['failed']++;
-                    $result['errors'][] = ($item['vod_id'] ?? 'unknown') . ': ' . $e->getMessage();
+                $this->updateProgress([
+                    'status' => 'running',
+                    'total' => $total,
+                    'current' => $current,
+                    'percent' => $percent,
+                    'msg' => "正在处理第 {$current}/{$total} 个视频",
+                ]);
+
+                try {
+                    $vodId = $item['vod_id'] ?? '';
+                    if (empty($vodId)) {
+                        $result['failed']++;
+                        $result['errors'][] = 'missing vod_id';
+                        continue;
+                    }
+
+                    // 通过详情接口获取完整数据
+                    $detail = $this->getVideoDetail($vodId);
+                    if (empty($detail)) {
+                        $result['failed']++;
+                        $result['errors'][] = $vodId . ': 获取详情失败';
+                        continue;
+                    }
+
+                    $this->saveVideo($detail);
+                    $result['success']++;
+                } catch (\Exception $e) {
+                    if (strpos($e->getMessage(), '已存在') !== false) {
+                        $result['exists']++;
+                    } else {
+                        $result['failed']++;
+                        $result['errors'][] = ($item['vod_id'] ?? 'unknown') . ': ' . $e->getMessage();
+                    }
                 }
             }
-        }
 
-        // 更新采集时间
-        $this->site->last_sync_at = date('Y-m-d H:i:s');
-        $this->site->save();
+            // 更新采集时间
+            $this->site->last_sync_at = date('Y-m-d H:i:s');
+            $this->site->save();
+
+            $this->updateProgress([
+                'status' => 'completed',
+                'total' => $total,
+                'current' => $total,
+                'percent' => 100,
+                'msg' => "采集完成，成功 {$result['success']}，已存在 {$result['exists']}，失败 {$result['failed']}",
+                'result' => $result,
+            ]);
+        } catch (\Throwable $e) {
+            $this->updateProgress([
+                'status' => 'failed',
+                'msg' => '采集异常: ' . $e->getMessage(),
+            ]);
+            throw $e;
+        } finally {
+            // 进度保留 5 分钟后自动清除
+            if ($this->collectSourceId > 0) {
+                Cache::set('collection_progress_' . $this->collectSourceId, [
+                    'status' => $result['failed'] > 0 && $result['success'] == 0 ? 'failed' : 'completed',
+                    'total' => $total ?? 0,
+                    'current' => $total ?? 0,
+                    'percent' => 100,
+                    'msg' => "采集完成，成功 {$result['success']}，已存在 {$result['exists']}，失败 {$result['failed']}",
+                    'result' => $result,
+                    'updated_at' => time(),
+                ], 300);
+            }
+        }
 
         return $result;
     }

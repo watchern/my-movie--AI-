@@ -112,16 +112,18 @@ class CollectionTaskService
         $site = self::ensureSourceSite($apiUrl, $siteInfo);
 
         // 在后台执行采集
+        $collectSourceId = $siteInfo['id'] ?? 0;
+
         if (function_exists('fastcgi_finish_request')) {
             // 注册关闭回调执行采集
-            register_shutdown_function(function () use ($site, $limit, $typeIds) {
-                self::runCollect($site, $limit, $typeIds);
+            register_shutdown_function(function () use ($site, $limit, $typeIds, $collectSourceId) {
+                self::runCollect($site, $limit, $typeIds, $collectSourceId);
             });
             // 立即结束请求，让客户端继续
             fastcgi_finish_request();
         } else {
             // CLI 或无 fastcgi 环境，同步执行
-            self::runCollect($site, $limit, $typeIds);
+            self::runCollect($site, $limit, $typeIds, $collectSourceId);
         }
 
         return [
@@ -160,11 +162,11 @@ class CollectionTaskService
     /**
      * 执行采集
      */
-    public static function runCollect(SourceSite $site, int $limit, array $typeIds): void
+    public static function runCollect(SourceSite $site, int $limit, array $typeIds, int $collectSourceId = 0): void
     {
         try {
             Log::info("[CollectionTask] 开始采集，站点: {$site->api_url}, limit: {$limit}");
-            $service = new AppleCmsService($site);
+            $service = new AppleCmsService($site, $collectSourceId);
             $result = $service->collectToLocal($typeIds, $limit);
             Log::info('[CollectionTask] 采集完成: ' . json_encode($result, JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
@@ -172,6 +174,27 @@ class CollectionTaskService
         } finally {
             self::setRunning(false);
         }
+    }
+
+    /**
+     * 获取某个采集源的任务进度
+     */
+    public static function getProgress(int $collectSourceId): array
+    {
+        $key = 'collection_progress_' . $collectSourceId;
+        $progress = Cache::get($key);
+
+        if (!$progress) {
+            return [
+                'status' => 'idle',
+                'total' => 0,
+                'current' => 0,
+                'percent' => 0,
+                'msg' => '暂无采集任务',
+            ];
+        }
+
+        return $progress;
     }
 
     /**

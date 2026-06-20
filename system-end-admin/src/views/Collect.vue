@@ -141,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Delete, Connection, Switch } from '@element-plus/icons-vue'
@@ -259,19 +259,22 @@ const toggleStatus = async (row) => {
   loadList()
 }
 
+// 轮询定时器
+const progressTimers = ref({})
+
 const startCollect = async (row) => {
   row.collect_status = 'running'
   row.total = 0
   row.percent = 0
-  
+
   try {
-    await post('/video/collect', { 
+    await post('/video/collect', {
       source_id: row.id,
-      api_url: row.api_url 
+      api_url: row.api_url
     })
     ElMessage.success('采集任务已启动')
-    // 模拟进度更新
-    simulateProgress(row)
+    // 启动真实进度轮询
+    startProgressPolling(row)
   } catch (e) {
     row.collect_status = ''
     ElMessage.error(e.message || '采集失败')
@@ -284,32 +287,71 @@ const startCollectAll = async () => {
     ElMessage.warning('请先选择要采集的站点')
     return
   }
-  
+
   ElMessage.success(`已启动 ${selectedList.length} 个站点的采集任务`)
-  
+
   for (const row of selectedList) {
     startCollect(row)
   }
 }
 
-// 模拟采集进度（实际项目中应由WebSocket或轮询获取）
-const simulateProgress = (row) => {
-  let percent = 0
-  const timer = setInterval(() => {
-    percent += Math.random() * 10
-    if (percent >= 100) {
-      percent = 100
-      row.percent = 100
-      row.collect_status = ''
-      row.total = Math.floor(Math.random() * 100) + 10
-      clearInterval(timer)
-    } else {
-      row.percent = Math.floor(percent)
+// 启动进度轮询
+const startProgressPolling = (row) => {
+  // 清除已有定时器
+  if (progressTimers.value[row.id]) {
+    clearInterval(progressTimers.value[row.id])
+  }
+
+  // 立即获取一次
+  fetchProgress(row)
+
+  // 每 2 秒轮询一次
+  progressTimers.value[row.id] = setInterval(() => {
+    fetchProgress(row)
+  }, 2000)
+}
+
+// 获取采集进度
+const fetchProgress = async (row) => {
+  try {
+    const res = await get('/video/collectProgress', { source_id: row.id })
+    const progress = res.data || {}
+
+    row.total = progress.total || 0
+    row.percent = progress.percent || 0
+
+    // 任务结束或失败时停止轮询
+    if (progress.status === 'completed' || progress.status === 'failed' || progress.status === 'idle') {
+      if (progress.status === 'completed') {
+        ElMessage.success(progress.msg || '采集完成')
+      } else if (progress.status === 'failed') {
+        ElMessage.error(progress.msg || '采集失败')
+      }
+      stopProgressPolling(row)
     }
-  }, 500)
+  } catch (e) {
+    console.error('获取采集进度失败', e)
+  }
+}
+
+// 停止进度轮询
+const stopProgressPolling = (row) => {
+  if (progressTimers.value[row.id]) {
+    clearInterval(progressTimers.value[row.id])
+    delete progressTimers.value[row.id]
+  }
+  row.collect_status = ''
 }
 
 onMounted(() => loadList())
+
+onUnmounted(() => {
+  // 页面卸载时清除所有定时器
+  Object.keys(progressTimers.value).forEach(id => {
+    clearInterval(progressTimers.value[id])
+  })
+  progressTimers.value = {}
+})
 </script>
 
 <style lang="scss" scoped>

@@ -325,6 +325,20 @@ class VideoController extends BaseController
     }
 
     /**
+     * 获取采集进度
+     */
+    public function collectProgress()
+    {
+        $sourceId = intval($this->request->get('source_id', 0));
+        if ($sourceId <= 0) {
+            return $this->error('参数错误');
+        }
+
+        $progress = CollectionTaskService::getProgress($sourceId);
+        return $this->success($progress);
+    }
+
+    /**
      * 获取视频剧集列表
      */
     public function episodes()

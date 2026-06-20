@@ -29,6 +29,7 @@ Route::group('admin/api', function () {
     Route::get('video/sourceSites', [VideoController::class, 'sourceSites']);
     Route::post('video/saveSourceSite', [VideoController::class, 'saveSourceSite']);
     Route::post('video/collect', [VideoController::class, 'collect']);
+    Route::get('video/collectProgress', [VideoController::class, 'collectProgress']);
 
     // 剧集管理
     Route::get('video/episodes', [VideoController::class, 'episodes']);
