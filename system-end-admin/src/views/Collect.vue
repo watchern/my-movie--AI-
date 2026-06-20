@@ -188,9 +188,11 @@ const loadList = async () => {
   await restoreCollectStatus()
 }
 
-// 页面加载时恢复每个站点的采集状态
+// 页面加载时恢复每个站点的采集状态（并行查询，避免站点多加载慢）
 const restoreCollectStatus = async () => {
-  for (const row of list.value) {
+  if (list.value.length === 0) return
+
+  const promises = list.value.map(async (row) => {
     try {
       const res = await get('/video/collectProgress', { source_id: row.id })
       const progress = res.data || {}
@@ -205,7 +207,9 @@ const restoreCollectStatus = async () => {
     } catch (e) {
       console.error('恢复采集状态失败', e)
     }
-  }
+  })
+
+  await Promise.all(promises)
 }
 
 const handleEdit = (row) => {
