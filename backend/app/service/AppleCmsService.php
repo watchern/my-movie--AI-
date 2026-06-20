@@ -60,8 +60,21 @@ class AppleCmsService
     /**
      * 获取视频列表
      */
+    /**
+     * 获取视频列表，支持缓存（用于断点续采）
+     */
     public function getVideoList(array $typeIds = [], int $page = 1, int $limit = 20): array
     {
+        $cacheKey = '';
+        if ($this->collectSourceId > 0) {
+            // 缓存 key 与采集参数相关
+            $cacheKey = 'collection_video_list_' . $this->collectSourceId . '_' . md5(json_encode([$typeIds, $limit]));
+            $cached = Cache::get($cacheKey);
+            if (!empty($cached['list'])) {
+                return $cached;
+            }
+        }
+
         $params = [
             'ac' => 'list',
             'page' => $page,
@@ -79,12 +92,19 @@ class AppleCmsService
             throw new \Exception('获取视频列表失败: ' . ($data['msg'] ?? '未知错误'));
         }
 
-        return [
+        $result = [
             'total' => $data['total'] ?? 0,
             'page' => $data['page'] ?? $page,
             'limit' => $data['limit'] ?? $limit,
             'list' => $data['list'] ?? [],
         ];
+
+        // 缓存视频列表，用于刷新页面后继续处理
+        if ($cacheKey) {
+            Cache::set($cacheKey, $result, 3600);
+        }
+
+        return $result;
     }
 
     /**
@@ -160,6 +180,7 @@ class AppleCmsService
 
     /**
      * 一键采集视频到本地
+     * 支持缓存视频列表和断点续采
      */
     public function collectToLocal(array $typeIds = [], int $limit = 100): array
     {
@@ -170,20 +191,33 @@ class AppleCmsService
             'errors' => [],
         ];
 
+        $cacheKey = $this->collectSourceId > 0 ? 'collection_video_list_' . $this->collectSourceId . '_' . md5(json_encode([$typeIds, $limit])) : '';
+        $indexKey = $this->collectSourceId > 0 ? 'collection_process_index_' . $this->collectSourceId : '';
+
         try {
-            // 获取视频列表
+            // 获取视频列表（会优先使用缓存）
             $listData = $this->getVideoList($typeIds, 1, $limit);
             $total = count($listData['list']);
+
+            // 读取上次处理到的索引
+            $startIndex = 0;
+            if ($indexKey) {
+                $startIndex = intval(Cache::get($indexKey, 0));
+                if ($startIndex > 0) {
+                    Log::info("[CollectionTask] 断点续采，从第 {$startIndex} 个继续处理");
+                }
+            }
 
             $this->updateProgress([
                 'status' => 'running',
                 'total' => $total,
-                'current' => 0,
-                'percent' => 0,
+                'current' => $startIndex,
+                'percent' => $total > 0 ? floor(($startIndex / $total) * 100) : 0,
                 'msg' => '开始采集',
             ]);
 
-            foreach ($listData['list'] as $index => $item) {
+            for ($index = $startIndex; $index < $total; $index++) {
+                $item = $listData['list'][$index];
                 $current = $index + 1;
                 $percent = $total > 0 ? floor(($current / $total) * 100) : 0;
 
@@ -221,6 +255,11 @@ class AppleCmsService
                         $result['errors'][] = ($item['vod_id'] ?? 'unknown') . ': ' . $e->getMessage();
                     }
                 }
+
+                // 记录处理进度
+                if ($indexKey) {
+                    Cache::set($indexKey, $current, 3600);
+                }
             }
 
             // 更新采集时间
@@ -242,8 +281,16 @@ class AppleCmsService
             ]);
             throw $e;
         } finally {
-            // 进度保留 5 分钟后自动清除
+            // 完成后清除缓存和进度索引
             if ($this->collectSourceId > 0) {
+                if ($cacheKey) {
+                    Cache::delete($cacheKey);
+                }
+                if ($indexKey) {
+                    Cache::delete($indexKey);
+                }
+
+                // 进度保留 5 分钟后自动清除
                 Cache::set('collection_progress_' . $this->collectSourceId, [
                     'status' => $result['failed'] > 0 && $result['success'] == 0 ? 'failed' : 'completed',
                     'total' => $total ?? 0,
