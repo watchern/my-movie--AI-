@@ -22,14 +22,14 @@
             {{ siteTypeOptions[row.site_type] || '苹果CMS' }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80" resizable>
+        <el-table-column prop="status" label="状态" width="80" resizable fixed="right">
           <template #default="{ row }">
             <el-tag :type="row.status ? 'success' : 'info'" size="small">
               {{ row.status ? '启用' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="150" resizable>
+        <el-table-column label="操作" width="150" resizable fixed="right">
           <template #default="{ row }">
             <el-tooltip content="编辑" placement="top">
               <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
