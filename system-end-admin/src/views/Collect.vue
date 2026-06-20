@@ -52,7 +52,10 @@
       <template #header>
         <div class="header">
           <span>采集任务</span>
-          <el-button type="primary" @click="startCollectAll">采集全部</el-button>
+          <div>
+            <el-button type="danger" style="margin-right: 10px;" @click="resetCollect">强制重置采集</el-button>
+            <el-button type="primary" @click="startCollectAll">采集全部</el-button>
+          </div>
         </div>
       </template>
       
@@ -372,6 +375,31 @@ const stopProgressPolling = (row) => {
     delete progressTimers.value[row.id]
   }
   row.collect_status = ''
+}
+
+// 强制重置采集任务
+const resetCollect = () => {
+  ElMessageBox.confirm(
+    '确定强制重置采集任务吗？这会清除任务队列、worker锁和采集进度。',
+    '强制重置',
+    { confirmButtonText: '确定重置', cancelButtonText: '取消', type: 'warning' }
+  ).then(async () => {
+    await post('/video/collectReset', {})
+
+    // 停止所有轮询并清空状态
+    Object.keys(progressTimers.value).forEach(id => {
+      clearInterval(progressTimers.value[id])
+    })
+    progressTimers.value = {}
+
+    list.value.forEach(row => {
+      row.collect_status = ''
+      row.total = 0
+      row.percent = 0
+    })
+
+    ElMessage.success('采集任务已重置')
+  }).catch(() => {})
 }
 
 onMounted(() => loadList())

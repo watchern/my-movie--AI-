@@ -347,4 +347,59 @@ class CollectionTaskService
             'queue_length' => count(Cache::get(self::TASK_QUEUE_KEY, [])),
         ];
     }
+
+    /**
+     * 强制重置采集任务
+     * @param int $collectSourceId 指定采集源ID，0 表示重置所有
+     * @return array
+     */
+    public static function reset(int $collectSourceId = 0): array
+    {
+        $result = [
+            'cleared_queue' => false,
+            'cleared_lock' => false,
+            'cleared_running' => false,
+            'cleared_progress' => false,
+            'cleared_list_cache' => false,
+            'cleared_process_index' => false,
+        ];
+
+        if ($collectSourceId > 0) {
+            // 只清除指定采集源的任务
+            $queue = Cache::get(self::TASK_QUEUE_KEY, []);
+            $newQueue = [];
+            foreach ($queue as $task) {
+                if (intval($task['collect_source_id'] ?? 0) !== $collectSourceId) {
+                    $newQueue[] = $task;
+                }
+            }
+            Cache::set(self::TASK_QUEUE_KEY, $newQueue, 86400);
+            $result['cleared_queue'] = true;
+
+            // 清除该采集源的进度、缓存和索引
+            Cache::delete('collection_progress_' . $collectSourceId);
+            Cache::delete('collection_video_list_' . $collectSourceId . '_' . md5(json_encode([[], 100])));
+            Cache::delete('collection_process_index_' . $collectSourceId);
+            $result['cleared_progress'] = true;
+            $result['cleared_list_cache'] = true;
+            $result['cleared_process_index'] = true;
+        } else {
+            // 重置所有
+            Cache::delete(self::TASK_QUEUE_KEY);
+            $result['cleared_queue'] = true;
+            $result['cleared_progress'] = true;
+            $result['cleared_list_cache'] = true;
+            $result['cleared_process_index'] = true;
+        }
+
+        // 清除 worker 锁和 running 状态
+        Cache::delete(self::WORKER_LOCK_KEY);
+        Cache::delete(self::RUNNING_KEY);
+        $result['cleared_lock'] = true;
+        $result['cleared_running'] = true;
+
+        Log::info('[CollectionTask] 强制重置采集任务: source_id=' . $collectSourceId);
+
+        return $result;
+    }
 }

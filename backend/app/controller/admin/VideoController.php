@@ -348,6 +348,19 @@ class VideoController extends BaseController
     }
 
     /**
+     * 强制重置采集任务（清除队列、锁、进度等）
+     */
+    public function collectReset()
+    {
+        $data = $this->getData();
+        $sourceId = intval($data['source_id'] ?? 0);
+
+        $result = CollectionTaskService::reset($sourceId);
+
+        return $this->success($result, '重置成功');
+    }
+
+    /**
      * 获取视频剧集列表
      */
     public function episodes()
