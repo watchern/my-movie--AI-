@@ -177,6 +177,7 @@ class CollectionTaskService
     {
         // 检查 worker 锁，避免重复启动
         if (Cache::get(self::WORKER_LOCK_KEY)) {
+            Log::info('[CollectionTask] worker锁存在，跳过启动');
             return;
         }
 
@@ -191,11 +192,16 @@ class CollectionTaskService
         try {
             if ($isWindows) {
                 // Windows 使用 start /B 后台启动
-                pclose(popen('start /B "" ' . $cmd, 'r'));
+                $shellCmd = 'start /B "" ' . $cmd;
+                Log::info('[CollectionTask] 启动worker命令: ' . $shellCmd);
+                pclose(popen($shellCmd, 'r'));
             } else {
                 // Linux/Mac 使用 nohup 后台启动
-                exec('nohup ' . $cmd . ' > /dev/null 2>&1 &');
+                $shellCmd = 'nohup ' . $cmd . ' > /dev/null 2>&1 &';
+                Log::info('[CollectionTask] 启动worker命令: ' . $shellCmd);
+                exec($shellCmd);
             }
+            Log::info('[CollectionTask] worker已启动');
         } catch (\Throwable $e) {
             Log::error('[CollectionTask] 启动worker失败: ' . $e->getMessage());
             Cache::delete(self::WORKER_LOCK_KEY);
@@ -255,11 +261,34 @@ class CollectionTaskService
         try {
             Log::info("[CollectionTask] 开始采集，站点: {$site->api_url}, limit: {$limit}");
             self::setRunning(true);
+
+            // 写入初始 running 进度，让前端尽快看到状态变化
+            if ($collectSourceId > 0) {
+                Cache::set('collection_progress_' . $collectSourceId, [
+                    'status' => 'running',
+                    'total' => 0,
+                    'current' => 0,
+                    'percent' => 0,
+                    'msg' => '开始采集',
+                    'updated_at' => time(),
+                ], 3600);
+            }
+
             $service = new AppleCmsService($site, $collectSourceId);
             $result = $service->collectToLocal($typeIds, $limit);
             Log::info('[CollectionTask] 采集完成: ' . json_encode($result, JSON_UNESCAPED_UNICODE));
         } catch (\Throwable $e) {
             Log::error('[CollectionTask] 采集异常: ' . $e->getMessage());
+            if ($collectSourceId > 0) {
+                Cache::set('collection_progress_' . $collectSourceId, [
+                    'status' => 'failed',
+                    'total' => 0,
+                    'current' => 0,
+                    'percent' => 0,
+                    'msg' => '采集异常: ' . $e->getMessage(),
+                    'updated_at' => time(),
+                ], 300);
+            }
         } finally {
             self::setRunning(false);
         }
@@ -273,17 +302,31 @@ class CollectionTaskService
         $key = 'collection_progress_' . $collectSourceId;
         $progress = Cache::get($key);
 
-        if (!$progress) {
-            return [
-                'status' => 'idle',
-                'total' => 0,
-                'current' => 0,
-                'percent' => 0,
-                'msg' => '暂无采集任务',
-            ];
+        if ($progress) {
+            return $progress;
         }
 
-        return $progress;
+        // 没有进度缓存，检查是否还在排队中
+        $queue = Cache::get(self::TASK_QUEUE_KEY, []);
+        foreach ($queue as $task) {
+            if (intval($task['collect_source_id'] ?? 0) === $collectSourceId) {
+                return [
+                    'status' => 'pending',
+                    'total' => 0,
+                    'current' => 0,
+                    'percent' => 0,
+                    'msg' => '任务排队中，等待执行',
+                ];
+            }
+        }
+
+        return [
+            'status' => 'idle',
+            'total' => 0,
+            'current' => 0,
+            'percent' => 0,
+            'msg' => '暂无采集任务',
+        ];
     }
 
     /**

@@ -70,10 +70,13 @@
           </template>
         </el-table-column>
         <el-table-column prop="name" label="站点名称" min-width="120" resizable />
-        <el-table-column prop="status" label="状态" width="80" resizable>
+        <el-table-column prop="status" label="状态" width="80" resizable fixed="right">
           <template #default="{ row }">
-            <el-tag :type="row.collect_status === 'running' ? 'warning' : 'success'" size="small">
-              {{ row.collect_status === 'running' ? '采集中' : '就绪' }}
+            <el-tag 
+              :type="row.collect_status === 'running' ? 'warning' : (row.collect_status === 'pending' ? 'info' : 'success')" 
+              size="small"
+            >
+              {{ row.collect_status === 'running' ? '采集中' : (row.collect_status === 'pending' ? '排队中' : '就绪') }}
             </el-tag>
           </template>
         </el-table-column>
@@ -85,13 +88,13 @@
         </el-table-column>
         <el-table-column label="操作" width="100" resizable>
           <template #default="{ row }">
-            <el-button 
-              type="primary" 
-              size="small" 
-              :loading="row.collect_status === 'running'"
+            <el-button
+              type="primary"
+              size="small"
+              :loading="row.collect_status === 'running' || row.collect_status === 'pending'"
               @click="startCollect(row)"
             >
-              {{ row.collect_status === 'running' ? '采集中' : '开始采集' }}
+              {{ row.collect_status === 'running' || row.collect_status === 'pending' ? '采集中' : '开始采集' }}
             </el-button>
           </template>
         </el-table-column>
@@ -263,7 +266,7 @@ const toggleStatus = async (row) => {
 const progressTimers = ref({})
 
 const startCollect = async (row) => {
-  row.collect_status = 'running'
+  row.collect_status = 'pending'
   row.total = 0
   row.percent = 0
 
@@ -272,7 +275,7 @@ const startCollect = async (row) => {
       source_id: row.id,
       api_url: row.api_url
     })
-    ElMessage.success('采集任务已启动')
+    ElMessage.success('采集任务已加入队列')
     // 启动真实进度轮询
     startProgressPolling(row)
   } catch (e) {
@@ -320,7 +323,12 @@ const fetchProgress = async (row) => {
     row.total = progress.total || 0
     row.percent = progress.percent || 0
 
-    // 任务结束或失败时停止轮询
+    // 同步状态：pending 或 running 都显示采集中
+    if (progress.status === 'running' || progress.status === 'pending') {
+      row.collect_status = progress.status
+    }
+
+    // 任务结束、失败或空闲时停止轮询
     if (progress.status === 'completed' || progress.status === 'failed' || progress.status === 'idle') {
       if (progress.status === 'completed') {
         ElMessage.success(progress.msg || '采集完成')
