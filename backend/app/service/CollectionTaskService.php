@@ -79,7 +79,13 @@ class CollectionTaskService
             ];
         }
 
-        return self::trigger($apiUrl, $limit, $typeIds);
+        $siteInfo = [
+            'id' => $source->id,
+            'name' => $source->name,
+            'description' => $source->description ?? '',
+        ];
+
+        return self::trigger($apiUrl, $limit, $typeIds, $siteInfo);
     }
 
     /**
@@ -87,9 +93,10 @@ class CollectionTaskService
      * @param string $apiUrl 采集接口地址，例如 http://caiji.dyttzyapi.com/api.php/provide/vod
      * @param int $limit 本次采集数量
      * @param array $typeIds 指定分类ID
+     * @param array $siteInfo 站点信息 ['id' => ..., 'name' => ..., 'description' => ...]
      * @return array
      */
-    public static function trigger(string $apiUrl, int $limit = 100, array $typeIds = []): array
+    public static function trigger(string $apiUrl, int $limit = 100, array $typeIds = [], array $siteInfo = []): array
     {
         if (!self::canStart()) {
             return [
@@ -102,7 +109,7 @@ class CollectionTaskService
         Cache::set(self::LAST_RUN_KEY, time(), 86400);
 
         // 记录采集站点（如果不存在）
-        $site = self::ensureSourceSite($apiUrl);
+        $site = self::ensureSourceSite($apiUrl, $siteInfo);
 
         // 在后台执行采集
         if (function_exists('fastcgi_finish_request')) {
@@ -126,8 +133,9 @@ class CollectionTaskService
     /**
      * 获取或创建采集站点
      * 兼容用户配置完整接口地址的情况
+     * @param array $siteInfo 采集源信息 ['id' => ..., 'name' => ..., 'description' => ...]
      */
-    protected static function ensureSourceSite(string $apiUrl): SourceSite
+    protected static function ensureSourceSite(string $apiUrl, array $siteInfo = []): SourceSite
     {
         // 如果包含完整接口路径，去掉查询参数
         if (stripos($apiUrl, 'api.php/provide/vod') !== false) {
@@ -138,9 +146,10 @@ class CollectionTaskService
         $site = SourceSite::where('api_url', $apiUrl)->find();
         if (!$site) {
             $site = new SourceSite();
-            $site->name = 'dyttzy采集源';
-            $site->code = 'dyttzy';
+            $site->name = !empty($siteInfo['name']) ? $siteInfo['name'] : '采集源';
+            $site->code = 'collect_' . (!empty($siteInfo['id']) ? $siteInfo['id'] : uniqid());
             $site->api_url = $apiUrl;
+            $site->description = $siteInfo['description'] ?? '';
             $site->status = SourceSite::STATUS_ENABLED;
             $site->sort_order = 100;
             $site->save();

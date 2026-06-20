@@ -37,8 +37,9 @@ class CollectSourceController extends BaseController
     public function add()
     {
         $data = $this->getData();
-        
+
         $name = trim($data['name'] ?? '');
+        $description = trim($data['description'] ?? '');
         $api_url = trim($data['api_url'] ?? '');
         $site_type = intval($data['site_type'] ?? 1); // 1=苹果CMS, 2=其他
         $status = intval($data['status'] ?? 1);
@@ -57,6 +58,7 @@ class CollectSourceController extends BaseController
 
         $source = CollectSource::create([
             'name' => $name,
+            'description' => $description,
             'api_url' => $api_url,
             'site_type' => $site_type,
             'status' => $status,
@@ -71,9 +73,10 @@ class CollectSourceController extends BaseController
     public function edit()
     {
         $data = $this->getData();
-        
+
         $id = intval($data['id'] ?? 0);
         $name = trim($data['name'] ?? '');
+        $description = trim($data['description'] ?? '');
         $api_url = trim($data['api_url'] ?? '');
         $site_type = intval($data['site_type'] ?? 1);
         $status = intval($data['status'] ?? 1);
@@ -100,6 +103,7 @@ class CollectSourceController extends BaseController
 
         $source->save([
             'name' => $name,
+            'description' => $description,
             'api_url' => $api_url,
             'site_type' => $site_type,
             'status' => $status,
