@@ -26,7 +26,7 @@
           <div id="xgplayer-container" class="xgplayer-container"></div>
           <!-- 暂停广告 -->
           <div
-            v-if="showAdOverlay && !isPlaying"
+            v-if="showAdOverlay && !isPlaying && !showEndAdOverlay"
             class="ad-overlay"
             @click="clickAd"
           >
@@ -35,6 +35,18 @@
               <div class="ad-tip">广告</div>
             </div>
             <van-icon name="cross" class="ad-close" @click.stop="closeAd" />
+          </div>
+          <!-- 结束广告 -->
+          <div
+            v-if="showEndAdOverlay && !isPlaying"
+            class="ad-overlay"
+            @click="clickEndAd"
+          >
+            <div class="ad-image-wrapper">
+              <img :src="endAdConfig.image" alt="结束广告" class="ad-image" />
+              <div class="ad-tip">结束广告</div>
+            </div>
+            <van-icon name="cross" class="ad-close" @click.stop="closeEndAd" />
           </div>
         </div>
 
@@ -228,6 +240,7 @@ const loading = ref(true);
 const showSourcePicker = ref(false);
 const showEpisodePicker = ref(false);
 const showAdOverlay = ref(false);
+const showEndAdOverlay = ref(false);
 const isPlaying = ref(false);
 const isFullscreen = ref(false);
 const isPip = ref(false);
@@ -247,8 +260,14 @@ const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
 // 暂停广告 Mock 配置
 const adConfig = {
-  image: "https://picsum.photos/seed/ad/600/300",
-  link: "https://www.example.com",
+  image: "https://picsum.photos/seed/pause_ad/600/300",
+  link: "https://www.example.com/pause",
+};
+
+// 结束广告 Mock 配置（视频播放结束后显示）
+const endAdConfig = {
+  image: "https://picsum.photos/seed/end_ad/600/300",
+  link: "https://www.example.com/end",
 };
 
 let historyTimer = null;
@@ -755,6 +774,7 @@ const selectSource = (source) => {
   playerInitAttempts = 0;
   lastCheckedSourceUrl = ""; // 重置已检查的URL
   sourceCheckFailed = false; // 重置失败标志
+  showEndAdOverlay.value = false; // 切换视频时隐藏结束广告
 
   if (historyTimer) {
     clearTimeout(historyTimer);
@@ -1000,6 +1020,11 @@ const initPlayer = (source) => {
         return;
       }
 
+      // 显示结束广告
+      console.log("[AutoPlayNext] showing end ad");
+      showEndAdOverlay.value = true;
+      showAdOverlay.value = false;
+
       if (!autoPlayNextEnabled.value) {
         console.log("[AutoPlayNext] autoPlayNext is disabled");
         return;
@@ -1046,6 +1071,7 @@ const initPlayer = (source) => {
 
       console.log("[AutoPlayNext] switching to episode", idx + 2);
       selectSource(nextEpisode);
+      showEndAdOverlay.value = false;
     });
 
     // 监听时间更新，检测是否接近视频结尾
@@ -1155,13 +1181,16 @@ const onLoginSuccess = async () => {
 const onPlay = () => {
   isPlaying.value = true;
   showAdOverlay.value = false;
+  showEndAdOverlay.value = false;
 };
 
 const onPause = () => {
   console.log("onPause");
   isPlaying.value = false;
-  // 暂停时显示广告
-  showAdOverlay.value = true;
+  // 暂停时显示广告（仅在不是结束广告时）
+  if (!showEndAdOverlay.value) {
+    showAdOverlay.value = true;
+  }
 };
 
 const closeAd = () => {
@@ -1170,6 +1199,14 @@ const closeAd = () => {
 
 const clickAd = () => {
   window.open(adConfig.link, "_blank");
+};
+
+const closeEndAd = () => {
+  showEndAdOverlay.value = false;
+};
+
+const clickEndAd = () => {
+  window.open(endAdConfig.link, "_blank");
 };
 
 const onFullscreenChange = (e) => {
