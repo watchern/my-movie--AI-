@@ -140,15 +140,32 @@ class CollectionTaskService
         $apiUrl = rtrim($apiUrl, '/');
 
         $site = SourceSite::where('api_url', $apiUrl)->find();
+        $sourceName = !empty($siteInfo['name']) ? $siteInfo['name'] : '采集源';
+        $sourceDesc = $siteInfo['description'] ?? '';
+
         if (!$site) {
             $site = new SourceSite();
-            $site->name = !empty($siteInfo['name']) ? $siteInfo['name'] : '采集源';
+            $site->name = $sourceName;
             $site->code = 'collect_' . (!empty($siteInfo['id']) ? $siteInfo['id'] : uniqid());
             $site->api_url = $apiUrl;
-            $site->description = $siteInfo['description'] ?? '';
+            $site->description = $sourceDesc;
             $site->status = SourceSite::STATUS_ENABLED;
             $site->sort_order = 100;
             $site->save();
+        } else {
+            // 如果名称或描述发生变化，同步更新
+            $needSave = false;
+            if ($site->name !== $sourceName) {
+                $site->name = $sourceName;
+                $needSave = true;
+            }
+            if ($site->description !== $sourceDesc) {
+                $site->description = $sourceDesc;
+                $needSave = true;
+            }
+            if ($needSave) {
+                $site->save();
+            }
         }
         return $site;
     }
