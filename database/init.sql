@@ -308,6 +308,7 @@ CREATE INDEX IF NOT EXISTS `idx_banners_sort` ON `banners`(`sort_order`);
 CREATE TABLE IF NOT EXISTS `collect_sources` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '采集站ID',
     `name` VARCHAR(100) NOT NULL COMMENT '站点名称',
+    `description` VARCHAR(500) DEFAULT NULL COMMENT '资源描述',
     `api_url` VARCHAR(500) NOT NULL COMMENT 'API地址',
     `site_type` TINYINT(1) DEFAULT 1 COMMENT '站点类型: 1苹果CMS 2其他',
     `status` TINYINT(1) DEFAULT 1 COMMENT '状态: 0禁用 1启用',
