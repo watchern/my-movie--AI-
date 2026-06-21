@@ -22,6 +22,7 @@
             {{ siteTypeOptions[row.site_type] || '苹果CMS' }}
           </template>
         </el-table-column>
+        <el-table-column prop="page_count" label="总页数" width="80" resizable />
         <el-table-column prop="status" label="状态" width="80" resizable fixed="right">
           <template #default="{ row }">
             <el-tag :type="row.status ? 'success' : 'info'" size="small">
@@ -188,11 +189,11 @@ const loadList = async () => {
   await restoreCollectStatus()
 }
 
-// 页面加载时恢复每个站点的采集状态（并行查询，避免站点多加载慢）
+// 页面加载时恢复每个站点的采集状态（串行查询，避免并发请求导致服务端压力）
 const restoreCollectStatus = async () => {
   if (list.value.length === 0) return
 
-  const promises = list.value.map(async (row) => {
+  for (const row of list.value) {
     try {
       const res = await get('/video/collectProgress', { source_id: row.id })
       const progress = res.data || {}
@@ -207,9 +208,7 @@ const restoreCollectStatus = async () => {
     } catch (e) {
       console.error('恢复采集状态失败', e)
     }
-  })
-
-  await Promise.all(promises)
+  }
 }
 
 const handleEdit = (row) => {
@@ -277,10 +276,24 @@ const testConnection = async (row) => {
     ElMessage.warning('请先填写接口地址')
     return
   }
-  
+
   try {
-    await post('/collectSource/test', { api_url: url })
-    ElMessage.success('连接成功')
+    const params = { api_url: url }
+    if (row && row.id) {
+      params.id = row.id
+    }
+    const res = await post('/collectSource/test', params)
+    const pagecount = res.data?.pagecount || 0
+    const listCount = res.data?.list_count || 0
+    if (pagecount > 0) {
+      ElMessage.success(`连接成功，共 ${pagecount} 页，第1页 ${listCount} 条`)
+    } else {
+      ElMessage.success(`连接成功，第1页 ${listCount} 条`)
+    }
+
+    if (row && row.id) {
+      row.page_count = pagecount
+    }
   } catch (e) {
     ElMessage.error(e.message || '连接失败')
   }
@@ -309,10 +322,7 @@ const startCollect = async (row) => {
     row.total = data.total || 0
     ElMessage.success(data.msg || '采集已开始')
 
-    // 立即处理第一个视频
-    await post('/video/collectProcessNext', { source_id: row.id })
-
-    // 启动轮询，由前端驱动处理后续视频
+    // 启动轮询，由前端驱动处理所有视频（包括第一个）
     startProgressPolling(row)
   } catch (e) {
     row.collect_status = ''
@@ -327,40 +337,92 @@ const startCollectAll = async () => {
     return
   }
 
-  ElMessage.success(`已启动 ${selectedList.length} 个站点的采集任务`)
+  // 检查是否有站点正在采集中
+  const running = list.value.find(item => item.collect_status === 'running' || item.collect_status === 'pending')
+  if (running) {
+    ElMessage.warning('已有站点在采集中，请等待完成后再启动')
+    return
+  }
 
+  ElMessage.success(`串行采集 ${selectedList.length} 个站点`)
+
+  // 串行执行：一个站点完成后再启动下一个
   for (const row of selectedList) {
-    startCollect(row)
+    try {
+      await startCollect(row)
+    } catch (e) {
+      console.error('站点采集失败:', row.name, e)
+    }
   }
 }
 
-// 启动进度轮询
+// 是否正在处理中（防止并发）
+const isProcessing = ref({})
+
+// 启动进度轮询（串行模式：一次请求完成后再发起下一次）
 const startProgressPolling = (row) => {
   // 清除已有定时器
   if (progressTimers.value[row.id]) {
     clearInterval(progressTimers.value[row.id])
+    delete progressTimers.value[row.id]
   }
 
-  // 立即驱动一次
-  processNextAndFetchProgress(row)
+  // 标记为处理中
+  isProcessing.value[row.id] = true
 
-  // 每 1 秒轮询一次，每次驱动处理一个视频
-  progressTimers.value[row.id] = setInterval(() => {
-    processNextAndFetchProgress(row)
-  }, 1000)
+  // 启动串行处理链
+  processNextAndFetchProgress(row)
 }
 
-// 驱动处理下一个视频并刷新进度
+// 驱动处理下一个视频并刷新进度（串行执行）
 const processNextAndFetchProgress = async (row) => {
-  try {
-    // 1. 先驱动后端处理一个视频
-    await post('/video/collectProcessNext', { source_id: row.id })
-  } catch (e) {
-    console.error('驱动采集处理失败', e)
+  // 如果已经停止处理，直接返回
+  if (!isProcessing.value[row.id]) {
+    return
   }
 
-  // 2. 再获取最新进度
-  fetchProgress(row)
+  try {
+    // 1. 先驱动后端处理一个视频
+    const res = await get('/video/collectProcessNext', { source_id: row.id })
+    const result = res.data || {}
+
+    // 2. 更新行数据状态
+    if (result.status === 'completed') {
+      row.collect_status = 'completed'
+      row.total = result.total || row.total
+      row.percent = 100
+      ElMessage.success(result.msg || '采集完成')
+      stopProgressPolling(row)
+      return
+    }
+
+    if (result.status === 'failed') {
+      row.collect_status = ''
+      ElMessage.error(result.msg || '采集失败')
+      stopProgressPolling(row)
+      return
+    }
+
+    if (result.status === 'idle') {
+      row.collect_status = ''
+      stopProgressPolling(row)
+      return
+    }
+
+    // 3. 运行中，获取最新进度
+    await fetchProgress(row)
+
+    // 4. 如果仍在运行中，继续下一次处理（串行）
+    if (isProcessing.value[row.id]) {
+      processNextAndFetchProgress(row)
+    }
+  } catch (e) {
+    console.error('驱动采集处理失败', e)
+    // 出错时也继续下一次，避免卡住
+    if (isProcessing.value[row.id]) {
+      processNextAndFetchProgress(row)
+    }
+  }
 }
 
 // 获取采集进度
@@ -393,6 +455,9 @@ const fetchProgress = async (row) => {
 
 // 停止进度轮询
 const stopProgressPolling = (row) => {
+  // 标记为停止处理
+  isProcessing.value[row.id] = false
+
   if (progressTimers.value[row.id]) {
     clearInterval(progressTimers.value[row.id])
     delete progressTimers.value[row.id]

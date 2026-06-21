@@ -334,6 +334,27 @@ class VideoController extends BaseController
     }
 
     /**
+     * 简易采集（GET 接口）
+     * 仅传入 source_id，触发采集任务
+     */
+    public function collectBySourceId()
+    {
+        $sourceId = intval($this->request->get('source_id', 0));
+
+        if ($sourceId <= 0) {
+            return $this->error('参数错误：source_id 不能为空');
+        }
+
+        $result = CollectionTaskService::triggerBySourceId($sourceId);
+
+        if ($result['started']) {
+            return $this->success($result, '采集任务已启动');
+        }
+
+        return $this->error($result['msg']);
+    }
+
+    /**
      * 获取采集进度
      */
     public function collectProgress()
@@ -350,14 +371,13 @@ class VideoController extends BaseController
     /**
      * 处理下一个视频（前端轮询驱动）
      */
-    public function collectProcessNext()
-    {
-        $data = $this->getData();
-        $sourceId = intval($data['source_id'] ?? 0);
+     public function collectProcessNext()
+     {
+         $sourceId = intval($this->request->get('source_id', 0));
 
-        if ($sourceId <= 0) {
-            return $this->error('参数错误');
-        }
+         if ($sourceId <= 0) {
+             return $this->error('参数错误');
+         }
 
         $result = CollectionTaskService::processNext($sourceId);
         return $this->success($result);

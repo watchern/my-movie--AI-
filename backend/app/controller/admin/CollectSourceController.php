@@ -43,6 +43,7 @@ class CollectSourceController extends BaseController
         $api_url = trim($data['api_url'] ?? '');
         $site_type = intval($data['site_type'] ?? 1); // 1=苹果CMS, 2=其他
         $status = intval($data['status'] ?? 1);
+        $page_count = intval($data['page_count'] ?? 0);
 
         if (empty($name)) {
             return $this->error('站点名称不能为空');
@@ -62,6 +63,7 @@ class CollectSourceController extends BaseController
             'api_url' => $api_url,
             'site_type' => $site_type,
             'status' => $status,
+            'page_count' => $page_count,
         ]);
 
         return $this->success($source);
@@ -80,6 +82,7 @@ class CollectSourceController extends BaseController
         $api_url = trim($data['api_url'] ?? '');
         $site_type = intval($data['site_type'] ?? 1);
         $status = intval($data['status'] ?? 1);
+        $page_count = intval($data['page_count'] ?? 0);
 
         if ($id <= 0) {
             return $this->error('参数错误');
@@ -107,6 +110,7 @@ class CollectSourceController extends BaseController
             'api_url' => $api_url,
             'site_type' => $site_type,
             'status' => $status,
+            'page_count' => $page_count,
         ]);
 
         return $this->success($source);
@@ -136,12 +140,13 @@ class CollectSourceController extends BaseController
 
     /**
      * 测试连接
-     * 使用 ac=detail 接口测试苹果CMS资源站是否可用
+     * 使用 ac=detail 接口测试苹果CMS资源站是否可用，并将 pagecount 存入数据库
      */
     public function test()
     {
         $data = $this->getData();
         $api_url = trim($data['api_url'] ?? '');
+        $id = intval($data['id'] ?? 0);
 
         if (empty($api_url)) {
             return $this->error('接口地址不能为空');
@@ -172,9 +177,21 @@ class CollectSourceController extends BaseController
             // 苹果CMS标准返回：code=1 表示成功
             if ($result && isset($result['code']) && $result['code'] == 1) {
                 $listCount = isset($result['list']) ? count($result['list']) : 0;
+                $pageCount = intval($result['pagecount'] ?? 0);
+
+                // 如果提供了站点ID，将 pagecount 存入数据库
+                if ($id > 0) {
+                    $source = CollectSource::find($id);
+                    if ($source) {
+                        $source->page_count = $pageCount;
+                        $source->save();
+                    }
+                }
+
                 return $this->success([
                     'msg' => '连接成功',
                     'list_count' => $listCount,
+                    'pagecount' => $pageCount,
                 ]);
             } else {
                 $msg = $result['msg'] ?? '接口返回数据格式不正确';

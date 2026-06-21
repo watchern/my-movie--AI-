@@ -6,6 +6,7 @@ use app\model\Video;
 use app\model\Category;
 use app\model\VideoSource;
 use think\facade\Cache;
+use think\facade\Log;
 
 /**
  * 苹果CMS采集服务
@@ -86,7 +87,13 @@ class AppleCmsService
         }
 
         $url = $this->apiUrl . '/api.php/provide/vod?' . http_build_query($params);
+        // log 记录采集的url
+        Log::info('采集视频列表url: ' . $url);  
+
         $data = $this->curlGet($url);
+
+        // log 记录采集到的数据
+        Log::info('采集视频列表数据: ' . json_encode($data));
 
         if (empty($data) || !isset($data['code']) || $data['code'] != 1) {
             throw new \Exception('获取视频列表失败: ' . ($data['msg'] ?? '未知错误'));
@@ -112,8 +119,14 @@ class AppleCmsService
      */
     public function getVideoDetail(string $vodId): ?array
     {
-        $url = $this->apiUrl . '/api.php/provide/vod?ac=detail&id=' . $vodId;
+        $url = $this->apiUrl . '/api.php/provide/vod?ac=detail&ids=' . $vodId;
+        // log 记录采集的url
+        Log::info('采集视频详情url: ' . $url);  
+
         $data = $this->curlGet($url);
+        //log记录采集获取的数据
+        Log::info('采集视频详情数据: ' . json_encode($data));
+
 
         if (empty($data) || !isset($data['code']) || $data['code'] != 1) {
             return null;
@@ -127,7 +140,9 @@ class AppleCmsService
      */
     public function search(string $keyword, int $page = 1, int $limit = 20): array
     {
-        $url = $this->apiUrl . '/api.php/provide/vod?ac=detail&wd=' . urlencode($keyword) . '&page=' . $page . '&limit=' . $limit;
+        // limit 最大值100
+        $limit = min($limit, 100);
+        $url = $this->apiUrl . '/api.php/provide/vod?ac=detail&wd=' . urlencode($keyword) . '&pg=' . $page . '&pagesize=' . $limit;
         $data = $this->curlGet($url);
 
         if (empty($data) || !isset($data['code']) || $data['code'] != 1) {
@@ -312,15 +327,22 @@ class AppleCmsService
     public function saveVideo(array $item): Video
     {
         // 检查是否已存在（通过标题简单检查）
-        $video = Video::where('title', $item['vod_name'])
+        $title = $item['vod_name'] ?? '';
+        Log::debug('[saveVideo] 开始保存视频, title=' . $title);
+        
+        $video = Video::where('title', $title)
             ->find();
 
         if ($video) {
+            Log::debug('[saveVideo] 视频已存在, title=' . $title . ', id=' . $video->id);
             throw new \Exception('视频已存在');
         }
+        
+        Log::debug('[saveVideo] 视频不存在，准备插入, title=' . $title);
 
         // 获取分类ID
         $categoryId = $this->getOrCreateCategory($item);
+        Log::debug('[saveVideo] 分类ID=' . $categoryId);
 
         // 确定视频类型
         $type = $this->getVideoType($item);
@@ -346,11 +368,23 @@ class AppleCmsService
         $video->is_vip = 0; // 默认非VIP
         $video->is_show = 1;
 
-        $video->save();
+        try {
+            $video->save();
+            Log::info('[saveVideo] 视频保存成功, id=' . $video->id . ', title=' . $title);
+        } catch (\Exception $e) {
+            Log::error('[saveVideo] 视频保存失败: ' . $e->getMessage() . ', title=' . $title);
+            throw $e;
+        }
 
         // 保存播放源/剧集（电影也可能有播放地址）
         if (!empty($item['vod_play_url'])) {
-            $this->saveEpisodes($video, $item['vod_play_url']);
+            try {
+                $this->saveEpisodes($video, $item['vod_play_url']);
+                Log::debug('[saveVideo] 剧集保存完成, video_id=' . $video->id);
+            } catch (\Exception $e) {
+                Log::error('[saveVideo] 剧集保存失败: ' . $e->getMessage() . ', video_id=' . $video->id);
+                // 剧集保存失败不影响视频保存成功
+            }
         }
 
         return $video;

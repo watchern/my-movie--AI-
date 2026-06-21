@@ -28,9 +28,10 @@ Route::group('admin/api', function () {
     // 资源站点
     Route::get('video/sourceSites', [VideoController::class, 'sourceSites']);
     Route::post('video/saveSourceSite', [VideoController::class, 'saveSourceSite']);
-    Route::post('video/collect', [VideoController::class, 'collect']);
-    Route::get('video/collectProgress', [VideoController::class, 'collectProgress']);
-    Route::post('video/collectProcessNext', [VideoController::class, 'collectProcessNext']);
+     Route::post('video/collect', [VideoController::class, 'collect']);
+     Route::get('video/collectBySourceId', [VideoController::class, 'collectBySourceId']);
+     Route::get('video/collectProgress', [VideoController::class, 'collectProgress']);
+    Route::get('video/collectProcessNext', [VideoController::class, 'collectProcessNext']);
     Route::post('video/collectReset', [VideoController::class, 'collectReset']);
 
     // 剧集管理
