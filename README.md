@@ -6,11 +6,30 @@
 
 ```
 moive-app/
-├── backend/                 # 后端 API 服务
-├── multi-end-users/         # 用户端（移动端/PC端）
-├── system-end-admin/        # 管理端
-└── database/                 # 数据库脚本
+├── backend/                 # 后端 API 服务 (ThinkPHP 8.x)
+├── multi-end-users/         # 用户端 (Vue 3 + Vant)
+├── system-end-admin/        # 管理端 (Vue 3 + Element Plus)
+├── database/                 # 数据库 (SQLite)
+├── .kilo/                    # Kilo AI 配置
+└── .ai/                      # AI 工具配置
 ```
+
+## 目录说明
+
+| 目录 | 说明 | 技术栈 |
+|------|------|--------|
+| `backend/` | 后端 API 服务 | PHP 8.1+, ThinkPHP 8.x, SQLite |
+| `multi-end-users/` | 用户端前端 | Vue 3, Vant 4, Pinia, Video.js |
+| `system-end-admin/` | 管理端前端 | Vue 3, Element Plus, Axios |
+| `database/` | 数据库文件 | SQLite 3.26+ |
+
+## 端口说明
+
+| 服务 | 端口 |
+|------|------|
+| 后端 API | 8080 |
+| 用户端 | 3000 |
+| 管理端 | 3001 |
 
 ---
 
@@ -31,75 +50,46 @@ moive-app/
 ```
 backend/
 ├── app/
-│   ├── common/              # 公共类
-│   │   └── JwtHelper.php    # JWT 工具类
 │   ├── controller/          # 控制器
 │   │   ├── admin/           # 管理端控制器
-│   │   │   ├── DashboardController.php  # 数据看板
-│   │   │   ├── LoginController.php     # 管理员登录
-│   │   │   ├── UserController.php      # 用户管理
-│   │   │   └── VideoController.php     # 视频管理
-│   │   ├── AuthController.php          # 用户认证
-│   │   ├── CardController.php          # 卡密兑换
-│   │   ├── AdController.php            # 广告观看
-│   │   ├── FavoriteController.php      # 收藏管理
-│   │   ├── HistoryController.php       # 观看历史
-│   │   └── VideoController.php         # 视频接口
-│   ├── middleware/          # 中间件
-│   │   └── ApiAuth.php      # API 认证中间件
-│   ├── model/               # 数据模型
-│   │   ├── Admin.php        # 管理员模型
-│   │   ├── CardKey.php      # 卡密模型
-│   │   ├── Category.php     # 分类模型
-│   │   ├── Favorite.php      # 收藏模型
-│   │   ├── LoginLog.php     # 登录日志模型
-│   │   ├── SourceSite.php   # 资源站模型
-│   │   ├── SystemConfig.php # 系统配置模型
-│   │   ├── User.php         # 用户模型
-│   │   ├── Video.php        # 视频模型
-│   │   ├── VideoSource.php  # 视频资源模型
-│   │   ├── VipTransaction.php  # VIP变动记录模型
-│   │   └── WatchHistory.php # 观看历史模型
-│   └── service/             # 服务层
-│       └── AppleCmsService.php  # 苹果CMS采集服务
+│   │   │   ├── AdminController.php       # 管理员管理
+│   │   │   ├── BannerController.php      # 轮播图管理
+│   │   │   ├── CollectSourceController.php  # 资源采集站点
+│   │   │   ├── ConfigController.php      # 系统配置
+│   │   │   ├── DashboardController.php   # 数据看板
+│   │   │   ├── LoginController.php      # 管理员登录
+│   │   │   ├── UserController.php       # 用户管理
+│   │   │   └── VideoController.php      # 视频管理
+│   │   └── Api/             # 用户端控制器
+│   ├── model/               # 数据模型 (Admin, User, Video, Category等)
+│   ├── service/             # 服务层
+│   │   ├── AppleCmsService.php      # 苹果CMS采集服务
+│   │   └── CollectionTaskService.php # 采集任务服务
+│   └── route/
+│       └── admin.php        # 管理端路由
 ├── config/                  # 配置文件
-│   ├── app.php             # 应用配置
-│   ├── console.php         # 控制台配置
-│   ├── database.php        # 数据库配置
-│   └── jwt.php             # JWT 配置
 ├── public/
 │   └── index.php           # 入口文件
-├── route/                  # 路由配置
-│   ├── admin.php           # 管理端路由
-│   └── app.php             # 用户端路由
-├── .env.example            # 环境变量示例
-├── composer.json           # PHP 依赖
-└── README.md               # 后端说明
+└── composer.json           # PHP 依赖
 ```
 
 ### 功能说明
-
-#### 用户端 API
-| 接口 | 说明 |
-|------|------|
-| `/auth/register` | 用户注册 |
-| `/auth/login` | 用户登录 |
-| `/video/list` | 视频列表 |
-| `/video/detail` | 视频详情 |
-| `/video/sources` | 播放资源 |
-| `/favorite/*` | 收藏管理 |
-| `/history/*` | 历史记录 |
-| `/card/redeem` | 卡密兑换 |
-| `/ad/watch` | 广告观看 |
 
 #### 管理端 API
 | 接口 | 说明 |
 |------|------|
 | `/admin/login` | 管理员登录 |
-| `/admin/dashboard` | 数据统计 |
-| `/admin/user/*` | 用户管理 |
-| `/admin/video/*` | 视频管理 |
-| `/admin/card/*` | 卡密管理 |
+| `/admin/logout` | 管理员登出 |
+| `/admin/dashboard/stats` | 数据统计 |
+| `/admin/user/*` | 用户管理(列表/详情/添加/修改密码/重置密码) |
+| `/admin/video/*` | 视频管理(列表/保存/删除/状态切换) |
+| `/admin/category/*` | 分类管理 |
+| `/admin/card/*` | 卡密管理(列表/生成/删除/禁用) |
+| `/admin/collectSource/*` | 资源采集站点(列表/添加/编辑/删除/测试连接/重置采集) |
+| `/admin/video/collectBySourceId` | 采集视频(GET接口，支持断点续采) |
+| `/admin/banner/*` | 轮播图管理 |
+| `/admin/config/*` | 系统配置管理 |
+| `/admin/logs` | 管理员操作日志 |
 
 ### 启动方式
 
@@ -114,6 +104,15 @@ cp .env.example .env
 
 # 启动开发服务器
 php think run
+```
+
+### 数据库配置
+
+当前使用 SQLite 数据库，数据库文件位于 `database/database.sqlite`。
+
+```bash
+# 初始化数据库
+sqlite3 database/database.sqlite < database/init.sql
 ```
 
 ---
@@ -271,8 +270,12 @@ npm run dev
 
 ### 支持数据库
 
-- **MySQL** 5.7+
-- **SQLite** 3.26+
+- **SQLite** 3.26+ (当前使用)
+- **MySQL** 5.7+ (兼容)
+
+### 数据库文件
+
+`database/database.sqlite`
 
 ### 表结构
 
@@ -280,24 +283,24 @@ npm run dev
 |------|------|
 | `users` | 用户表 |
 | `categories` | 影视分类表 |
-| `videos` | 影视内容表 |
+| `videos` | 影视内容表 (含source_vod_id去重字段) |
 | `video_sources` | 视频资源播放地址表 |
+| `collect_sources` | 资源采集站点配置表 (含page_count断点续采字段) |
+| `source_sites` | 资源站点关联表 |
 | `watch_history` | 观看历史记录表 |
 | `favorites` | 收藏表 |
 | `card_keys` | 卡密表 |
 | `vip_transactions` | VIP变动记录表 |
 | `login_logs` | 用户登录日志表 |
-| `source_sites` | 资源站点配置表 |
+| `admin_login_logs` | 管理员登录日志表 |
+| `admin_logs` | 管理员操作日志表 |
 | `system_config` | 系统配置表 |
 | `admins` | 管理员表 |
+| `banners` | 轮播图表 |
 
 ### 初始化
 
 ```bash
-# MySQL
-mysql -u root -p < database/init.sql
-
-# SQLite
 sqlite3 database/database.sqlite < database/init.sql
 ```
 
@@ -321,13 +324,38 @@ sqlite3 database/database.sqlite < database/init.sql
 
 ### 支持资源站
 
-- **苹果CMS**：通过 API 对接资源站，自动采集影视数据
+- **苹果CMS**：通过 `ac=detail` API 对接资源站，自动采集影视数据
 
 ### 采集功能
 
-- 自动获取视频信息
-- 自动获取播放资源
+- 自动获取视频信息（含简介、封面、播放地址等）
+- 支持断点续采（记录采集页码和中断位置）
 - 支持多资源站切换
+- 采集去重：按 title + release_year 判断重复
+- 剧集更新：比较剧集数量，只有新增时才更新
+
+### 采集接口
+
+| 接口 | 方法 | 说明 |
+|------|------|------|
+| `/admin/video/collectBySourceId` | GET | 触发采集/处理下一个视频 |
+| `/admin/video/collectProgress` | GET | 获取采集进度 |
+| `/admin/video/collectReset` | POST | 强制重置采集任务 |
+| `/admin/collectSource/resetCollect` | POST | 重置资源站点采集状态 |
+
+---
+
+## 七、管理员操作日志
+
+所有管理员操作都会记录到 `admin_logs` 表，包括：
+
+- 视频管理：添加/编辑/删除/上架/隐藏
+- 分类管理：添加/编辑/删除
+- 资源站点：添加/编辑/删除/启用/禁用/重置采集
+- 轮播图管理：添加/编辑/删除/启用/禁用
+- 用户管理：添加/修改VIP/重置密码
+- 卡密管理：生成/删除/禁用
+- 系统配置：修改
 
 ---
 
@@ -336,23 +364,9 @@ sqlite3 database/database.sqlite < database/init.sql
 ### 环境变量 (.env)
 
 ```ini
-# 应用配置
-[APP]
-app_debug = true
-app_trace = false
-
-# 数据库配置
-[DATABASE]
-database.type = mysql
-database.hostname = 127.0.0.1
-database.database = moive_app
-database.username = root
-database.password =
-database.hostport = 3306
-database.charset = utf8mb4
-
-# SQLite 配置（仅 database.type = sqlite 时有效）
-# database.sqlite_path = ../database/database.sqlite
+# 数据库配置 - 当前使用 SQLite
+DATABASE_TYPE=sqlite
+DATABASE_SQLITE_PATH=c:/Users/Administrator/Desktop/moive-app/database/database.sqlite
 ```
 
 ---
@@ -366,12 +380,12 @@ database.charset = utf8mb4
 | `backend/` | 后端 API，使用 ThinkPHP 8.x |
 | `multi-end-users/` | 用户端，使用 Vue 3 + Vant |
 | `system-end-admin/` | 管理端，使用 Vue 3 + Element Plus |
-| `database/` | 数据库脚本 |
+| `database/` | 数据库文件和脚本 |
 
 ### 端口说明
 
 | 服务 | 端口 |
 |------|------|
-| 后端 API | 8000 |
+| 后端 API | 8080 |
 | 用户端 | 3000 |
 | 管理端 | 3001 |
