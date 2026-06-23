@@ -27,6 +27,7 @@ class AdController extends BaseController
         $name = trim($data['name'] ?? '');
         $type = intval($data['type'] ?? 1);
         $imageBase64 = $data['image_base64'] ?? '';
+        $imageUrl = trim($data['image_url'] ?? '');
         $linkUrl = trim($data['link_url'] ?? '');
         $sortOrder = intval($data['sort_order'] ?? 100);
         $status = intval($data['status'] ?? 1);
@@ -34,8 +35,16 @@ class AdController extends BaseController
         if (empty($name)) {
             return $this->error('广告名称不能为空');
         }
-        if (empty($imageBase64)) {
-            return $this->error('广告图片不能为空');
+
+        if (empty($imageBase64) && empty($imageUrl)) {
+            return $this->error('请上传广告图片或填入图片URL');
+        }
+
+        if (empty($imageBase64) && !empty($imageUrl)) {
+            $imageBase64 = $this->urlToBase64($imageUrl);
+            if (!$imageBase64) {
+                return $this->error('图片URL无法访问或格式不正确');
+            }
         }
 
         if ($id > 0) {
@@ -63,6 +72,34 @@ class AdController extends BaseController
         Cache::delete('ads_type_' . $type);
 
         return $this->success($ad);
+    }
+
+    private function urlToBase64(string $url): ?string
+    {
+        if (empty($url)) {
+            return null;
+        }
+
+        $context = stream_context_create([
+            'http' => [
+                'timeout' => 10,
+                'ignore_errors' => true,
+                'header' => 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            ]
+        ]);
+
+        $imageData = @file_get_contents($url, false, $context);
+        if ($imageData === false) {
+            return null;
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->buffer($imageData);
+        if (!str_starts_with($mimeType, 'image/')) {
+            return null;
+        }
+
+        return 'data:' . $mimeType . ';base64,' . base64_encode($imageData);
     }
 
     public function delete()

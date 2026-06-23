@@ -51,7 +51,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="图片" required>
-          <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="margin-bottom: 10px;">
+            <el-radio-group v-model="imageInputType" @change="handleImageTypeChange">
+              <el-radio value="upload">上传图片</el-radio>
+              <el-radio value="url">远程URL</el-radio>
+            </el-radio-group>
+          </div>
+          <div v-if="imageInputType === 'upload'" style="display: flex; align-items: center; gap: 10px;">
             <el-upload
               :auto-upload="false"
               :limit="1"
@@ -63,6 +69,10 @@
               <el-icon><Plus /></el-icon>
             </el-upload>
             <span style="color: #999; font-size: 12px;">建议尺寸: 600x300</span>
+          </div>
+          <div v-else>
+            <el-input v-model="form.image_url" placeholder="输入图片URL，如 https://example.com/ad.jpg" />
+            <el-button size="small" style="margin-top: 8px;" @click="previewUrlImage">预览</el-button>
           </div>
         </el-form-item>
         <el-form-item label="跳转链接">
@@ -92,11 +102,14 @@ const isEdit = ref(false)
 const activeTab = ref('1')
 const fileList = ref([])
 
+const imageInputType = ref('upload')
+
 const form = ref({
   id: 0,
   name: '',
   type: 1,
   image_base64: '',
+  image_url: '',
   link_url: '',
   sort_order: 100,
 })
@@ -109,7 +122,8 @@ function loadList() {
 
 function handleAdd() {
   isEdit.value = false
-  form.value = { id: 0, name: '', type: parseInt(activeTab.value), image_base64: '', link_url: '', sort_order: 100 }
+  imageInputType.value = 'upload'
+  form.value = { id: 0, name: '', type: parseInt(activeTab.value), image_base64: '', image_url: '', link_url: '', sort_order: 100 }
   fileList.value = []
   showDialog.value = true
 }
@@ -118,7 +132,14 @@ function handleEdit(row) {
   isEdit.value = true
   form.value = { ...row }
   fileList.value = row.image_base64 ? [{ name: 'image', url: row.image_base64 }] : []
+  imageInputType.value = row.image_base64 ? 'upload' : 'url'
   showDialog.value = true
+}
+
+function handleImageTypeChange() {
+  form.value.image_base64 = ''
+  form.value.image_url = ''
+  fileList.value = []
 }
 
 function handleImageChange(file) {
@@ -130,11 +151,40 @@ function handleImageChange(file) {
   reader.readAsDataURL(file.raw)
 }
 
+function previewUrlImage() {
+  if (!form.value.image_url) return ElMessage.warning('请输入图片URL')
+  const img = new Image()
+  img.onload = () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = img.width
+    canvas.height = img.height
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0)
+    form.value.image_base64 = canvas.toDataURL('image/jpeg', 0.85)
+    ElMessage.success('图片已转换')
+  }
+  img.onerror = () => {
+    ElMessage.error('图片加载失败，请检查URL是否正确')
+  }
+  img.src = form.value.image_url
+}
+
 function save() {
   if (!form.value.name) return ElMessage.warning('请输入广告名称')
-  if (!form.value.image_base64) return ElMessage.warning('请上传广告图片')
 
-  post('/ad/save', form.value).then(() => {
+  if (imageInputType.value === 'upload' && !form.value.image_base64) {
+    return ElMessage.warning('请上传广告图片')
+  }
+  if (imageInputType.value === 'url' && !form.value.image_url) {
+    return ElMessage.warning('请输入图片URL')
+  }
+
+  const saveData = { ...form.value }
+  if (imageInputType.value === 'url') {
+    saveData.image_base64 = saveData.image_url
+  }
+
+  post('/ad/save', saveData).then(() => {
     ElMessage.success('保存成功')
     showDialog.value = false
     loadList()
