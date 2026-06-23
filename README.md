@@ -94,21 +94,34 @@ backend/
 #### 用户端 API
 | 接口 | 说明 |
 |------|------|
+| **认证** | |
 | `/auth/register` | 用户注册 |
 | `/auth/login` | 用户登录 |
-| `/auth/logout` | 用户登出 |
 | `/auth/refresh` | 刷新Token |
-| `/video/list` | 视频列表 |
+| **视频（公开）** | |
+| `/video/home` | 首页数据（推荐、分类筛选） |
+| `/video/list` | 视频列表（分页/筛选） |
 | `/video/detail` | 视频详情 |
-| `/video/sources` | 播放资源 |
+| `/video/rank` | 排行榜 |
+| `/video/search` | 搜索视频 |
 | `/video/categories` | 分类列表 |
-| `/favorite/*` | 收藏管理 |
-| `/history/*` | 历史记录 |
+| `/video/playUrl` | 获取播放地址 |
+| `/video/play/:id` | 播放页数据 |
+| **用户（需认证）** | |
+| `/user/info` | 用户信息 |
+| **收藏** | |
+| `/favorite/list` | 收藏列表 |
+| `/favorite/add` | 添加收藏 |
+| `/favorite/remove` | 取消收藏 |
+| **观看历史** | |
+| `/history/list` | 历史记录列表 |
+| `/history/add` | 添加历史记录 |
+| `/history/sync` | 同步历史记录 |
+| `/history/clear` | 清除历史记录 |
+| **卡密** | |
 | `/card/redeem` | 卡密兑换 |
+| **广告** | |
 | `/ad/watch` | 广告观看 |
-| `/user/profile` | 用户信息 |
-| `/user/watchHistory` | 观看历史 |
-| `/user/favorites` | 收藏列表 |
 
 ### 启动方式
 
