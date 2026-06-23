@@ -61,6 +61,10 @@ const routes = [
       {
         path: 'banner',
         component: () => import('@/views/Banner.vue')
+      },
+      {
+        path: 'ad',
+        component: () => import('@/views/Ad.vue')
       }
     ]
   }

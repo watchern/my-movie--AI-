@@ -94,4 +94,11 @@ Route::group('admin/api', function () {
      Route::post('collectSource/toggleStatus', [CollectSourceController::class, 'toggleStatus']);
      Route::post('collectSource/resetCollect', [CollectSourceController::class, 'resetCollect']);
 
-})->allowCrossDomain();
+     // 广告管理
+     Route::get('ad/list', [AdController::class, 'list']);
+     Route::post('ad/save', [AdController::class, 'save']);
+     Route::post('ad/delete', [AdController::class, 'delete']);
+     Route::post('ad/updateStatus', [AdController::class, 'updateStatus']);
+     Route::get('ad/getAds', [AdController::class, 'getAds']);
+
+ })->allowCrossDomain();

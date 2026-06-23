@@ -75,6 +75,22 @@ CREATE INDEX IF NOT EXISTS `idx_videos_is_vip` ON `videos`(`is_vip`);
 CREATE UNIQUE INDEX IF NOT EXISTS `idx_videos_title_year` ON `videos`(`title`, `release_year`);
 
 -- -----------------------------------------
+-- 16. 广告配置表
+-- -----------------------------------------
+CREATE TABLE IF NOT EXISTS `ads` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '广告ID',
+    `name` VARCHAR(100) NOT NULL COMMENT '广告名称',
+    `type` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '广告类型：1=暂停广告 2=结束广告',
+    `image_base64` TEXT NOT NULL COMMENT '图片Base64编码',
+    `link_url` VARCHAR(500) DEFAULT NULL COMMENT '跳转链接',
+    `sort_order` INT UNSIGNED DEFAULT 100 COMMENT '排序',
+    `status` TINYINT(1) DEFAULT 1 COMMENT '状态：0=禁用 1=启用',
+    `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+);
+
+-- -----------------------------------------
 -- 4. 视频资源播放地址表
 -- -----------------------------------------
 CREATE TABLE IF NOT EXISTS `video_sources` (

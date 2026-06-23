@@ -26,24 +26,24 @@
           <div id="xgplayer-container" class="xgplayer-container"></div>
           <!-- 暂停广告 -->
           <div
-            v-if="showPauseAd && !isPlaying && !showEndAd"
+            v-if="showPauseAd && !isPlaying && !showEndAd && currentPauseAd"
             class="ad-overlay"
             @click="clickAd"
           >
             <div class="ad-image-wrapper">
-              <img :src="adConfig.image" alt="广告" class="ad-image" />
+              <img :src="currentPauseAd.image_base64" alt="广告" class="ad-image" />
               <div class="ad-tip">广告</div>
             </div>
             <van-icon name="cross" class="ad-close" @click.stop="closeAd" />
           </div>
           <!-- 结束广告 -->
           <div
-            v-if="showEndAd && !isPlaying"
+            v-if="showEndAd && !isPlaying && currentEndAd"
             class="ad-overlay"
             @click="clickEndAd"
           >
             <div class="ad-image-wrapper">
-              <img :src="endAdConfig.image" alt="结束广告" class="ad-image" />
+              <img :src="currentEndAd.image_base64" alt="结束广告" class="ad-image" />
               <div class="ad-tip">结束广告</div>
             </div>
             <van-icon name="cross" class="ad-close" @click.stop="closeEndAd" />
@@ -258,17 +258,44 @@ const outroDuration = ref(60); // 默认跳过最后60秒的片尾
 // 倍速选项
 const speedOptions = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-// 暂停广告 Mock 配置
-const adConfig = {
-  image: "https://picsum.photos/seed/pause_ad/600/300",
-  link: "https://www.example.com/pause",
-};
+// 广告配置（从后端获取）
+const pauseAds = ref([]);
+const endAds = ref([]);
+const currentPauseAdIndex = ref(0);
+const currentEndAdIndex = ref(0);
 
-// 结束广告 Mock 配置（视频播放结束后显示）
-const endAdConfig = {
-  image: "https://picsum.photos/seed/end_ad/600/300",
-  link: "https://www.example.com/end",
-};
+const currentPauseAd = computed(() => pauseAds.value[currentPauseAdIndex.value] || null);
+const currentEndAd = computed(() => endAds.value[currentEndAdIndex.value] || null);
+
+const adRotateTimer = ref(null);
+
+async function fetchAds() {
+  try {
+    const [pauseRes, endRes] = await Promise.all([
+      get('/ad/getAds', { type: 1 }),
+      get('/ad/getAds', { type: 2 }),
+    ]);
+    pauseAds.value = pauseRes.data || [];
+    endAds.value = endRes.data || [];
+  } catch (e) {
+    console.error('Failed to fetch ads:', e);
+  }
+}
+
+function startAdRotate() {
+  stopAdRotate();
+  if (pauseAds.value.length <= 1) return;
+  adRotateTimer.value = setInterval(() => {
+    currentPauseAdIndex.value = (currentPauseAdIndex.value + 1) % pauseAds.value.length;
+  }, 5000);
+}
+
+function stopAdRotate() {
+  if (adRotateTimer.value) {
+    clearInterval(adRotateTimer.value);
+    adRotateTimer.value = null;
+  }
+}
 
 let historyTimer = null;
 let skipTimer = null;
@@ -1182,6 +1209,7 @@ const onPlay = () => {
   isPlaying.value = true;
   showPauseAd.value = false;
   showEndAd.value = false;
+  stopAdRotate();
 };
 
 const onPause = () => {
@@ -1190,6 +1218,7 @@ const onPause = () => {
   // 暂停时显示广告（仅在不是结束广告时）
   if (!showEndAd.value) {
     showPauseAd.value = true;
+    startAdRotate();
   }
 };
 
@@ -1198,7 +1227,9 @@ const closeAd = () => {
 };
 
 const clickAd = () => {
-  window.open(adConfig.link, "_blank");
+  if (currentPauseAd.value?.link_url) {
+    window.open(currentPauseAd.value.link_url, "_blank");
+  }
 };
 
 const closeEndAd = () => {
@@ -1206,7 +1237,9 @@ const closeEndAd = () => {
 };
 
 const clickEndAd = () => {
-  window.open(endAdConfig.link, "_blank");
+  if (currentEndAd.value?.link_url) {
+    window.open(currentEndAd.value.link_url, "_blank");
+  }
 };
 
 const onFullscreenChange = (e) => {
@@ -1260,11 +1293,15 @@ const formatCount = (count) => {
 
 const goBack = () => safeBack("/");
 
-onMounted(() => loadDetail());
+onMounted(async () => {
+  await fetchAds();
+  loadDetail();
+});
 
 onBeforeUnmount(() => {
   if (historyTimer) clearTimeout(historyTimer);
   if (skipTimer) clearTimeout(skipTimer);
+  stopAdRotate();
 
   destroyPlayer();
 });

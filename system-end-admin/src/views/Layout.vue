@@ -26,12 +26,13 @@
           <el-menu-item index="/vipLog">VIP变动记录</el-menu-item>
         </el-sub-menu>
 
-        <el-sub-menu index="system">
-          <template #title><el-icon><Setting /></el-icon>系统管理</template>
-          <el-menu-item index="/adminManager">管理员管理</el-menu-item>
-          <el-menu-item index="/adminLog">管理员操作记录</el-menu-item>
-          <el-menu-item index="/systemConfig">系统配置</el-menu-item>
-        </el-sub-menu>
+         <el-sub-menu index="system">
+           <template #title><el-icon><Setting /></el-icon>系统管理</template>
+           <el-menu-item index="/adminManager">管理员管理</el-menu-item>
+           <el-menu-item index="/adminLog">管理员操作记录</el-menu-item>
+           <el-menu-item index="/systemConfig">系统配置</el-menu-item>
+           <el-menu-item index="/ad">广告管理</el-menu-item>
+         </el-sub-menu>
       </el-menu>
     </el-aside>
 
