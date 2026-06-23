@@ -86,9 +86,15 @@ Route::group('api', function () {
         // VIP卡密
         Route::post('card/redeem', [CardController::class, 'redeem']);
 
-        // 广告记录
-        Route::post('ad/watch', [AdController::class, 'watch']);
-    })->middleware(\app\middleware\ApiAuth::class);
+         // 广告记录
+         Route::post('ad/watch', [AdController::class, 'watch']);
+         Route::get('ad/status', [AdController::class, 'status']);
+     })->middleware(\app\middleware\ApiAuth::class);
 
-})->allowCrossDomain();
+ })->allowCrossDomain();
+
+ // 广告配置（公开接口，无需认证）- 独立路由组
+ Route::group('api/v1', function () {
+     Route::get('ad/info', [AdController::class, 'info']);
+ })->allowCrossDomain();
 

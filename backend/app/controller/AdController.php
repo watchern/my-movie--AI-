@@ -83,4 +83,20 @@ class AdController extends BaseController
             'remain_count' => max(0, $dailyLimit - $todayCount),
         ]);
     }
+
+    /**
+     * 获取广告配置（供前台使用）
+     */
+    public function info()
+    {
+        $type = intval($this->request->get('type', 1));
+
+        $ads = \app\model\Ad::where('type', $type)
+            ->where('status', 1)
+            ->order('sort_order', 'asc')
+            ->select()
+            ->toArray();
+
+        return $this->success($ads);
+    }
 }

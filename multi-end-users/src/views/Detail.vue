@@ -272,8 +272,8 @@ const adRotateTimer = ref(null);
 async function fetchAds() {
   try {
     const [pauseRes, endRes] = await Promise.all([
-      get('/ad/getAds', { type: 1 }),
-      get('/ad/getAds', { type: 2 }),
+      get('/ad/info', { type: 1 }),
+      get('/ad/info', { type: 2 }),
     ]);
     pauseAds.value = pauseRes.data || [];
     endAds.value = endRes.data || [];
