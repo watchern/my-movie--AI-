@@ -101,6 +101,11 @@ class CollectionTaskService
           $lastVodId = $source->last_collected_vod_id ?? '';
           $lastCollectedPage = intval($source->last_collected_page ?? 0);
           $lastCollectedAt = $source->last_collected_at ?? '';
+          $lastVodName = $source->last_vod_name ?? '';
+          $lastVodPic = $source->last_vod_pic ?? '';
+          $lastVodYear = $source->last_vod_year ?? '';
+          $lastVodScore = $source->last_vod_score ?? 0;
+          $lastVodDuration = $source->last_vod_duration ?? 0;
 
           $shouldResume = !empty($lastVodId) && $lastCollectedPage > 0
               && (strtotime($lastCollectedAt) > time() - 7200);
@@ -155,12 +160,25 @@ class CollectionTaskService
               Log::info("[CollectionTask] 断点续采，第{$currentPage}页跳过已采集视频 {$skipCount} 个，从 vod_id={$lastVodId} 之后继续");
 
               if (!$foundInPage) {
+                  $maxPage = $pageCount ?: PHP_INT_MAX;
+                  if ($lastCollectedPage + 1 > $maxPage) {
+                      $source->last_collected_page = 0;
+                      $source->last_collected_vod_id = '';
+                      $source->save();
+                      Log::warning("[CollectionTask] 断点续采：已到达最大页码，未找到断点视频(vod_id={$lastVodId}, title={$lastVodName})，清空断点记录，从最大页重新采集");
+                      return self::trigger($apiUrl, $limit, $typeIds, $siteInfo, $pageCount);
+                  }
+
                   $source->last_collected_page = $lastCollectedPage + 1;
                   $source->save();
-                  Log::warning("[CollectionTask] 断点续采：第{$currentPage}页未找到 vod_id={$lastVodId}，前进到第" . $source->last_collected_page . "页，下次继续查找");
+                  $vodInfo = "vod_id={$lastVodId}";
+                  if ($lastVodName) $vodInfo .= ", title={$lastVodName}";
+                  if ($lastVodYear) $vodInfo .= ", year={$lastVodYear}";
+                  if ($lastVodScore) $vodInfo .= ", score={$lastVodScore}";
+                  Log::warning("[CollectionTask] 断点续采：第{$currentPage}页未找到断点视频({$vodInfo})，前进到第" . $source->last_collected_page . "页，下次继续查找");
                   return [
                       'started' => false,
-                      'msg' => "未找到断点视频，前进到第 {$source->last_collected_page} 页，请重试",
+                      'msg' => "未找到断点视频「{$lastVodName}」(vod_id:{$lastVodId}" . ($lastVodYear ? ", {$lastVodYear}年" : "") . ($lastVodScore ? ", 评分{$lastVodScore}" : "") . ")，前进到第 {$source->last_collected_page} 页，请重试",
                   ];
               }
           }
@@ -292,6 +310,11 @@ class CollectionTaskService
             if ($sourceModel) {
                 $sourceModel->last_collected_page = 0;
                 $sourceModel->last_collected_vod_id = '';
+                $sourceModel->last_collected_vod_name = '';
+                $sourceModel->last_collected_vod_pic = '';
+                $sourceModel->last_collected_vod_year = '';
+                $sourceModel->last_collected_vod_score = 0;
+                $sourceModel->last_collected_vod_duration = 0;
                 $sourceModel->last_collected_at = date('Y-m-d H:i:s');
                 $sourceModel->save();
             }
@@ -364,6 +387,11 @@ class CollectionTaskService
             $source = CollectSource::find($collectSourceId);
             if ($source) {
                 $source->last_collected_vod_id = $vodId;
+                $source->last_collected_vod_name = $item['vod_name'] ?? '';
+                $source->last_collected_vod_pic = $item['vod_pic'] ?? '';
+                $source->last_collected_vod_year = $item['vod_year'] ?? '';
+                $source->last_collected_vod_score = floatval($item['vod_score'] ?? 0);
+                $source->last_collected_vod_duration = intval($item['vod_duration'] ?? 0);
                 $source->last_collected_at = date('Y-m-d H:i:s');
                 $source->save();
             }

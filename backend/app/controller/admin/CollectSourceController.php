@@ -234,6 +234,11 @@ class CollectSourceController extends BaseController
         $source->page_count = 0;
         $source->last_collected_page = 0;
         $source->last_collected_vod_id = '';
+        $source->last_collected_vod_name = '';
+        $source->last_collected_vod_pic = '';
+        $source->last_collected_vod_year = '';
+        $source->last_collected_vod_score = 0;
+        $source->last_collected_vod_duration = 0;
         $source->last_collected_at = null;
         $source->save();
 
