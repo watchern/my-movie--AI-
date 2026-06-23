@@ -91,6 +91,25 @@ backend/
 | `/admin/config/*` | 系统配置管理 |
 | `/admin/logs` | 管理员操作日志 |
 
+#### 用户端 API
+| 接口 | 说明 |
+|------|------|
+| `/auth/register` | 用户注册 |
+| `/auth/login` | 用户登录 |
+| `/auth/logout` | 用户登出 |
+| `/auth/refresh` | 刷新Token |
+| `/video/list` | 视频列表 |
+| `/video/detail` | 视频详情 |
+| `/video/sources` | 播放资源 |
+| `/video/categories` | 分类列表 |
+| `/favorite/*` | 收藏管理 |
+| `/history/*` | 历史记录 |
+| `/card/redeem` | 卡密兑换 |
+| `/ad/watch` | 广告观看 |
+| `/user/profile` | 用户信息 |
+| `/user/watchHistory` | 观看历史 |
+| `/user/favorites` | 收藏列表 |
+
 ### 启动方式
 
 ```bash
