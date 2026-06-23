@@ -335,14 +335,13 @@ class CollectionTaskService
         $item = $listData['list'][$index];
         $current = $index + 1;
         $percent = $total > 0 ? floor(($current / $total) * 100) : 0;
-        $displayIndex = $total - $current + 1;
 
         Cache::set($progressKey, [
             'status' => 'running',
             'total' => $total,
             'current' => $current,
             'percent' => $percent,
-            'msg' => "正在处理第 {$displayIndex}/{$total} 个视频（倒序）",
+            'msg' => "正在处理第 {$current}/{$total} 个视频",
             'vod_name' => $item['vod_name'] ?? '',
             'vod_id' => $item['vod_id'] ?? '',
             'updated_at' => time(),
@@ -405,7 +404,7 @@ class CollectionTaskService
 
             return [
                 'status' => 'running',
-                'msg' => "已处理第 {$displayIndex}/{$total} 个视频（倒序）",
+                'msg' => "已处理第 {$current}/{$total} 个视频",
                 'total' => $total,
                 'current' => $current,
                 'percent' => $percent,
