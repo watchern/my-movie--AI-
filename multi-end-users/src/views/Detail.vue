@@ -282,11 +282,23 @@ async function fetchAds() {
   }
 }
 
+function pickRandomAd(type) {
+  const ads = type === 1 ? pauseAds.value : endAds.value;
+  if (ads.length === 0) return;
+  const randomIndex = Math.floor(Math.random() * ads.length);
+  if (type === 1) {
+    currentPauseAdIndex.value = randomIndex;
+  } else {
+    currentEndAdIndex.value = randomIndex;
+  }
+}
+
 function startAdRotate() {
   stopAdRotate();
   if (pauseAds.value.length <= 1) return;
+  pickRandomAd(1);
   adRotateTimer.value = setInterval(() => {
-    currentPauseAdIndex.value = (currentPauseAdIndex.value + 1) % pauseAds.value.length;
+    pickRandomAd(1);
   }, 5000);
 }
 
@@ -1049,6 +1061,7 @@ const initPlayer = (source) => {
 
       // 显示结束广告
       console.log("[AutoPlayNext] showing end ad");
+      pickRandomAd(2);
       showEndAd.value = true;
       showPauseAd.value = false;
 
@@ -1218,6 +1231,7 @@ const onPause = () => {
   // 暂停时显示广告（仅在不是结束广告时）
   if (!showEndAd.value) {
     showPauseAd.value = true;
+    pickRandomAd(1);
     startAdRotate();
   }
 };
