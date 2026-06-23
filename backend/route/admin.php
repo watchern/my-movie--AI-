@@ -91,6 +91,7 @@ Route::group('admin/api', function () {
     Route::post('collectSource/edit', [CollectSourceController::class, 'edit']);
     Route::post('collectSource/delete', [CollectSourceController::class, 'delete']);
     Route::post('collectSource/test', [CollectSourceController::class, 'test']);
-    Route::post('collectSource/toggleStatus', [CollectSourceController::class, 'toggleStatus']);
+     Route::post('collectSource/toggleStatus', [CollectSourceController::class, 'toggleStatus']);
+     Route::post('collectSource/resetCollect', [CollectSourceController::class, 'resetCollect']);
 
 })->allowCrossDomain();

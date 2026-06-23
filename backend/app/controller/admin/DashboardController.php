@@ -28,7 +28,8 @@ class DashboardController extends BaseController
         $totalUsers = User::count();
 
         // 视频统计
-        $totalVideos = Video::where('is_show', 1)->count();
+        $totalVideos = Video::count();
+        $visibleVideos = Video::where('is_show', 1)->count();
         $movieCount = Video::where('is_show', 1)->where('type', 1)->count();
         $tvCount = Video::where('is_show', 1)->where('type', 2)->count();
         $animeCount = Video::where('is_show', 1)->where('type', 3)->count();
@@ -37,6 +38,7 @@ class DashboardController extends BaseController
         // 卡密统计
         $unusedCards = CardKey::where('status', 0)->count();
         $usedCards = CardKey::where('status', 1)->count();
+        $totalCards = $unusedCards + $usedCards;
 
         // 今日数据
         $todayNewUsers = User::where('created_at', '>=', $today . ' 00:00:00')->count();
@@ -65,11 +67,12 @@ class DashboardController extends BaseController
 
         return $this->success([
             'user' => [
-                'total' => $totalUsers,
                 'vip' => $vipCount,
+                'total' => $totalUsers,
                 'today_new' => $todayNewUsers,
             ],
             'video' => [
+                'visible' => $visibleVideos,
                 'total' => $totalVideos,
                 'movie' => $movieCount,
                 'tv' => $tvCount,
@@ -78,7 +81,7 @@ class DashboardController extends BaseController
             ],
             'card' => [
                 'unused' => $unusedCards,
-                'used' => $usedCards,
+                'total' => $totalCards,
             ],
             'today' => [
                 'watch_history' => $todayWatchHistory,

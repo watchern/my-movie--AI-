@@ -16,6 +16,10 @@ class VideoSource extends Model
         'updated_at' => 'datetime',
     ];
 
+    protected $autoWriteTimestamp = true;
+    protected $createTime = 'created_at';
+    protected $updateTime = 'updated_at';
+
     // 关联视频
     public function video()
     {

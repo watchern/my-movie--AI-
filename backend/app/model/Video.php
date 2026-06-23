@@ -23,6 +23,11 @@ class Video extends Model
         'updated_at' => 'datetime',
     ];
 
+    // 自动时间戳字段名
+    protected $autoWriteTimestamp = true;
+    protected $createTime = 'created_at';
+    protected $updateTime = 'updated_at';
+
     // 关联分类
     public function category()
     {

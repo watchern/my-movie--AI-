@@ -8,6 +8,7 @@ use app\model\User;
 use app\model\SourceSite;
 use app\model\CardKey;
 use app\model\VideoSource;
+use app\model\AdminLog;
 use app\service\AppleCmsService;
 use app\service\CollectionTaskService;
 
@@ -127,6 +128,10 @@ class VideoController extends BaseController
 
         $video->save();
 
+        $adminId = session('admin_id') ?? 0;
+        $actionText = $id > 0 ? '编辑' : '添加';
+        AdminLog::record($adminId, $id > 0 ? AdminLog::TYPE_EDIT_VIDEO : AdminLog::TYPE_ADD_VIDEO, "视频「{$video->title}」(ID:{$video->id}) - {$actionText}");
+
         return $this->success(['id' => $video->id], '保存成功');
     }
 
@@ -142,16 +147,21 @@ class VideoController extends BaseController
             return $this->error('请选择要删除的视频');
         }
 
-        // 确保是数组
         if (!is_array($ids)) {
             $ids = [$ids];
         }
 
-        // 先删除关联的剧集
-        VideoSource::whereIn('video_id', $ids)->delete();
+        $videos = Video::whereIn('id', $ids)->select();
+        $titles = [];
+        foreach ($videos as $v) {
+            $titles[] = "{$v->title}(ID:{$v->id})";
+        }
 
-        // 再删除视频
+        VideoSource::whereIn('video_id', $ids)->delete();
         Video::whereIn('id', $ids)->delete();
+
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_DELETE_VIDEO, "删除视频: " . implode(', ', $titles));
 
         return $this->success(null, '删除成功');
     }
@@ -179,8 +189,15 @@ class VideoController extends BaseController
             return $this->error('视频不存在');
         }
 
+        $oldValue = $video->$field;
         $video->$field = $value;
         $video->save();
+
+        $adminId = session('admin_id') ?? 0;
+        $actionText = $field === 'is_show' ? ($value ? '上架' : '隐藏') : ($value ? '设为VIP' : '取消VIP');
+        $detail = "视频「{$video->title}」(ID:{$id}) - {$actionText}";
+
+        \app\model\AdminLog::record($adminId, \app\model\AdminLog::TYPE_OTHER, $detail);
 
         return $this->success(null, '更新成功');
     }
@@ -237,6 +254,10 @@ class VideoController extends BaseController
 
         $category->save();
 
+        $adminId = session('admin_id') ?? 0;
+        $actionText = $id > 0 ? '编辑' : '添加';
+        AdminLog::record($adminId, $id > 0 ? AdminLog::TYPE_EDIT_CATEGORY : AdminLog::TYPE_ADD_CATEGORY, "分类「{$category->name}」(ID:{$category->id}) - {$actionText}");
+
         return $this->success(['id' => $category->id], '保存成功');
     }
 
@@ -252,7 +273,6 @@ class VideoController extends BaseController
             return $this->error('请选择要删除的分类');
         }
 
-        // 检查分类下是否有视频
         foreach ($ids as $id) {
             $count = Video::where('category_id', $id)->count();
             if ($count > 0) {
@@ -260,7 +280,13 @@ class VideoController extends BaseController
             }
         }
 
+        $categories = Category::whereIn('id', $ids)->select();
+        $names = array_column($categories->toArray(), 'name');
+
         Category::whereIn('id', $ids)->delete();
+
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_DELETE_CATEGORY, "删除分类: " . implode(', ', $names));
 
         return $this->success(null, '删除成功');
     }
@@ -306,6 +332,10 @@ class VideoController extends BaseController
 
         $site->save();
 
+        $adminId = session('admin_id') ?? 0;
+        $actionText = $id > 0 ? '编辑' : '添加';
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "资源站点「{$site->name}」(ID:{$site->id}) - {$actionText}");
+
         return $this->success(['id' => $site->id], '保存成功');
     }
 
@@ -335,7 +365,7 @@ class VideoController extends BaseController
 
     /**
      * 简易采集（GET 接口）
-     * 仅传入 source_id，触发采集任务
+     * 仅传入 source_id，若无采集任务则启动，若有则处理下一个视频
      */
     public function collectBySourceId()
     {
@@ -347,11 +377,15 @@ class VideoController extends BaseController
 
         $result = CollectionTaskService::triggerBySourceId($sourceId);
 
-        if ($result['started']) {
-            return $this->success($result, '采集任务已启动');
+        if (!empty($result['status']) && $result['status'] === 'completed') {
+            return $this->success($result, '采集完成');
         }
 
-        return $this->error($result['msg']);
+        if (!empty($result['started']) || (!empty($result['status']) && $result['status'] === 'running')) {
+            return $this->success($result);
+        }
+
+        return $this->error($result['msg'] ?? '操作失败');
     }
 
     /**
@@ -392,6 +426,9 @@ class VideoController extends BaseController
         $sourceId = intval($data['source_id'] ?? 0);
 
         $result = CollectionTaskService::reset($sourceId);
+
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "强制重置采集任务，资源站点ID: {$sourceId}");
 
         return $this->success($result, '重置成功');
     }

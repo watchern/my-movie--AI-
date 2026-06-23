@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `categories` (
 CREATE TABLE IF NOT EXISTS `videos` (
     `id` INT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '视频ID',
     `title` VARCHAR(255) NOT NULL COMMENT '标题',
+    `source_vod_id` VARCHAR(50) DEFAULT NULL COMMENT '资源站原始vod_id(用于去重)',
     `category_id` INT UNSIGNED DEFAULT 0 COMMENT '分类ID',
     `type` TINYINT(1) DEFAULT 1 COMMENT '类型: 1电影 2电视剧 3动漫 4短视频 5纪录片',
     `tags` TEXT DEFAULT NULL COMMENT '标签(JSON数组)',
@@ -65,10 +66,13 @@ CREATE TABLE IF NOT EXISTS `videos` (
     PRIMARY KEY (`id`)
 );
 
+CREATE INDEX IF NOT EXISTS `idx_videos_source_vod_id` ON `videos`(`source_vod_id`);
+
 -- 影视索引
 CREATE INDEX IF NOT EXISTS `idx_videos_type` ON `videos`(`type`);
 CREATE INDEX IF NOT EXISTS `idx_videos_category` ON `videos`(`category_id`);
 CREATE INDEX IF NOT EXISTS `idx_videos_is_vip` ON `videos`(`is_vip`);
+CREATE UNIQUE INDEX IF NOT EXISTS `idx_videos_title_year` ON `videos`(`title`, `release_year`);
 
 -- -----------------------------------------
 -- 4. 视频资源播放地址表
@@ -313,6 +317,9 @@ CREATE TABLE IF NOT EXISTS `collect_sources` (
     `site_type` TINYINT(1) DEFAULT 1 COMMENT '站点类型: 1苹果CMS 2其他',
     `status` TINYINT(1) DEFAULT 1 COMMENT '状态: 0禁用 1启用',
     `page_count` INT UNSIGNED DEFAULT 0 COMMENT '资源站总页数（测试连接时获取）',
+    `last_collected_page` INT UNSIGNED DEFAULT 0 COMMENT '最后一次采集到的页码（断点续采）',
+    `last_collected_vod_id` VARCHAR(50) DEFAULT NULL COMMENT '最后一次采集的视频ID',
+    `last_collected_at` DATETIME DEFAULT NULL COMMENT '最后一次采集时间',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (`id`)

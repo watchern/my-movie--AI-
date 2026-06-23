@@ -4,6 +4,7 @@ namespace app\controller\admin;
 use app\BaseController;
 use app\model\Banner;
 use app\model\Video;
+use app\model\AdminLog;
 
 class BannerController extends BaseController
 {
@@ -107,7 +108,11 @@ class BannerController extends BaseController
             $banner->save();
             
             $this->limitCount();
-            
+
+            $adminId = session('admin_id') ?? 0;
+            $actionText = $id > 0 ? '编辑' : '添加';
+            AdminLog::record($adminId, AdminLog::TYPE_OTHER, "轮播图「{$banner->title}」(ID:{$banner->id}) - {$actionText}");
+
             return $this->success('保存成功');
         } catch (\Exception $e) {
             return $this->error('保存失败：' . $e->getMessage());
@@ -117,13 +122,18 @@ class BannerController extends BaseController
     public function delete()
     {
         $id = intval($this->request->param('id', 0));
-        
+
         if ($id <= 0) {
             return $this->error('参数错误');
         }
-        
+
+        $banner = Banner::find($id);
+        $title = $banner ? $banner->title : "ID:{$id}";
         Banner::destroy($id);
-        
+
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "删除轮播图「{$title}");
+
         return $this->success('删除成功');
     }
 
@@ -131,19 +141,23 @@ class BannerController extends BaseController
     {
         $id = intval($this->request->param('id', 0));
         $status = intval($this->request->param('status', 0));
-        
+
         if ($id <= 0) {
             return $this->error('参数错误');
         }
-        
+
         $banner = Banner::find($id);
         if (!$banner) {
             return $this->error('轮播图不存在');
         }
-        
+
         $banner->status = $status;
         $banner->save();
-        
+
+        $adminId = session('admin_id') ?? 0;
+        $actionText = $status ? '启用' : '禁用';
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "轮播图「{$banner->title}」(ID:{$id}) - {$actionText}");
+
         return $this->success('更新成功');
     }
 

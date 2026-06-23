@@ -21,12 +21,13 @@ class CollectionTaskService
 
     /**
      * 根据 CollectSource 配置触发采集
+     * 如果已有运行中的任务则继续处理下一个视频，否则启动新任务
      * @param int $sourceId collect_sources 表中的站点ID
-     * @param int $limit 本次采集数量（每页数量）
+     * @param int $limit 每页数量
      * @param array $typeIds 指定分类ID
      * @return array
      */
-    public static function triggerBySourceId(int $sourceId, int $limit = 100, array $typeIds = []): array
+    public static function triggerBySourceId(int $sourceId, int $limit = 20, array $typeIds = []): array
     {
         $source = CollectSource::find($sourceId);
         if (!$source) {
@@ -57,115 +58,151 @@ class CollectionTaskService
             'description' => $source->description ?? '',
         ];
 
-         return self::trigger($apiUrl, $limit, $typeIds, $siteInfo, $source->page_count ?: null);
-    }
+        $runningKey = self::RUNNING_TASK_KEY . $sourceId;
+        $isRunning = Cache::get($runningKey);
+
+        if ($isRunning) {
+            return self::processNext($sourceId);
+        }
+
+         $pageCount = $source->page_count ?: null;
+
+          return self::trigger($apiUrl, $limit, $typeIds, $siteInfo, $pageCount);
+     }
 
     /**
      * 触发采集
-     * 只负责从资源站获取视频列表并缓存，初始化进度，不执行实际处理
-     * 如果已有运行中的任务，则不再重新获取视频列表
+     * 从上次采集的页码继续采集，如果无记录则从第一页开始
      * @param string $apiUrl 接口地址
      * @param int $limit 每页数量
      * @param array $typeIds 指定分类ID
      * @param array $siteInfo 站点信息
-     * @param int $pageCount 资源站总页数（从测试连接获取）
+     * @param int|null $pageCount 资源站总页数
+     * @param int $resumeFromPage 从哪一页开始采集（断点续采）
      */
-    public static function trigger(string $apiUrl, int $limit = 100, array $typeIds = [], array $siteInfo = [], ?int $pageCount = null): array
+    public static function trigger(string $apiUrl, int $limit = 20, array $typeIds = [], array $siteInfo = [], ?int $pageCount = null): array
     {
-        // 记录采集站点（如果不存在）
-        $site = self::ensureSourceSite($apiUrl, $siteInfo);
-        $collectSourceId = $siteInfo['id'] ?? 0;
+          set_time_limit(120);
 
-        if ($collectSourceId <= 0) {
-            return [
-                'started' => false,
-                'msg' => '缺少采集源ID',
-            ];
-        }
+          $site = self::ensureSourceSite($apiUrl, $siteInfo);
+          $collectSourceId = $siteInfo['id'] ?? 0;
 
-        // 检查是否已有运行中的任务
-        $runningKey = self::RUNNING_TASK_KEY . $collectSourceId;
-        $isRunning = Cache::get($runningKey);
-        if ($isRunning) {
-            $progressKey = self::getProgressCacheKey($collectSourceId);
-            $progress = Cache::get($progressKey);
-            return [
-                'started' => true,
-                'msg' => '采集任务已在运行中',
-                'total' => $progress['total'] ?? 0,
-                'already_running' => true,
-            ];
-        }
+          if ($collectSourceId <= 0) {
+              return [
+                  'started' => false,
+                  'msg' => '缺少采集源ID',
+              ];
+          }
 
-        // 创建采集服务并获取视频列表
-        $service = new AppleCmsService($site, $collectSourceId);
-        $listData = $service->getVideoList($typeIds, 1, $limit);
-        $total = count($listData['list'] ?? []);
+          $source = CollectSource::find($collectSourceId);
+          $runningKey = self::RUNNING_TASK_KEY . $collectSourceId;
+          $service = new AppleCmsService($site, $collectSourceId);
 
-        if ($total === 0) {
-            return [
-                'started' => false,
-                'msg' => '未获取到视频列表',
-            ];
-        }
+          $lastVodId = $source->last_collected_vod_id ?? '';
+          $lastCollectedPage = intval($source->last_collected_page ?? 0);
+          $lastCollectedAt = $source->last_collected_at ?? '';
 
-        // 如果有 page_count，获取剩余页的数据
-        if ($pageCount !== null && $pageCount > 1) {
-            $allList = $listData['list'];
-            for ($page = 2; $page <= $pageCount; $page++) {
-                try {
-                    $pageData = $service->getVideoList($typeIds, $page, $limit);
-                    if (!empty($pageData['list'])) {
-                        $allList = array_merge($allList, $pageData['list']);
-                    }
-                } catch (\Exception $e) {
-                    Log::warning('[CollectionTask] 获取第 ' . $page . ' 页失败: ' . $e->getMessage());
-                }
-            }
-            $listData['list'] = $allList;
-            $total = count($allList);
-        }
+          $shouldResume = !empty($lastVodId) && $lastCollectedPage > 0
+              && (strtotime($lastCollectedAt) > time() - 7200);
 
-        // 缓存视频列表
-        $cacheKey = self::getListCacheKey($collectSourceId);
-        $listSet = Cache::set($cacheKey, $listData, 3600);
+          if ($shouldResume) {
+              $currentPage = $lastCollectedPage;
+          } else {
+              $currentPage = $pageCount ?: 1;
+          }
 
-        // 重置处理索引
-        $indexKey = self::getIndexCacheKey($collectSourceId);
-        $indexSet = Cache::set($indexKey, 0, 3600);
+          if (!$shouldResume && empty($pageCount)) {
+              $testData = $service->getVideoList([], 1, $limit);
+              $apiPageCount = intval($testData['pagecount'] ?? 0);
+              if ($apiPageCount > 0) {
+                  $pageCount = $apiPageCount;
+                  $source->page_count = $pageCount;
+                  $source->save();
+                  $currentPage = $pageCount;
+              }
+          }
 
-        if (!$listSet || !$indexSet) {
-            Log::error('[CollectionTask] 缓存写入失败，source_id=' . $collectSourceId);
-            return [
-                'started' => false,
-                'msg' => '缓存写入失败，请检查 runtime/cache 目录权限',
-            ];
-        }
+          $pageData = $service->getVideoList($typeIds, $currentPage, $limit);
+          $pageList = $pageData['list'] ?? [];
 
-        // 标记任务为运行中
-        Cache::set($runningKey, true, 3600);
+          if (empty($pageList)) {
+              if ($shouldResume && $currentPage > 0) {
+                  $source->last_collected_page = $currentPage - 1;
+                  $source->save();
+                  return self::trigger($apiUrl, $limit, $typeIds, $siteInfo, $pageCount);
+              }
+              return [
+                  'started' => false,
+                  'msg' => "第 {$currentPage} 页没有数据",
+              ];
+          }
 
-        // 记录上次采集时间
-        Cache::set(self::LAST_RUN_KEY, time(), 86400);
+          $foundResumePoint = !$shouldResume;
 
-        // 初始化进度
-        $progressKey = self::getProgressCacheKey($collectSourceId);
-        Cache::set($progressKey, [
-            'status' => 'running',
-            'total' => $total,
-            'current' => 0,
-            'percent' => 0,
-            'msg' => '准备处理，共 ' . $total . ' 个视频',
-            'updated_at' => time(),
-        ], 3600);
-        Log::info('[CollectionTask] 准备处理，共 ' . $total . ' 个视频');
+          if (!$foundResumePoint && !empty($lastVodId)) {
+              $foundInPage = false;
+              $filtered = [];
+              foreach ($pageList as $item) {
+                  if (!$foundInPage && ($item['vod_id'] ?? '') === $lastVodId) {
+                      $foundInPage = true;
+                      $foundResumePoint = true;
+                      continue;
+                  }
+                  $filtered[] = $item;
+              }
+              $pageList = $filtered;
+              $skipCount = count($pageData['list'] ?? []) - count($filtered);
+              Log::info("[CollectionTask] 断点续采，第{$currentPage}页跳过已采集视频 {$skipCount} 个，从 vod_id={$lastVodId} 之后继续");
 
-        return [
-            'started' => true,
-            'msg' => '采集已开始，共 ' . $total . ' 个视频',
-            'total' => $total,
-        ];
-    }
+              if (!$foundInPage) {
+                  $source->last_collected_page = $lastCollectedPage + 1;
+                  $source->save();
+                  Log::warning("[CollectionTask] 断点续采：第{$currentPage}页未找到 vod_id={$lastVodId}，前进到第" . $source->last_collected_page . "页，下次继续查找");
+                  return [
+                      'started' => false,
+                      'msg' => "未找到断点视频，前进到第 {$source->last_collected_page} 页，请重试",
+                  ];
+              }
+          }
+
+          $nextPage = $currentPage - 1;
+
+          $cacheKey = self::getListCacheKey($collectSourceId);
+          Cache::set($cacheKey, ['list' => $pageList, 'page' => $currentPage, 'next_page' => $nextPage, 'limit' => $limit, 'page_count' => $pageCount, 'type_ids' => $typeIds], 3600);
+
+          $indexKey = self::getIndexCacheKey($collectSourceId);
+          Cache::set($indexKey, 0, 3600);
+
+          Cache::set($runningKey, true, 3600);
+
+          Cache::set(self::LAST_RUN_KEY, time(), 86400);
+
+          $source->last_collected_page = $currentPage;
+          $source->last_collected_vod_id = '';
+          $source->last_collected_at = date('Y-m-d H:i:s');
+          $source->save();
+
+          $progressKey = self::getProgressCacheKey($collectSourceId);
+          Cache::set($progressKey, [
+              'status' => 'running',
+              'total' => count($pageList),
+              'current' => 0,
+              'percent' => 0,
+              'msg' => "准备处理第 {$currentPage} 页，共 " . count($pageList) . " 个视频",
+              'updated_at' => time(),
+          ], 3600);
+
+          $resumeMsg = $shouldResume ? "（从第 {$currentPage} 页续采）" : "（从第 {$currentPage} 页倒序采集）";
+          Log::info("[CollectionTask] 采集任务已启动，第 {$currentPage} 页，共 " . count($pageList) . " 个视频 {$resumeMsg}");
+
+          return [
+              'started' => true,
+              'msg' => "采集已开始，第 {$currentPage} 页，共 " . count($pageList) . " 个视频 {$resumeMsg}",
+              'total' => count($pageList),
+              'page_count' => $pageCount,
+              'current_page' => $currentPage,
+          ];
+     }
 
     /**
      * 处理下一个视频
@@ -173,8 +210,10 @@ class CollectionTaskService
      */
     public static function processNext(int $collectSourceId): array
     {
+        set_time_limit(60);
+
         if ($collectSourceId <= 0) {
-            return ['status' => 'failed',    'msg' => '参数错误'];
+            return ['status' => 'failed', 'msg' => '参数错误'];
         }
         Log::info('[CollectionTask] 开始处理下一个视频');
 
@@ -184,7 +223,6 @@ class CollectionTaskService
 
         $listData = Cache::get($cacheKey);
         if (empty($listData['list'])) {
-            // 缓存列表为空，检查是否仍有运行中标记
             $runningKey2 = self::RUNNING_TASK_KEY . $collectSourceId;
             $isRunning = Cache::get($runningKey2);
             if (!$isRunning) {
@@ -193,7 +231,6 @@ class CollectionTaskService
         }
 
         if (empty($listData['list'])) {
-            // 没有缓存列表，可能是已经完成或没有触发过
             $progress = Cache::get($progressKey);
             if ($progress) {
                 return ['status' => $progress['status'], 'msg' => $progress['msg']];
@@ -205,8 +242,60 @@ class CollectionTaskService
         $index = intval(Cache::get($indexKey, 0));
 
         if ($index >= $total) {
-            // 已经处理完
+            $currentPage = intval($listData['page'] ?? 0);
+            $nextPage = intval($listData['next_page'] ?? 0);
+            $pageCount = intval($listData['page_count'] ?? 0);
+            $typeIds = $listData['type_ids'] ?? [];
+            $limit = intval($listData['limit'] ?? 100);
+
+            if ($nextPage >= 1) {
+                $source = CollectSource::find($collectSourceId);
+                $service = self::createServiceBySourceId($collectSourceId);
+
+                $nextPageData = $service->getVideoList($typeIds, $nextPage, $limit);
+                $nextPageList = $nextPageData['list'] ?? [];
+
+                if (!empty($nextPageList)) {
+                    $newNextPage = $nextPage - 1;
+                    Cache::set($cacheKey, ['list' => $nextPageList, 'page' => $nextPage, 'next_page' => $newNextPage, 'limit' => $limit, 'page_count' => $pageCount, 'type_ids' => $typeIds], 3600);
+                    Cache::set($indexKey, 0, 3600);
+
+                    if ($source) {
+                        $source->last_collected_page = $nextPage;
+                        $source->last_collected_vod_id = '';
+                        $source->last_collected_at = date('Y-m-d H:i:s');
+                        $source->save();
+                    }
+
+                    Cache::set($progressKey, [
+                        'status' => 'running',
+                        'total' => count($nextPageList),
+                        'current' => 0,
+                        'percent' => 0,
+                        'msg' => "准备处理第 {$nextPage} 页，共 " . count($nextPageList) . " 个视频",
+                        'updated_at' => time(),
+                    ], 3600);
+
+                    return [
+                        'status' => 'running',
+                        'msg' => "第 {$currentPage} 页已完成，加载第 {$nextPage} 页，共 " . count($nextPageList) . " 个视频",
+                        'total' => count($nextPageList),
+                        'current_page' => $nextPage,
+                        'page_count' => $pageCount,
+                    ];
+                }
+            }
+
             self::clearCollectCache($collectSourceId);
+
+            $sourceModel = CollectSource::find($collectSourceId);
+            if ($sourceModel) {
+                $sourceModel->last_collected_page = 0;
+                $sourceModel->last_collected_vod_id = '';
+                $sourceModel->last_collected_at = date('Y-m-d H:i:s');
+                $sourceModel->save();
+            }
+
             Cache::set($progressKey, [
                 'status' => 'completed',
                 'total' => $total,
@@ -222,13 +311,14 @@ class CollectionTaskService
         $current = $index + 1;
         $percent = $total > 0 ? floor(($current / $total) * 100) : 0;
 
-        // 更新进度为处理中
         Cache::set($progressKey, [
             'status' => 'running',
             'total' => $total,
             'current' => $current,
             'percent' => $percent,
             'msg' => "正在处理第 {$current}/{$total} 个视频",
+            'vod_name' => $item['vod_name'] ?? '',
+            'vod_id' => $item['vod_id'] ?? '',
             'updated_at' => time(),
         ], 3600);
 
@@ -239,58 +329,47 @@ class CollectionTaskService
             }
 
             $vodId = $item['vod_id'] ?? '';
+            $vodName = $item['vod_name'] ?? '';
             if (empty($vodId)) {
                 Log::warning('[CollectionTask] 缺少 vod_id，跳过第 ' . $current . ' 个');
             } else {
                 Log::info('[CollectionTask] 开始处理第 ' . $current . '/' . $total . ' 个视频，vod_id=' . $vodId);
-                $detail = $service->getVideoDetail($vodId);
-                if (empty($detail)) {
-                    // 获取详情失败，尝试使用列表基础数据入库（先转换字段格式）
-                    Log::warning('[CollectionTask] 获取详情失败，尝试使用列表数据入库，vod_id=' . $vodId);
-                    try {
-                        $videoData = self::transformListItemToVideoData($item);
-                        $video = $service->saveVideo($videoData);
-                        Log::info('[CollectionTask] 使用列表数据保存成功，id=' . ($video->id ?? 0) . ', title=' . ($item['vod_name'] ?? ''));
-                    } catch (\Exception $saveError) {
-                        if (strpos($saveError->getMessage(), '视频已存在') !== false) {
-                            Log::info('[CollectionTask] 视频已存在，跳过，vod_id=' . $vodId);
-                        } else {
-                            Log::warning('[CollectionTask] 列表数据入库失败: ' . $saveError->getMessage() . '，跳过，vod_id=' . $vodId);
-                        }
+
+                $hasPlayUrl = !empty($item['vod_play_url']);
+                $hasDescription = !empty($item['vod_content']);
+                $hasCover = !empty($item['vod_pic']);
+                $saveData = $item;
+
+                if (!$hasPlayUrl || !$hasDescription || !$hasCover) {
+                    $detail = $service->getVideoDetail($vodId);
+                    if (!empty($detail)) {
+                        $saveData = $detail;
                     }
-                } else {
-                    try {
-                        $video = $service->saveVideo($detail);
-                        Log::info('[CollectionTask] 保存视频成功，id=' . ($video->id ?? 0) . ', title=' . ($detail['vod_name'] ?? ''));
-                    } catch (\Exception $saveError) {
-                        if (strpos($saveError->getMessage(), '视频已存在') !== false) {
-                            Log::info('[CollectionTask] 视频已存在，跳过，vod_id=' . $vodId);
-                            // 已存在不算失败，继续下一个
-                        } else {
-                            throw $saveError;
-                        }
+                }
+
+                try {
+                    $video = $service->saveVideo($saveData);
+                    Log::info('[CollectionTask] 保存视频成功，id=' . ($video->id ?? 0) . ', title=' . $vodName);
+                } catch (\Exception $saveError) {
+                    if (strpos($saveError->getMessage(), '视频已存在') !== false) {
+                        Log::info('[CollectionTask] 视频已存在，跳过，vod_id=' . $vodId);
+                    } else {
+                        throw $saveError;
                     }
                 }
             }
 
-            // 处理成功，移动到下一个
-            $setResult = Cache::set($indexKey, $current, 3600);
-            if (!$setResult) {
-                Log::error('[CollectionTask] 索引缓存写入失败，source_id=' . $collectSourceId . ', current=' . $current);
+            Cache::set($indexKey, $current, 3600);
+
+            $source = CollectSource::find($collectSourceId);
+            if ($source) {
+                $source->last_collected_vod_id = $vodId;
+                $source->last_collected_at = date('Y-m-d H:i:s');
+                $source->save();
             }
 
-            // 检查是否已处理完
-            if ($current >= $total) {
-                self::clearCollectCache($collectSourceId);
-                Cache::set($progressKey, [
-                    'status' => 'completed',
-                    'total' => $total,
-                    'current' => $total,
-                    'percent' => 100,
-                    'msg' => '采集完成',
-                    'updated_at' => time(),
-                ], 300);
-                return ['status' => 'completed', 'msg' => '采集完成'];
+            if ($service) {
+                $service->flushBatchEpisodes();
             }
 
             return [
@@ -299,11 +378,13 @@ class CollectionTaskService
                 'total' => $total,
                 'current' => $current,
                 'percent' => $percent,
+                'vod_name' => $item['vod_name'] ?? '',
+                'vod_id' => $vodId,
+                'current_page' => $listData['page'] ?? 0,
             ];
         } catch (\Throwable $e) {
             Log::error('[CollectionTask] 处理视频失败: ' . $e->getMessage());
 
-            // 单个视频失败，继续下一个（避免卡住）
             Cache::set($indexKey, $current, 3600);
 
             Cache::set($progressKey, [
@@ -318,12 +399,16 @@ class CollectionTaskService
             return [
                 'status' => 'running',
                 'msg' => '第 ' . $current . ' 个处理失败，继续下一个',
+                'info' => $e->getMessage(),
                 'total' => $total,
                 'current' => $current,
                 'percent' => $percent,
+                'vod_name' => $item['vod_name'] ?? '',
+                'vod_id' => $vodId,
+                'current_page' => $listData['page'] ?? 0,
             ];
         }
-    }
+     }
 
     /**
      * 获取某个采集源的任务进度

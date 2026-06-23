@@ -68,8 +68,7 @@ class AppleCmsService
     {
         $cacheKey = '';
         if ($this->collectSourceId > 0) {
-            // 缓存 key 与采集参数相关
-            $cacheKey = 'collection_video_list_' . $this->collectSourceId . '_' . md5(json_encode([$typeIds, $limit]));
+            $cacheKey = 'collection_video_list_' . $this->collectSourceId . '_' . md5(json_encode([$typeIds, $page, $limit]));
             $cached = Cache::get($cacheKey);
             if (!empty($cached['list'])) {
                 return $cached;
@@ -77,9 +76,9 @@ class AppleCmsService
         }
 
         $params = [
-            'ac' => 'list',
-            'page' => $page,
-            'limit' => $limit,
+            'ac' => 'detail',
+            'pg' => $page,
+            'pagesize' => $limit,
         ];
 
         if (!empty($typeIds)) {
@@ -102,6 +101,7 @@ class AppleCmsService
         $result = [
             'total' => $data['total'] ?? 0,
             'page' => $data['page'] ?? $page,
+            'pagecount' => $data['pagecount'] ?? 0,
             'limit' => $data['limit'] ?? $limit,
             'list' => $data['list'] ?? [],
         ];
@@ -244,32 +244,36 @@ class AppleCmsService
                     'msg' => "正在处理第 {$current}/{$total} 个视频",
                 ]);
 
-                try {
-                    $vodId = $item['vod_id'] ?? '';
-                    if (empty($vodId)) {
-                        $result['failed']++;
-                        $result['errors'][] = 'missing vod_id';
-                        continue;
-                    }
+                 try {
+                     $vodId = $item['vod_id'] ?? '';
+                     if (empty($vodId)) {
+                         $result['failed']++;
+                         $result['errors'][] = 'missing vod_id';
+                         continue;
+                     }
 
-                    // 通过详情接口获取完整数据
-                    $detail = $this->getVideoDetail($vodId);
-                    if (empty($detail)) {
-                        $result['failed']++;
-                        $result['errors'][] = $vodId . ': 获取详情失败';
-                        continue;
-                    }
+                     $saveData = $item;
+                     $hasPlayUrl = !empty($item['vod_play_url']);
+                     $hasDescription = !empty($item['vod_content']);
+                     $hasCover = !empty($item['vod_pic']);
 
-                    $this->saveVideo($detail);
-                    $result['success']++;
-                } catch (\Exception $e) {
-                    if (strpos($e->getMessage(), '已存在') !== false) {
-                        $result['exists']++;
-                    } else {
-                        $result['failed']++;
-                        $result['errors'][] = ($item['vod_id'] ?? 'unknown') . ': ' . $e->getMessage();
-                    }
-                }
+                     if (!$hasPlayUrl || !$hasDescription || !$hasCover) {
+                         $detail = $this->getVideoDetail($vodId);
+                         if (!empty($detail)) {
+                             $saveData = $detail;
+                         }
+                     }
+
+                     $this->saveVideo($saveData);
+                     $result['success']++;
+                 } catch (\Exception $e) {
+                     if (strpos($e->getMessage(), '已存在') !== false) {
+                         $result['exists']++;
+                     } else {
+                         $result['failed']++;
+                         $result['errors'][] = ($item['vod_id'] ?? 'unknown') . ': ' . $e->getMessage();
+                     }
+                 }
 
                 // 记录处理进度
                 if ($indexKey) {
@@ -321,73 +325,168 @@ class AppleCmsService
         return $result;
     }
 
-    /**
-     * 保存视频到数据库
-     */
+    private $batchEpisodes = [];
+
     public function saveVideo(array $item): Video
     {
-        // 检查是否已存在（通过标题简单检查）
         $title = $item['vod_name'] ?? '';
-        Log::debug('[saveVideo] 开始保存视频, title=' . $title);
-        
+        $year = $item['vod_year'] ?? '';
+        $vodId = $item['vod_id'] ?? '';
+        Log::debug('[saveVideo] 开始保存视频, title=' . $title . ', year=' . $year);
+
         $video = Video::where('title', $title)
+            ->where('release_year', $year)
             ->find();
 
+        $newEpisodeCount = $this->parseEpisodeCount($item['vod_play_url'] ?? '');
+
         if ($video) {
-            Log::debug('[saveVideo] 视频已存在, title=' . $title . ', id=' . $video->id);
-            throw new \Exception('视频已存在');
-        }
-        
-        Log::debug('[saveVideo] 视频不存在，准备插入, title=' . $title);
+            Log::debug('[saveVideo] 视频已存在, id=' . $video->id . ', new_episodes=' . $newEpisodeCount);
 
-        // 获取分类ID
-        $categoryId = $this->getOrCreateCategory($item);
-        Log::debug('[saveVideo] 分类ID=' . $categoryId);
+            $existingCount = VideoSource::where('video_id', $video->id)
+                ->where('source_site_id', $this->site->id)
+                ->count();
 
-        // 确定视频类型
-        $type = $this->getVideoType($item);
+            if ($newEpisodeCount <= $existingCount) {
+                Log::debug('[saveVideo] 剧集数量未增加，跳过: existing=' . $existingCount . ', new=' . $newEpisodeCount);
+                return $video;
+            }
 
-        // 处理播放地址
-        $playUrls = $this->parsePlayUrl($item);
+            Log::debug('[saveVideo] 剧集数量增加，更新: existing=' . $existingCount . ', new=' . $newEpisodeCount);
+        } else {
+            $video = new Video();
+            $video->title = $title;
+            $video->created_at = date('Y-m-d H:i:s');
 
-        // 创建视频记录
-        $video = new Video();
-        $video->title = $item['vod_name'] ?? '';
-        $video->category_id = $categoryId;
-        $video->type = $type;
-        $video->cover = $item['vod_pic'] ?? '';
-        $video->banner = $item['vod_pic_slide'] ?? '';
-        $video->director = $item['vod_director'] ?? '';
-        $video->actors = isset($item['vod_actor']) ? json_encode(explode(',', $item['vod_actor']), JSON_UNESCAPED_UNICODE) : '[]';
-        $video->description = $item['vod_content'] ?? '';
-        $video->duration = intval($item['vod_duration'] ?? 0);
-        $video->release_year = $item['vod_year'] ?? '';
-        $video->region = $item['vod_area'] ?? '';
-        $video->language = $item['vod_lang'] ?? '';
-        $video->rating = floatval($item['vod_score'] ?? 0);
-        $video->is_vip = 0; // 默认非VIP
-        $video->is_show = 1;
+            $categoryId = $this->getOrCreateCategory($item);
+            $type = $this->getVideoType($item);
 
-        try {
-            $video->save();
-            Log::info('[saveVideo] 视频保存成功, id=' . $video->id . ', title=' . $title);
-        } catch (\Exception $e) {
-            Log::error('[saveVideo] 视频保存失败: ' . $e->getMessage() . ', title=' . $title);
-            throw $e;
-        }
+            $video->category_id = $categoryId;
+            $video->type = $type;
+            $video->cover = $item['vod_pic'] ?? '';
+            $video->banner = $item['vod_pic_slide'] ?? '';
+            $video->director = $item['vod_director'] ?? '';
+            $video->actors = isset($item['vod_actor']) ? json_encode(explode(',', $item['vod_actor']), JSON_UNESCAPED_UNICODE) : '[]';
+            $video->description = $item['vod_content'] ?? '';
+            $video->duration = intval($item['vod_duration'] ?? 0);
+            $video->release_year = $year;
+            $video->region = $item['vod_area'] ?? '';
+            $video->language = $item['vod_lang'] ?? '';
+            $video->rating = floatval($item['vod_score'] ?? 0);
+            $video->is_vip = 0;
+            $video->is_show = 0;
 
-        // 保存播放源/剧集（电影也可能有播放地址）
-        if (!empty($item['vod_play_url'])) {
             try {
-                $this->saveEpisodes($video, $item['vod_play_url']);
-                Log::debug('[saveVideo] 剧集保存完成, video_id=' . $video->id);
+                $video->save();
             } catch (\Exception $e) {
-                Log::error('[saveVideo] 剧集保存失败: ' . $e->getMessage() . ', video_id=' . $video->id);
-                // 剧集保存失败不影响视频保存成功
+                if (strpos($e->getMessage(), 'UNIQUE constraint') !== false) {
+                    Log::info('[saveVideo] 并发重复插入，跳过: title=' . $title);
+                    $video = Video::where('title', $title)->where('release_year', $year)->find();
+                    if (!$video) {
+                        throw $e;
+                    }
+                } else {
+                    throw $e;
+                }
             }
         }
 
+        if (!empty($vodId)) {
+            $video->source_vod_id = $vodId;
+            $video->updated_at = date('Y-m-d H:i:s');
+            $video->save();
+        }
+
+        if (!empty($item['vod_play_url'])) {
+            $this->batchEpisodes[] = ['video_id' => $video->id, 'play_url' => $item['vod_play_url']];
+        }
+
         return $video;
+    }
+
+    private function parseEpisodeCount(string $playUrl): int
+    {
+        if (empty($playUrl)) {
+            return 0;
+        }
+
+        $count = 0;
+        $parts = explode('$$$', $playUrl);
+        foreach ($parts as $part) {
+            if (empty($part)) {
+                continue;
+            }
+            $episodes = explode('#', $part);
+            foreach ($episodes as $episodeStr) {
+                if (empty($episodeStr)) {
+                    continue;
+                }
+                $pos = strpos($episodeStr, '$');
+                if ($pos !== false) {
+                    $url = substr($episodeStr, $pos + 1);
+                    if ($this->isVideoUrl($url)) {
+                        $count++;
+                    }
+                }
+            }
+        }
+        return $count;
+    }
+
+    public function flushBatchEpisodes(): void
+    {
+        if (empty($this->batchEpisodes)) {
+            return;
+        }
+
+        $videoIds = array_column($this->batchEpisodes, 'video_id');
+        VideoSource::whereIn('video_id', $videoIds)
+            ->where('source_site_id', $this->site->id)
+            ->delete();
+
+        foreach ($this->batchEpisodes as $batch) {
+            $this->saveEpisodesById($batch['video_id'], $batch['play_url']);
+        }
+
+        $this->batchEpisodes = [];
+    }
+
+    private function saveEpisodesById(int $videoId, string $playUrl): void
+    {
+        $parts = explode('$$$', $playUrl);
+
+        foreach ($parts as $index => $part) {
+            if (empty($part)) {
+                continue;
+            }
+
+            $episodes = explode('#', $part);
+
+            foreach ($episodes as $episodeStr) {
+                if (empty($episodeStr)) {
+                    continue;
+                }
+
+                $pos = strpos($episodeStr, '$');
+                if ($pos !== false) {
+                    $episodeName = trim(substr($episodeStr, 0, $pos));
+                    $url = substr($episodeStr, $pos + 1);
+
+                    if (!$this->isVideoUrl($url)) {
+                        continue;
+                    }
+
+                    $episode = new VideoSource();
+                    $episode->video_id = $videoId;
+                    $episode->source_site_id = $this->site->id;
+                    $episode->name = $episodeName;
+                    $episode->play_url = $url;
+                    $episode->sort_order = $index;
+                    $episode->status = 1;
+                    $episode->save();
+                }
+            }
+        }
     }
 
     /**

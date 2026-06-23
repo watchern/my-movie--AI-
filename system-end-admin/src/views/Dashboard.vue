@@ -4,32 +4,32 @@
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.user?.vip || 0 }}</div>
-                        <div class="label">VIP用户</div>
+                        <div class="num">{{ stats.user?.vip || 0 }}<span class="sub"> / {{ stats.user?.total || 0 }}</span></div>
+                        <div class="label">VIP用户数</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.user?.total || 0 }}</div>
-                        <div class="label">总用户</div>
+                        <div class="num">{{ stats.card?.unused || 0 }}<span class="sub"> / {{ stats.card?.total || 0 }}</span></div>
+                        <div class="label">有效兑换码</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.video?.total || 0 }}</div>
-                        <div class="label">视频数</div>
+                        <div class="num">{{ stats.video?.visible || 0 }}<span class="sub"> / {{ stats.video?.total || 0 }}</span></div>
+                        <div class="label">显示视频数</div>
                     </div>
                 </el-card>
             </el-col>
             <el-col :span="6">
                 <el-card>
                     <div class="stat">
-                        <div class="num">{{ stats.card?.unused || 0 }}</div>
-                        <div class="label">剩余兑换码</div>
+                        <div class="num">{{ stats.today?.watch_history || 0 }}</div>
+                        <div class="label">今日播放</div>
                     </div>
                 </el-card>
             </el-col>
@@ -80,6 +80,12 @@ onMounted(() => loadStats())
         font-size: 36px;
         font-weight: 600;
         color: #409eff;
+    }
+
+    .sub {
+        font-size: 16px;
+        color: #999;
+        font-weight: 400;
     }
 
     .label {

@@ -23,29 +23,27 @@
           </template>
         </el-table-column>
         <el-table-column prop="page_count" label="总页数" width="80" resizable />
-        <el-table-column prop="status" label="状态" width="80" resizable fixed="right">
-          <template #default="{ row }">
-            <el-tag :type="row.status ? 'success' : 'info'" size="small">
-              {{ row.status ? '启用' : '禁用' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="150" resizable fixed="right">
-          <template #default="{ row }">
-            <el-tooltip content="编辑" placement="top">
-              <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
-            </el-tooltip>
-            <el-tooltip content="测试连接" placement="top">
-              <el-button link type="success" @click="testConnection(row)"><el-icon><Connection /></el-icon></el-button>
-            </el-tooltip>
-            <el-tooltip :content="row.status ? '禁用' : '启用'" placement="top">
-              <el-button link type="warning" @click="toggleStatus(row)"><el-icon><Switch /></el-icon></el-button>
-            </el-tooltip>
-            <el-tooltip content="删除" placement="top">
-              <el-button link type="danger" @click="handleDelete(row)"><el-icon><Delete /></el-icon></el-button>
-            </el-tooltip>
-          </template>
-        </el-table-column>
+         <el-table-column prop="status" label="状态" width="120" resizable fixed="right">
+           <template #default="{ row }">
+             <el-switch :model-value="row.status" @change="toggleStatus(row)" />
+           </template>
+         </el-table-column>
+         <el-table-column label="操作" width="150" resizable fixed="right">
+           <template #default="{ row }">
+             <el-tooltip content="编辑" placement="top">
+               <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
+             </el-tooltip>
+             <el-tooltip content="测试连接" placement="top">
+               <el-button link type="success" @click="testConnection(row)"><el-icon><Connection /></el-icon></el-button>
+             </el-tooltip>
+             <el-tooltip content="重置采集" placement="top">
+               <el-button link type="warning" @click="resetCollectSite(row)"><el-icon><Refresh /></el-icon></el-button>
+             </el-tooltip>
+             <el-tooltip content="删除" placement="top">
+               <el-button link type="danger" @click="handleDelete(row)"><el-icon><Delete /></el-icon></el-button>
+             </el-tooltip>
+           </template>
+         </el-table-column>
       </el-table>
     </el-card>
 
@@ -85,23 +83,30 @@
           </template>
         </el-table-column>
         <el-table-column prop="total" label="总数" width="80" resizable />
-        <el-table-column prop="progress" label="进度" width="150" resizable>
+        <el-table-column label="当前视频" min-width="150" resizable show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.vod_name" style="color: #606266; font-size: 13px;">{{ row.vod_name }}</span>
+            <span v-else style="color: #c0c4cc;">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="进度" width="150" resizable>
           <template #default="{ row }">
             <el-progress :percentage="row.percent || 0" :stroke-width="8" />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" resizable>
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              size="small"
-              :loading="row.collect_status === 'running' || row.collect_status === 'pending'"
-              @click="startCollect(row)"
-            >
-              {{ row.collect_status === 'running' || row.collect_status === 'pending' ? '采集中' : '开始采集' }}
-            </el-button>
-          </template>
-        </el-table-column>
+         <el-table-column label="操作" width="160" resizable fixed="right">
+           <template #default="{ row }">
+             <el-tooltip content="开始采集" placement="top">
+               <el-button link type="primary" @click="startCollect(row)"><el-icon><VideoPlay /></el-icon></el-button>
+             </el-tooltip>
+             <el-tooltip content="处理下一个" placement="top">
+               <el-button link type="success" @click="processNextOne(row)"><el-icon><SortDown /></el-icon></el-button>
+             </el-tooltip>
+             <el-tooltip content="刷新状态" placement="top">
+               <el-button link type="info" @click="fetchProgress(row)"><el-icon><RefreshRight /></el-icon></el-button>
+             </el-tooltip>
+           </template>
+         </el-table-column>
       </el-table>
     </el-card>
 
@@ -151,7 +156,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { get, post } from '@/utils/request'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, Delete, Connection, Switch } from '@element-plus/icons-vue'
+import { Edit, Delete, Connection, Refresh, VideoPlay, RefreshRight, SortDown } from '@element-plus/icons-vue'
 
 const list = ref([])
 const showAddDialog = ref(false)
@@ -167,6 +172,7 @@ const form = ref({
   collect_status: '',
   total: 0,
   percent: 0,
+  vod_name: '',
 })
 
 const siteTypeOptions = {
@@ -183,13 +189,13 @@ const loadList = async () => {
     collect_status: '',
     total: 0,
     percent: 0,
+    vod_name: '',
   }))
 
   // 恢复真实的采集状态
   await restoreCollectStatus()
 }
 
-// 页面加载时恢复每个站点的采集状态（串行查询，避免并发请求导致服务端压力）
 const restoreCollectStatus = async () => {
   if (list.value.length === 0) return
 
@@ -202,8 +208,12 @@ const restoreCollectStatus = async () => {
         row.collect_status = 'running'
         row.total = progress.total || 0
         row.percent = progress.percent || 0
-        // 恢复轮询，由前端继续驱动处理
-        startProgressPolling(row)
+      } else if (progress.status === 'completed') {
+        row.collect_status = 'completed'
+        row.total = progress.total || 0
+        row.percent = 100
+      } else {
+        row.collect_status = ''
       }
     } catch (e) {
       console.error('恢复采集状态失败', e)
@@ -305,8 +315,12 @@ const toggleStatus = async (row) => {
   loadList()
 }
 
-// 轮询定时器
-const progressTimers = ref({})
+const resetCollectSite = async (row) => {
+  await post('/collectSource/resetCollect', { id: row.id })
+  row.page_count = 0
+  row.last_collected_page = 0
+  ElMessage.success('采集状态已重置，下次将从全量开始采集')
+}
 
 const startCollect = async (row) => {
   row.collect_status = 'running'
@@ -314,16 +328,9 @@ const startCollect = async (row) => {
   row.percent = 0
 
   try {
-    const res = await post('/video/collect', {
-      source_id: row.id,
-      api_url: row.api_url
-    })
-    const data = res.data || {}
-    row.total = data.total || 0
-    ElMessage.success(data.msg || '采集已开始')
-
-    // 启动轮询，由前端驱动处理所有视频（包括第一个）
-    startProgressPolling(row)
+    await get('/video/collectBySourceId', { source_id: row.id })
+    ElMessage.success('采集任务已启动')
+    await fetchProgress(row)
   } catch (e) {
     row.collect_status = ''
     ElMessage.error(e.message || '采集失败')
@@ -337,7 +344,6 @@ const startCollectAll = async () => {
     return
   }
 
-  // 检查是否有站点正在采集中
   const running = list.value.find(item => item.collect_status === 'running' || item.collect_status === 'pending')
   if (running) {
     ElMessage.warning('已有站点在采集中，请等待完成后再启动')
@@ -346,7 +352,6 @@ const startCollectAll = async () => {
 
   ElMessage.success(`串行采集 ${selectedList.length} 个站点`)
 
-  // 串行执行：一个站点完成后再启动下一个
   for (const row of selectedList) {
     try {
       await startCollect(row)
@@ -356,76 +361,40 @@ const startCollectAll = async () => {
   }
 }
 
-// 是否正在处理中（防止并发）
-const isProcessing = ref({})
-
-// 启动进度轮询（串行模式：一次请求完成后再发起下一次）
-const startProgressPolling = (row) => {
-  // 清除已有定时器
-  if (progressTimers.value[row.id]) {
-    clearInterval(progressTimers.value[row.id])
-    delete progressTimers.value[row.id]
-  }
-
-  // 标记为处理中
-  isProcessing.value[row.id] = true
-
-  // 启动串行处理链
-  processNextAndFetchProgress(row)
-}
-
-// 驱动处理下一个视频并刷新进度（串行执行）
-const processNextAndFetchProgress = async (row) => {
-  // 如果已经停止处理，直接返回
-  if (!isProcessing.value[row.id]) {
-    return
-  }
-
+const processNextOne = async (row) => {
   try {
-    // 1. 先驱动后端处理一个视频
-    const res = await get('/video/collectProcessNext', { source_id: row.id })
+    const res = await get('/video/collectBySourceId', { source_id: row.id })
     const result = res.data || {}
 
-    // 2. 更新行数据状态
     if (result.status === 'completed') {
       row.collect_status = 'completed'
       row.total = result.total || row.total
       row.percent = 100
+      row.vod_name = result.vod_name || ''
       ElMessage.success(result.msg || '采集完成')
-      stopProgressPolling(row)
       return
     }
 
     if (result.status === 'failed') {
       row.collect_status = ''
       ElMessage.error(result.msg || '采集失败')
-      stopProgressPolling(row)
       return
     }
 
     if (result.status === 'idle') {
       row.collect_status = ''
-      stopProgressPolling(row)
       return
     }
 
-    // 3. 运行中，获取最新进度
-    await fetchProgress(row)
-
-    // 4. 如果仍在运行中，继续下一次处理（串行）
-    if (isProcessing.value[row.id]) {
-      processNextAndFetchProgress(row)
-    }
+    row.total = result.total || 0
+    row.percent = result.percent || 0
+    row.collect_status = 'running'
+    row.vod_name = result.vod_name || ''
   } catch (e) {
     console.error('驱动采集处理失败', e)
-    // 出错时也继续下一次，避免卡住
-    if (isProcessing.value[row.id]) {
-      processNextAndFetchProgress(row)
-    }
   }
 }
 
-// 获取采集进度
 const fetchProgress = async (row) => {
   try {
     const res = await get('/video/collectProgress', { source_id: row.id })
@@ -433,39 +402,21 @@ const fetchProgress = async (row) => {
 
     row.total = progress.total || 0
     row.percent = progress.percent || 0
+    row.vod_name = progress.vod_name || ''
 
-    // 运行中
     if (progress.status === 'running' || progress.status === 'pending') {
       row.collect_status = 'running'
-    }
-
-    // 任务结束、失败或空闲时停止轮询
-    if (progress.status === 'completed' || progress.status === 'failed' || progress.status === 'idle') {
-      if (progress.status === 'completed') {
-        ElMessage.success(progress.msg || '采集完成')
-      } else if (progress.status === 'failed') {
-        ElMessage.error(progress.msg || '采集失败')
-      }
-      stopProgressPolling(row)
+    } else if (progress.status === 'completed') {
+      row.collect_status = 'completed'
+      row.percent = 100
+    } else {
+      row.collect_status = ''
     }
   } catch (e) {
     console.error('获取采集进度失败', e)
   }
 }
 
-// 停止进度轮询
-const stopProgressPolling = (row) => {
-  // 标记为停止处理
-  isProcessing.value[row.id] = false
-
-  if (progressTimers.value[row.id]) {
-    clearInterval(progressTimers.value[row.id])
-    delete progressTimers.value[row.id]
-  }
-  row.collect_status = ''
-}
-
-// 强制重置采集任务
 const resetCollect = () => {
   ElMessageBox.confirm(
     '确定强制重置采集任务吗？这会清除任务队列、worker锁和采集进度。',
@@ -474,16 +425,11 @@ const resetCollect = () => {
   ).then(async () => {
     await post('/video/collectReset', {})
 
-    // 停止所有轮询并清空状态
-    Object.keys(progressTimers.value).forEach(id => {
-      clearInterval(progressTimers.value[id])
-    })
-    progressTimers.value = {}
-
     list.value.forEach(row => {
       row.collect_status = ''
       row.total = 0
       row.percent = 0
+      row.vod_name = ''
     })
 
     ElMessage.success('采集任务已重置')
@@ -492,13 +438,7 @@ const resetCollect = () => {
 
 onMounted(() => loadList())
 
-onUnmounted(() => {
-  // 页面卸载时清除所有定时器
-  Object.keys(progressTimers.value).forEach(id => {
-    clearInterval(progressTimers.value[id])
-  })
-  progressTimers.value = {}
-})
+onUnmounted(() => {})
 </script>
 
 <style lang="scss" scoped>

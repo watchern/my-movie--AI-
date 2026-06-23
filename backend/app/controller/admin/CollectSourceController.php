@@ -4,6 +4,8 @@ namespace app\controller\admin;
 
 use app\BaseController;
 use app\model\CollectSource;
+use app\model\AdminLog;
+use think\facade\Cache;
 use think\facade\Db;
 
 /**
@@ -66,6 +68,9 @@ class CollectSourceController extends BaseController
             'page_count' => $page_count,
         ]);
 
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "添加资源站点「{$name}(ID:{$source->id})");
+
         return $this->success($source);
     }
 
@@ -113,6 +118,9 @@ class CollectSourceController extends BaseController
             'page_count' => $page_count,
         ]);
 
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "编辑资源站点「{$name}」(ID:{$id})");
+
         return $this->success($source);
     }
 
@@ -133,7 +141,11 @@ class CollectSourceController extends BaseController
             return $this->error('记录不存在');
         }
 
+        $sourceName = $source->name;
         $source->delete();
+
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "删除资源站点「{$sourceName}」(ID:{$id})");
 
         return $this->success();
     }
@@ -203,6 +215,40 @@ class CollectSourceController extends BaseController
     }
 
     /**
+     * 重置采集状态（清空断点记录和运行标记，下次触发全量采集）
+     */
+    public function resetCollect()
+    {
+        $data = $this->getData();
+        $id = intval($data['id'] ?? 0);
+
+        if ($id <= 0) {
+            return $this->error('参数错误');
+        }
+
+        $source = CollectSource::find($id);
+        if (!$source) {
+            return $this->error('记录不存在');
+        }
+
+        $source->page_count = 0;
+        $source->last_collected_page = 0;
+        $source->last_collected_vod_id = '';
+        $source->last_collected_at = null;
+        $source->save();
+
+        Cache::delete('collection_task_running_' . $id);
+        Cache::delete('collection_progress_' . $id);
+        Cache::delete('collection_video_list_' . $id);
+        Cache::delete('collection_process_index_' . $id);
+
+        $adminId = session('admin_id') ?? 0;
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "重置资源站点「{$source->name}」(ID:{$id})的采集状态");
+
+        return $this->success();
+    }
+
+    /**
      * 切换状态
      */
     public function toggleStatus()
@@ -219,7 +265,12 @@ class CollectSourceController extends BaseController
             return $this->error('记录不存在');
         }
 
-        $source->save(['status' => $source->status ? 0 : 1]);
+        $newStatus = $source->status ? 0 : 1;
+        $source->save(['status' => $newStatus]);
+
+        $adminId = session('admin_id') ?? 0;
+        $actionText = $newStatus ? '启用' : '禁用';
+        AdminLog::record($adminId, AdminLog::TYPE_OTHER, "资源站点「{$source->name}」(ID:{$id}) - {$actionText}");
 
         return $this->success();
     }
