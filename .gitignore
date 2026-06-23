@@ -4,7 +4,7 @@ node_modules
 install.lock
 .env
 database/*.db
-database/*.sqlite
+database/*.sqlite*
 database/*.sqlite3
 backend/runtime
 backend/public/test*.php
@@ -13,3 +13,4 @@ backend/public/test_*.php
 dist
 .kilo
 .ai
+/*.php
