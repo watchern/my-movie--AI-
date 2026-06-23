@@ -185,6 +185,8 @@ class CollectionTaskService
 
           $nextPage = $currentPage - 1;
 
+          $pageList = array_reverse($pageList);
+
           $cacheKey = self::getListCacheKey($collectSourceId);
           Cache::set($cacheKey, ['list' => $pageList, 'page' => $currentPage, 'next_page' => $nextPage, 'limit' => $limit, 'page_count' => $pageCount, 'type_ids' => $typeIds], 3600);
 
@@ -333,13 +335,14 @@ class CollectionTaskService
         $item = $listData['list'][$index];
         $current = $index + 1;
         $percent = $total > 0 ? floor(($current / $total) * 100) : 0;
+        $displayIndex = $total - $current + 1;
 
         Cache::set($progressKey, [
             'status' => 'running',
             'total' => $total,
             'current' => $current,
             'percent' => $percent,
-            'msg' => "正在处理第 {$current}/{$total} 个视频",
+            'msg' => "正在处理第 {$displayIndex}/{$total} 个视频（倒序）",
             'vod_name' => $item['vod_name'] ?? '',
             'vod_id' => $item['vod_id'] ?? '',
             'updated_at' => time(),
@@ -402,7 +405,7 @@ class CollectionTaskService
 
             return [
                 'status' => 'running',
-                'msg' => "已处理第 {$current}/{$total} 个视频",
+                'msg' => "已处理第 {$displayIndex}/{$total} 个视频（倒序）",
                 'total' => $total,
                 'current' => $current,
                 'percent' => $percent,
