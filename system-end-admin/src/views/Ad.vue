@@ -51,14 +51,13 @@
           </el-select>
         </el-form-item>
         <el-form-item label="图片" required>
-          <div style="margin-bottom: 10px;">
-            <el-radio-group v-model="imageInputType" @change="handleImageTypeChange">
-              <el-radio value="upload">上传图片</el-radio>
-              <el-radio value="url">远程URL</el-radio>
-            </el-radio-group>
-          </div>
-          <div v-if="imageInputType === 'upload'" style="display: flex; align-items: center; gap: 10px;">
+          <el-radio-group v-model="imageInputType" @change="handleImageTypeChange" size="small">
+            <el-radio-button value="upload">上传图片</el-radio-button>
+            <el-radio-button value="url">远程URL</el-radio-button>
+          </el-radio-group>
+          <div v-if="imageInputType === 'upload'" style="margin-top: 12px;">
             <el-upload
+              v-if="!form.image_base64"
               :auto-upload="false"
               :limit="1"
               accept="image/*"
@@ -68,11 +67,19 @@
             >
               <el-icon><Plus /></el-icon>
             </el-upload>
-            <span style="color: #999; font-size: 12px;">建议尺寸: 600x300</span>
+            <div v-else style="display: flex; align-items: center; gap: 12px;">
+              <img :src="form.image_base64" style="width: 100px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" />
+              <el-button size="small" type="danger" @click="handleRemove">删除并重新上传</el-button>
+            </div>
+            <div style="color: #999; font-size: 12px; margin-top: 6px;">建议尺寸: 600x300</div>
           </div>
-          <div v-else>
-            <el-input v-model="form.image_url" placeholder="输入图片URL，如 https://example.com/ad.jpg" />
-            <el-button size="small" style="margin-top: 8px;" @click="previewUrlImage">预览</el-button>
+          <div v-else style="margin-top: 12px;">
+            <el-input v-model="form.image_url" placeholder="输入图片URL，如 https://example.com/ad.jpg" size="small" />
+            <el-button size="small" style="margin-top: 8px;" @click="previewUrlImage">预览并转换</el-button>
+            <div v-if="form.image_base64" style="margin-top: 8px; display: flex; align-items: center; gap: 12px;">
+              <img :src="form.image_base64" style="width: 100px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd;" />
+              <el-button size="small" type="danger" @click="form.image_base64 = ''">删除并重新输入</el-button>
+            </div>
           </div>
         </el-form-item>
         <el-form-item label="跳转链接">
