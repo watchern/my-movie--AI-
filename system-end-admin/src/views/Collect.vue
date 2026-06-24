@@ -167,6 +167,27 @@
         <el-button type="success" @click="testConnection(form)">测试连接</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="showBreakpointDialog" title="编辑断点信息" width="450px">
+      <el-form :model="breakpointForm" label-width="100px">
+        <el-form-item label="站点名称">
+          <el-input v-model="breakpointForm.name" disabled />
+        </el-form-item>
+        <el-form-item label="断点页码">
+          <el-input-number v-model="breakpointForm.last_collected_page" :min="0" :max="99999" style="width: 100%" />
+        </el-form-item>
+        <el-form-item label="视频ID">
+          <el-input v-model="breakpointForm.last_collected_vod_id" placeholder="资源站视频ID" />
+        </el-form-item>
+        <el-form-item label="视频名称">
+          <el-input v-model="breakpointForm.last_collected_vod_name" placeholder="视频名称（可选）" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="showBreakpointDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveBreakpoint">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -496,27 +517,6 @@ onMounted(() => loadList())
 
 onUnmounted(() => {})
 </script>
-
-<el-dialog v-model="showBreakpointDialog" title="编辑断点信息" width="450px">
-  <el-form :model="breakpointForm" label-width="100px">
-    <el-form-item label="站点名称">
-      <el-input v-model="breakpointForm.name" disabled />
-    </el-form-item>
-    <el-form-item label="断点页码">
-      <el-input-number v-model="breakpointForm.last_collected_page" :min="0" :max="99999" style="width: 100%" />
-    </el-form-item>
-    <el-form-item label="视频ID">
-      <el-input v-model="breakpointForm.last_collected_vod_id" placeholder="资源站视频ID" />
-    </el-form-item>
-    <el-form-item label="视频名称">
-      <el-input v-model="breakpointForm.last_collected_vod_name" placeholder="视频名称（可选）" />
-    </el-form-item>
-  </el-form>
-  <template #footer>
-    <el-button @click="showBreakpointDialog = false">取消</el-button>
-    <el-button type="primary" @click="saveBreakpoint">保存</el-button>
-  </template>
-</el-dialog>
 
 <style lang="scss" scoped>
 .header {
