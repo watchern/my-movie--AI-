@@ -25,7 +25,7 @@ class CollectSourceController extends BaseController
         $list = $query->page($page, $limit)->select();
         $total = $query->count();
 
-        $fields = ['id', 'name', 'description', 'api_url', 'site_type', 'status', 'page_count', 'last_collected_page', 'last_collected_vod_id', 'last_collected_vod_name', 'last_collected_vod_pic', 'last_collected_vod_year', 'last_collected_vod_score', 'last_collected_at', 'created_at', 'updated_at'];
+        $fields = ['id', 'name', 'description', 'api_url', 'site_type', 'status', 'page_count', 'last_collected_page', 'last_collected_vod_id', 'last_vod_name', 'last_collected_at', 'created_at', 'updated_at'];
         $list = $list->visible($fields);
 
         return $this->success([
@@ -302,7 +302,7 @@ class CollectSourceController extends BaseController
 
         $source->last_collected_page = intval($data['last_collected_page'] ?? 0);
         $source->last_collected_vod_id = $data['last_collected_vod_id'] ?? '';
-        $source->last_collected_vod_name = $data['last_collected_vod_name'] ?? '';
+        $source->last_vod_name = $data['last_vod_name'] ?? '';
         $source->save();
 
         $adminId = session('admin_id') ?? 0;

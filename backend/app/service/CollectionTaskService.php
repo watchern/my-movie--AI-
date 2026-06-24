@@ -102,10 +102,6 @@ class CollectionTaskService
           $lastCollectedPage = intval($source->last_collected_page ?? 0);
           $lastCollectedAt = $source->last_collected_at ?? '';
           $lastVodName = $source->last_vod_name ?? '';
-          $lastVodPic = $source->last_vod_pic ?? '';
-          $lastVodYear = $source->last_vod_year ?? '';
-          $lastVodScore = $source->last_vod_score ?? 0;
-          $lastVodDuration = $source->last_vod_duration ?? 0;
 
           $shouldResume = !empty($lastVodId) && $lastCollectedPage > 0
               && (strtotime($lastCollectedAt) > time() - 7200);
@@ -328,11 +324,7 @@ class CollectionTaskService
             if ($sourceModel) {
                 $sourceModel->last_collected_page = 0;
                 $sourceModel->last_collected_vod_id = '';
-                $sourceModel->last_collected_vod_name = '';
-                $sourceModel->last_collected_vod_pic = '';
-                $sourceModel->last_collected_vod_year = '';
-                $sourceModel->last_collected_vod_score = 0;
-                $sourceModel->last_collected_vod_duration = 0;
+                $sourceModel->last_vod_name = '';
                 $sourceModel->last_collected_at = date('Y-m-d H:i:s');
                 $sourceModel->save();
             }
@@ -405,11 +397,7 @@ class CollectionTaskService
             $source = CollectSource::find($collectSourceId);
             if ($source) {
                 $source->last_collected_vod_id = strval($vodId);
-                $source->last_collected_vod_name = $item['vod_name'] ?? '';
-                $source->last_collected_vod_pic = $item['vod_pic'] ?? '';
-                $source->last_collected_vod_year = $item['vod_year'] ?? '';
-                $source->last_collected_vod_score = floatval($item['vod_score'] ?? 0);
-                $source->last_collected_vod_duration = intval($item['vod_duration'] ?? 0);
+                $source->last_vod_name = $item['vod_name'] ?? '';
                 $source->last_collected_at = date('Y-m-d H:i:s');
                 $source->save();
             }

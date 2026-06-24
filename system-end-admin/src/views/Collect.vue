@@ -29,8 +29,8 @@
         <el-table-column prop="last_collected_page" label="断点页码" width="90" resizable />
         <el-table-column label="断点视频(ID)" min-width="220" resizable show-overflow-tooltip>
           <template #default="{ row }">
-            <span v-if="row.last_collected_vod_name" style="color: #606266;">
-              {{ row.last_collected_vod_name }}
+            <span v-if="row.last_vod_name" style="color: #606266;">
+              {{ row.last_vod_name }}
               <span style="color: #999; font-size: 12px;">(ID:{{ row.last_collected_vod_id }})</span>
             </span>
             <span v-else-if="row.last_collected_vod_id" style="color: #999;">
@@ -496,7 +496,7 @@ const breakpointForm = ref({
   name: '',
   last_collected_page: 0,
   last_collected_vod_id: '',
-  last_collected_vod_name: '',
+  last_vod_name: '',
 })
 
 const handleEditBreakpoint = (row) => {
@@ -505,7 +505,7 @@ const handleEditBreakpoint = (row) => {
     name: row.name,
     last_collected_page: row.last_collected_page || 0,
     last_collected_vod_id: row.last_collected_vod_id || '',
-    last_collected_vod_name: row.last_collected_vod_name || '',
+    last_vod_name: row.last_vod_name || '',
   }
   showBreakpointDialog.value = true
 }
@@ -518,7 +518,7 @@ const saveBreakpoint = async () => {
       id: breakpointForm.value.id,
       last_collected_page: breakpointForm.value.last_collected_page,
       last_collected_vod_id: breakpointForm.value.last_collected_vod_id,
-      last_collected_vod_name: breakpointForm.value.last_collected_vod_name,
+      last_vod_name: breakpointForm.value.last_vod_name,
     })
     ElMessage.success('断点信息已更新')
     showBreakpointDialog.value = false
