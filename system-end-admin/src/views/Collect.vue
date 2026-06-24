@@ -26,36 +26,15 @@
           </template>
         </el-table-column>
         <el-table-column prop="page_count" label="总页数" width="80" resizable />
-        <el-table-column prop="last_collected_page" label="断点页码" width="90" resizable />
-        <el-table-column label="断点视频(ID)" min-width="220" resizable show-overflow-tooltip>
-          <template #default="{ row }">
-            <span v-if="row.last_vod_name" style="color: #606266;">
-              {{ row.last_vod_name }}
-              <span style="color: #999; font-size: 12px;">(ID:{{ row.last_collected_vod_id }})</span>
-            </span>
-            <span v-else-if="row.last_collected_vod_id" style="color: #999;">
-              ID:{{ row.last_collected_vod_id }}
-            </span>
-            <span v-else style="color: #c0c4cc;">-</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="采集时间" width="160" resizable>
-          <template #default="{ row }">
-            {{ row.last_collected_at || '-' }}
-          </template>
-        </el-table-column>
         <el-table-column prop="status" label="状态" width="80" resizable fixed="right">
             <template #default="{ row }">
               <el-switch :model-value="row.status" @change="toggleStatus(row)" />
             </template>
           </el-table-column>
-          <el-table-column label="操作" width="220" resizable fixed="right">
+          <el-table-column label="操作" width="150" resizable fixed="right">
             <template #default="{ row }">
-              <el-tooltip content="编辑站点" placement="top">
+              <el-tooltip content="编辑" placement="top">
                 <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
-              </el-tooltip>
-              <el-tooltip content="编辑断点" placement="top">
-                <el-button link type="info" size="small" @click="handleEditBreakpoint(row)">断点</el-button>
               </el-tooltip>
               <el-tooltip content="测试连接" placement="top">
                 <el-button link type="success" @click="testConnection(row)"><el-icon><Connection /></el-icon></el-button>
@@ -117,6 +96,24 @@
         <el-table-column label="进度" width="150" resizable>
           <template #default="{ row }">
             <el-progress :percentage="row.percent || 0" :stroke-width="8" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="last_collected_page" label="断点页码" width="90" resizable />
+        <el-table-column label="断点视频(ID)" min-width="200" resizable show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.last_vod_name" style="color: #606266;">
+              {{ row.last_vod_name }}
+              <span style="color: #999; font-size: 12px;">(ID:{{ row.last_collected_vod_id }})</span>
+            </span>
+            <span v-else-if="row.last_collected_vod_id" style="color: #999;">
+              ID:{{ row.last_collected_vod_id }}
+            </span>
+            <span v-else style="color: #c0c4cc;">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="采集时间" width="150" resizable>
+          <template #default="{ row }">
+            {{ row.last_collected_at || '-' }}
           </template>
         </el-table-column>
          <el-table-column label="操作" width="160" resizable fixed="right">
@@ -264,6 +261,11 @@ const restoreCollectStatus = async () => {
         row.collect_status = ''
         row.vod_name = ''
       }
+
+      row.last_collected_page = progress.last_collected_page || row.last_collected_page || 0
+      row.last_collected_vod_id = progress.last_collected_vod_id || row.last_collected_vod_id || ''
+      row.last_vod_name = progress.last_vod_name || row.last_vod_name || ''
+      row.last_collected_at = progress.last_collected_at || row.last_collected_at || ''
     } catch (e) {
       console.error('恢复采集状态失败', e)
     }

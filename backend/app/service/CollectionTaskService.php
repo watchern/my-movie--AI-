@@ -452,29 +452,37 @@ class CollectionTaskService
         $progressKey = self::getProgressCacheKey($collectSourceId);
         $progress = Cache::get($progressKey);
 
+        $source = CollectSource::find($collectSourceId);
+        $breakpoint = [
+            'last_collected_page' => $source->last_collected_page ?? 0,
+            'last_collected_vod_id' => $source->last_collected_vod_id ?? '',
+            'last_vod_name' => $source->last_vod_name ?? '',
+            'last_collected_at' => $source->last_collected_at ?? '',
+        ];
+
         if ($progress) {
-            return $progress;
+            return array_merge($progress, $breakpoint);
         }
 
         $cacheKey = self::getListCacheKey($collectSourceId);
         if (Cache::get($cacheKey)) {
-            return [
+            return array_merge([
                 'status' => 'running',
                 'total' => 0,
                 'current' => 0,
                 'percent' => 0,
                 'msg' => '等待前端驱动处理',
                 'updated_at' => time(),
-            ];
+            ], $breakpoint);
         }
 
-        return [
+        return array_merge([
             'status' => 'idle',
             'total' => 0,
             'current' => 0,
             'percent' => 0,
             'msg' => '暂无采集任务',
-        ];
+        ], $breakpoint);
     }
 
     /**
