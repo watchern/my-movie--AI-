@@ -27,11 +27,14 @@
         </el-table-column>
         <el-table-column prop="page_count" label="总页数" width="80" resizable />
         <el-table-column prop="last_collected_page" label="断点页码" width="90" resizable />
-        <el-table-column label="断点视频" min-width="180" resizable show-overflow-tooltip>
+        <el-table-column label="断点视频(ID)" min-width="220" resizable show-overflow-tooltip>
           <template #default="{ row }">
             <span v-if="row.last_collected_vod_name" style="color: #606266;">
               {{ row.last_collected_vod_name }}
               <span style="color: #999; font-size: 12px;">(ID:{{ row.last_collected_vod_id }})</span>
+            </span>
+            <span v-else-if="row.last_collected_vod_id" style="color: #999;">
+              ID:{{ row.last_collected_vod_id }}
             </span>
             <span v-else style="color: #c0c4cc;">-</span>
           </template>
@@ -41,12 +44,12 @@
             {{ row.last_collected_at || '-' }}
           </template>
         </el-table-column>
-          <el-table-column prop="status" label="状态" width="120" resizable fixed="right">
-           <template #default="{ row }">
-             <el-switch :model-value="row.status" @change="toggleStatus(row)" />
-           </template>
-         </el-table-column>
-          <el-table-column label="操作" width="180" resizable fixed="right">
+        <el-table-column prop="status" label="状态" width="80" resizable fixed="right">
+            <template #default="{ row }">
+              <el-switch :model-value="row.status" @change="toggleStatus(row)" />
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="220" resizable fixed="right">
             <template #default="{ row }">
               <el-tooltip content="编辑站点" placement="top">
                 <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
