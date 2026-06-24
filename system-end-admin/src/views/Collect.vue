@@ -69,7 +69,7 @@
         style="margin-bottom: 15px;"
       />
 
-      <el-table :data="list.filter(item => item.status)" border stripe>
+      <el-table :data="list" border stripe>
         <el-table-column width="50" resizable>
           <template #default="{ row }">
             <el-checkbox v-model="row.selected" />
