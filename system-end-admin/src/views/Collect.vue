@@ -4,7 +4,10 @@
       <template #header>
         <div class="header">
           <span>资源站点管理</span>
-          <el-button type="primary" @click="showAddDialog = true">添加站点</el-button>
+          <div>
+            <el-button size="small" @click="loadList"><el-icon><Refresh /></el-icon> 刷新</el-button>
+            <el-button type="primary" @click="showAddDialog = true">添加站点</el-button>
+          </div>
         </div>
       </template>
       
@@ -70,6 +73,7 @@
         <div class="header">
           <span>采集任务</span>
           <div>
+            <el-button size="small" @click="refreshCollectStatus"><el-icon><Refresh /></el-icon> 刷新</el-button>
             <el-button type="danger" style="margin-right: 10px;" @click="resetCollect">强制重置采集</el-button>
             <el-button type="primary" @click="startCollectAll">采集全部</el-button>
           </div>
@@ -346,6 +350,11 @@ const testConnection = async (row) => {
   } catch (e) {
     ElMessage.error(e.message || '连接失败')
   }
+}
+
+const refreshCollectStatus = async () => {
+  await restoreCollectStatus()
+  ElMessage.success('刷新成功')
 }
 
 const toggleStatus = async (row) => {
