@@ -140,7 +140,7 @@ function handleAdd() {
 function handleEdit(row) {
   isEdit.value = true
   form.value = { ...row }
-  fileList.value = row.image_base64 ? [{ name: 'image', url: row.image_base64 }] : []
+  fileList.value = []
   imageInputType.value = row.image_base64 ? 'upload' : 'url'
   showDialog.value = true
 }
@@ -158,6 +158,11 @@ function handleImageChange(file) {
     form.value.image_base64 = e.target.result
   }
   reader.readAsDataURL(file.raw)
+}
+
+function handleRemove() {
+  form.value.image_base64 = ''
+  fileList.value = []
 }
 
 function previewUrlImage() {
