@@ -151,7 +151,9 @@ class CollectionTaskService
 
           $foundResumePoint = !$shouldResume;
 
-          $pageList = array_reverse($pageList);
+          usort($pageList, function ($a, $b) {
+              return intval($a['vod_id'] ?? 0) <=> intval($b['vod_id'] ?? 0);
+          });
 
           if (!$foundResumePoint && !empty($lastVodId)) {
               $foundInPage = false;
