@@ -151,6 +151,8 @@ class CollectionTaskService
 
           $foundResumePoint = !$shouldResume;
 
+          $pageList = array_reverse($pageList);
+
           if (!$foundResumePoint && !empty($lastVodId)) {
               $foundInPage = false;
               $filtered = [];
@@ -191,8 +193,6 @@ class CollectionTaskService
           }
 
           $nextPage = $currentPage - 1;
-
-          $pageList = array_reverse($pageList);
 
           $cacheKey = self::getListCacheKey($collectSourceId);
           Cache::set($cacheKey, ['list' => $pageList, 'page' => $currentPage, 'next_page' => $nextPage, 'limit' => $limit, 'page_count' => $pageCount, 'type_ids' => $typeIds], 3600);
