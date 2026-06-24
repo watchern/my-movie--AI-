@@ -254,12 +254,15 @@ const restoreCollectStatus = async () => {
         row.collect_status = 'running'
         row.total = progress.total || 0
         row.percent = progress.percent || 0
+        row.vod_name = progress.vod_name || ''
       } else if (progress.status === 'completed') {
         row.collect_status = 'completed'
         row.total = progress.total || 0
         row.percent = 100
+        row.vod_name = progress.vod_name || ''
       } else {
         row.collect_status = ''
+        row.vod_name = ''
       }
     } catch (e) {
       console.error('恢复采集状态失败', e)
