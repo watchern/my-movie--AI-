@@ -87,12 +87,6 @@
           </template>
         </el-table-column>
         <el-table-column prop="total" label="总数" width="80" resizable />
-        <el-table-column label="当前视频" min-width="150" resizable show-overflow-tooltip>
-          <template #default="{ row }">
-            <span v-if="row.vod_name" style="color: #606266; font-size: 13px;">{{ row.vod_name }}</span>
-            <span v-else style="color: #c0c4cc;">-</span>
-          </template>
-        </el-table-column>
         <el-table-column label="进度" width="150" resizable>
           <template #default="{ row }">
             <el-progress :percentage="row.percent || 0" :stroke-width="8" />
@@ -117,18 +111,21 @@
           </template>
         </el-table-column>
          <el-table-column label="操作" width="160" resizable fixed="right">
-           <template #default="{ row }">
-             <el-tooltip content="开始采集" placement="top">
-               <el-button link type="primary" @click="startCollect(row)"><el-icon><VideoPlay /></el-icon></el-button>
-             </el-tooltip>
-             <el-tooltip content="处理下一个" placement="top">
-               <el-button link type="success" @click="processNextOne(row)"><el-icon><SortDown /></el-icon></el-button>
-             </el-tooltip>
-             <el-tooltip content="刷新状态" placement="top">
-               <el-button link type="info" @click="fetchProgress(row)"><el-icon><RefreshRight /></el-icon></el-button>
-             </el-tooltip>
-           </template>
-         </el-table-column>
+            <template #default="{ row }">
+              <el-tooltip content="开始采集" placement="top">
+                <el-button link type="primary" @click="startCollect(row)"><el-icon><VideoPlay /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="处理下一个" placement="top">
+                <el-button link type="success" @click="processNextOne(row)"><el-icon><SortDown /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="编辑断点" placement="top">
+                <el-button link type="warning" size="small" @click="handleEditBreakpoint(row)">断点</el-button>
+              </el-tooltip>
+              <el-tooltip content="刷新状态" placement="top">
+                <el-button link type="info" @click="fetchProgress(row)"><el-icon><RefreshRight /></el-icon></el-button>
+              </el-tooltip>
+            </template>
+          </el-table-column>
       </el-table>
     </el-card>
 
