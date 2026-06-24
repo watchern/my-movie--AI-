@@ -181,7 +181,7 @@
           <el-input v-model="breakpointForm.last_collected_vod_id" placeholder="资源站视频ID" />
         </el-form-item>
         <el-form-item label="视频名称">
-          <el-input v-model="breakpointForm.last_collected_vod_name" placeholder="视频名称（可选）" />
+          <el-input v-model="breakpointForm.last_vod_name" disabled />
         </el-form-item>
       </el-form>
       <template #footer>
