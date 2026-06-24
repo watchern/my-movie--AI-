@@ -23,27 +23,45 @@
           </template>
         </el-table-column>
         <el-table-column prop="page_count" label="总页数" width="80" resizable />
-         <el-table-column prop="status" label="状态" width="120" resizable fixed="right">
+        <el-table-column prop="last_collected_page" label="断点页码" width="90" resizable />
+        <el-table-column label="断点视频" min-width="180" resizable show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.last_collected_vod_name" style="color: #606266;">
+              {{ row.last_collected_vod_name }}
+              <span style="color: #999; font-size: 12px;">(ID:{{ row.last_collected_vod_id }})</span>
+            </span>
+            <span v-else style="color: #c0c4cc;">-</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="采集时间" width="160" resizable>
+          <template #default="{ row }">
+            {{ row.last_collected_at || '-' }}
+          </template>
+        </el-table-column>
+          <el-table-column prop="status" label="状态" width="120" resizable fixed="right">
            <template #default="{ row }">
              <el-switch :model-value="row.status" @change="toggleStatus(row)" />
            </template>
          </el-table-column>
-         <el-table-column label="操作" width="150" resizable fixed="right">
-           <template #default="{ row }">
-             <el-tooltip content="编辑" placement="top">
-               <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
-             </el-tooltip>
-             <el-tooltip content="测试连接" placement="top">
-               <el-button link type="success" @click="testConnection(row)"><el-icon><Connection /></el-icon></el-button>
-             </el-tooltip>
-             <el-tooltip content="重置采集" placement="top">
-               <el-button link type="warning" @click="resetCollectSite(row)"><el-icon><Refresh /></el-icon></el-button>
-             </el-tooltip>
-             <el-tooltip content="删除" placement="top">
-               <el-button link type="danger" @click="handleDelete(row)"><el-icon><Delete /></el-icon></el-button>
-             </el-tooltip>
-           </template>
-         </el-table-column>
+          <el-table-column label="操作" width="180" resizable fixed="right">
+            <template #default="{ row }">
+              <el-tooltip content="编辑站点" placement="top">
+                <el-button link type="primary" @click="handleEdit(row)"><el-icon><Edit /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="编辑断点" placement="top">
+                <el-button link type="info" size="small" @click="handleEditBreakpoint(row)">断点</el-button>
+              </el-tooltip>
+              <el-tooltip content="测试连接" placement="top">
+                <el-button link type="success" @click="testConnection(row)"><el-icon><Connection /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="重置采集" placement="top">
+                <el-button link type="warning" @click="resetCollectSite(row)"><el-icon><Refresh /></el-icon></el-button>
+              </el-tooltip>
+              <el-tooltip content="删除" placement="top">
+                <el-button link type="danger" @click="handleDelete(row)"><el-icon><Delete /></el-icon></el-button>
+              </el-tooltip>
+            </template>
+          </el-table-column>
       </el-table>
     </el-card>
 
@@ -436,10 +454,69 @@ const resetCollect = () => {
   }).catch(() => {})
 }
 
+const showBreakpointDialog = ref(false)
+const breakpointForm = ref({
+  id: 0,
+  name: '',
+  last_collected_page: 0,
+  last_collected_vod_id: '',
+  last_collected_vod_name: '',
+})
+
+const handleEditBreakpoint = (row) => {
+  breakpointForm.value = {
+    id: row.id,
+    name: row.name,
+    last_collected_page: row.last_collected_page || 0,
+    last_collected_vod_id: row.last_collected_vod_id || '',
+    last_collected_vod_name: row.last_collected_vod_name || '',
+  }
+  showBreakpointDialog.value = true
+}
+
+const saveBreakpoint = async () => {
+  if (!breakpointForm.value.id) return
+
+  try {
+    await post('/collectSource/updateBreakpoint', {
+      id: breakpointForm.value.id,
+      last_collected_page: breakpointForm.value.last_collected_page,
+      last_collected_vod_id: breakpointForm.value.last_collected_vod_id,
+      last_collected_vod_name: breakpointForm.value.last_collected_vod_name,
+    })
+    ElMessage.success('断点信息已更新')
+    showBreakpointDialog.value = false
+    loadList()
+  } catch (e) {
+    ElMessage.error('更新失败')
+  }
+}
+
 onMounted(() => loadList())
 
 onUnmounted(() => {})
 </script>
+
+<el-dialog v-model="showBreakpointDialog" title="编辑断点信息" width="450px">
+  <el-form :model="breakpointForm" label-width="100px">
+    <el-form-item label="站点名称">
+      <el-input v-model="breakpointForm.name" disabled />
+    </el-form-item>
+    <el-form-item label="断点页码">
+      <el-input-number v-model="breakpointForm.last_collected_page" :min="0" :max="99999" style="width: 100%" />
+    </el-form-item>
+    <el-form-item label="视频ID">
+      <el-input v-model="breakpointForm.last_collected_vod_id" placeholder="资源站视频ID" />
+    </el-form-item>
+    <el-form-item label="视频名称">
+      <el-input v-model="breakpointForm.last_collected_vod_name" placeholder="视频名称（可选）" />
+    </el-form-item>
+  </el-form>
+  <template #footer>
+    <el-button @click="showBreakpointDialog = false">取消</el-button>
+    <el-button type="primary" @click="saveBreakpoint">保存</el-button>
+  </template>
+</el-dialog>
 
 <style lang="scss" scoped>
 .header {
