@@ -259,10 +259,10 @@ const restoreCollectStatus = async () => {
         row.vod_name = ''
       }
 
-      row.last_collected_page = progress.last_collected_page || row.last_collected_page || 0
-      row.last_collected_vod_id = progress.last_collected_vod_id || row.last_collected_vod_id || ''
-      row.last_vod_name = progress.last_vod_name || row.last_vod_name || ''
-      row.last_collected_at = progress.last_collected_at || row.last_collected_at || ''
+      row.last_collected_page = progress.last_collected_page ?? row.last_collected_page ?? 0
+      row.last_collected_vod_id = progress.last_collected_vod_id ?? row.last_collected_vod_id ?? ''
+      row.last_vod_name = progress.last_vod_name ?? row.last_vod_name ?? ''
+      row.last_collected_at = progress.last_collected_at ?? row.last_collected_at ?? ''
     } catch (e) {
       console.error('恢复采集状态失败', e)
     }
@@ -456,6 +456,10 @@ const fetchProgress = async (row) => {
     row.total = progress.total || 0
     row.percent = progress.percent || 0
     row.vod_name = progress.vod_name || ''
+    row.last_collected_page = progress.last_collected_page || 0
+    row.last_collected_vod_id = progress.last_collected_vod_id || ''
+    row.last_vod_name = progress.last_vod_name || ''
+    row.last_collected_at = progress.last_collected_at || ''
 
     if (progress.status === 'running' || progress.status === 'pending') {
       row.collect_status = 'running'
