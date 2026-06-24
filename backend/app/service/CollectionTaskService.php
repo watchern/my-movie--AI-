@@ -159,7 +159,7 @@ class CollectionTaskService
               $foundInPage = false;
               $filtered = [];
               foreach ($pageList as $item) {
-                  if (!$foundInPage && ($item['vod_id'] ?? '') === $lastVodId) {
+                  if (!$foundInPage && strval($item['vod_id'] ?? '') === strval($lastVodId)) {
                       $foundInPage = true;
                       $foundResumePoint = true;
                       continue;
@@ -404,7 +404,7 @@ class CollectionTaskService
 
             $source = CollectSource::find($collectSourceId);
             if ($source) {
-                $source->last_collected_vod_id = $vodId;
+                $source->last_collected_vod_id = strval($vodId);
                 $source->last_collected_vod_name = $item['vod_name'] ?? '';
                 $source->last_collected_vod_pic = $item['vod_pic'] ?? '';
                 $source->last_collected_vod_year = $item['vod_year'] ?? '';
