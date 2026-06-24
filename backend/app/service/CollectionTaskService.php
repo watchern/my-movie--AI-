@@ -130,6 +130,13 @@ class CollectionTaskService
           $pageData = $service->getVideoList($typeIds, $currentPage, $limit);
           $pageList = $pageData['list'] ?? [];
 
+          $apiPageCount = intval($pageData['pagecount'] ?? 0);
+          if ($apiPageCount > 0 && $apiPageCount !== intval($pageCount)) {
+              $pageCount = $apiPageCount;
+              $source->page_count = $pageCount;
+              $source->save();
+          }
+
           if (empty($pageList)) {
               if ($shouldResume && $currentPage > 0) {
                   $source->last_collected_page = $currentPage - 1;
@@ -274,6 +281,13 @@ class CollectionTaskService
 
                 $nextPageData = $service->getVideoList($typeIds, $nextPage, $limit);
                 $nextPageList = $nextPageData['list'] ?? [];
+
+                $apiPageCount = intval($nextPageData['pagecount'] ?? 0);
+                if ($apiPageCount > 0 && $apiPageCount !== intval($pageCount)) {
+                    $pageCount = $apiPageCount;
+                    $source->page_count = $pageCount;
+                    $source->save();
+                }
 
                 if (!empty($nextPageList)) {
                     $newNextPage = $nextPage - 1;
