@@ -280,6 +280,10 @@ class CollectionTaskService
                 $nextPageData = $service->getVideoList($typeIds, $nextPage, $limit);
                 $nextPageList = $nextPageData['list'] ?? [];
 
+                usort($nextPageList, function ($a, $b) {
+                    return intval($a['vod_id'] ?? 0) <=> intval($b['vod_id'] ?? 0);
+                });
+
                 $apiPageCount = intval($nextPageData['pagecount'] ?? 0);
                 if ($apiPageCount > 0 && $apiPageCount !== intval($pageCount)) {
                     $pageCount = $apiPageCount;
