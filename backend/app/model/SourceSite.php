@@ -14,9 +14,14 @@ class SourceSite extends Model
     const STATUS_DISABLED = 0;   // 禁用
     const STATUS_ENABLED = 1;    // 启用
 
+    protected $autoWriteTimestamp = true;
+    protected $createTime = 'created_at';
+    protected $updateTime = 'updated_at';
+
     protected $type = [
         'last_sync_at' => 'datetime',
         'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     // 关联视频资源
